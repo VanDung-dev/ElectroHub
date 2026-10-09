@@ -1,0 +1,5 @@
+IF DB_ID(N'ElectroHub') IS NULL
+BEGIN
+    EXEC(N'CREATE DATABASE [ElectroHub]');
+END;
+GO
