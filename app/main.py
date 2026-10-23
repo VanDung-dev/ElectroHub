@@ -14,6 +14,7 @@ from app.core.database import get_engine
 from app.core.deps import DbSession, require_csrf
 from app.core.pages import router as pages_router
 from app.routers.auth import router as auth_router
+from app.routers.cart import router as cart_router
 from app.schemas.auth import DetailResponse
 
 logger = logging.getLogger("electrohub")
@@ -64,6 +65,7 @@ def create_app() -> FastAPI:
         return DetailResponse(detail="ok")
 
     app.include_router(auth_router)
+    app.include_router(cart_router)
     app.include_router(pages_router)
     app.mount("/static", StaticFiles(directory=ROOT / "app/static"), name="static")
     return app
