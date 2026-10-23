@@ -66,3 +66,35 @@ Content-Type: application/json
 X-CSRF-Token: {{csrf_token}}
 
 {"code": "WELCOME10"}
+
+# --- Sales (P3): orders ---
+
+### Checkout: create order, decrement stock/voucher, clear cart (201)
+POST {{base}}/api/v1/orders
+Content-Type: application/json
+X-CSRF-Token: {{csrf_token}}
+
+{"name":"Khách hàng","phone":"0901234567","address":"269/20 Lý Thường Kiệt, TP.HCM","payment_method":"COD","voucher_code":"WELCOME10"}
+
+### Current user's order history
+GET {{base}}/api/v1/orders?page=1&page_size=10
+
+### Public tracking by order code + phone (owner/admin may skip phone when signed in)
+GET {{base}}/api/v1/orders/EH-XXXX?phone=0901234567
+
+### Pay: COD confirms and stays pending; CHUYEN_KHOAN_MOCK marks paid
+POST {{base}}/api/v1/orders/EH-XXXX/pay
+Content-Type: application/json
+X-CSRF-Token: {{csrf_token}}
+
+{"method": "COD"}
+
+### Admin: list orders (sign in as an admin first)
+GET {{base}}/api/v1/admin/orders?status=pending&page=1&page_size=20
+
+### Admin: change status pending -> confirmed -> shipping -> done|cancelled
+PATCH {{base}}/api/v1/admin/orders/EH-XXXX
+Content-Type: application/json
+X-CSRF-Token: {{csrf_token}}
+
+{"status": "confirmed"}

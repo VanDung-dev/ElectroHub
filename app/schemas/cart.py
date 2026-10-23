@@ -137,7 +137,7 @@ class OrderResponse(BaseModel):
     address: OrderAddress
     created_at: datetime
     items: list[OrderLine]
-    payment: OrderPayment
+    payment: OrderPayment | None = None
 
 
 class OrderSummary(BaseModel):

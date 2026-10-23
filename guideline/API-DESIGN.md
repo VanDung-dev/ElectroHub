@@ -100,7 +100,27 @@ GET  /api/v1/orders              # lịch sử user
 GET  /api/v1/orders/{code}       # tra cứu
 POST /api/v1/orders/{code}/pay   # COD xác nhận / mock VNPay
 PATCH /api/v1/admin/orders/{code} # admin đổi trạng thái: pending->confirmed->shipping->done|cancelled
+GET  /api/v1/admin/orders        # admin: danh sách/lọc trạng thái, mã đơn (bổ sung khi làm UI admin)
 ```
+
+Đã chốt khi triển khai P3 (2026-10-23, Hưng — Dũng duyệt lại khi review PR):
+
+* Cart và checkout **bắt buộc đăng nhập**; mọi API sales dùng cookie auth hiện có.
+* Giá tính tiền = `sale_price` nếu có, ngược lại `price`; mọi số tiền là `int` VND.
+* Phí ship cố định `30.000` đồng cho đơn có hàng; quy tắc này phải khớp nội dung
+  chính sách vận chuyển Gấm hiển thị (còn chờ chốt ngưỡng miễn phí nếu có).
+* Thanh toán MVP: `COD` và `CHUYEN_KHOAN_MOCK` (không gọi VNPay thật).
+  `POST /orders/{code}/pay` với COD chỉ xác nhận, payment vẫn `pending`;
+  với `CHUYEN_KHOAN_MOCK` payment chuyển `paid` kèm `reference` mock.
+* Mã đơn `EH-XXXX` (4 ký tự), duy nhất; checkout trả `201`.
+* `POST /cart/apply-voucher` chỉ xem trước giảm giá, **không** trừ lượt;
+  checkout nhận `voucher_code` và trừ đúng 1 lượt trong transaction.
+* Trạng thái đơn: `pending -> confirmed -> shipping -> done`, hủy được từ
+  `pending|confirmed`; hủy đơn hoàn kho, hoàn lượt voucher và đánh `refunded`
+  cho payment đã trả.
+* Tra cứu công khai `GET /orders/{code}?phone=…`; owner đang đăng nhập hoặc admin
+  không cần số điện thoại. Sai mã/sai số điện thoại đều trả `404`.
+* `orders.voucher_code` được thêm ngoài ERD cũ để lưu vết và hoàn lượt voucher.
 
 <a id="implementation"></a>
 
@@ -120,9 +140,9 @@ Các mục dưới đây là điểm chưa thống nhất hoặc chưa được 
 
 | Điểm cần chốt | Đối chiếu ở đâu | Người phối hợp |
 | --- | --- | --- |
-| `price`/`sale_price`: giá bán, giá gạch, giá dùng để lọc và tính tiền | [Ví dụ catalog](#catalog) và [card PLP](HSHOP-ANALYSIS.md#plp) đang mô tả chưa khớp | [Dũng](members/P1-DUNG.md#coordination) + [Giàu](members/P2-GIAU.md#coordination) + [Hưng](members/P3-HUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination) |
-| Tên và hành vi thanh toán giả lập: `VNPAY_MOCK` hay `CHUYEN_KHOAN_MOCK` | [API sales](#sales), [ERD payments](DB-MIGRATION.md#erd), [checkout](HSHOP-ANALYSIS.md#checkout) | [Dũng](members/P1-DUNG.md#coordination) + [Hưng](members/P3-HUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination) |
+| `price`/`sale_price`: giá bán, giá gạch, giá dùng để lọc và tính tiền | [Ví dụ catalog](#catalog) và [card PLP](HSHOP-ANALYSIS.md#plp) đang mô tả chưa khớp | [Dũng](members/P1-DUNG.md#coordination) + [Giàu](members/P2-GIAU.md#coordination) + [Hưng](members/P3-HUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination) — **đã chốt 2026-10-23:** tính tiền dùng `sale_price` nếu có, ngược lại `price`; lọc/sort theo giá còn chờ Giàu chốt |
+| Tên và hành vi thanh toán giả lập: `VNPAY_MOCK` hay `CHUYEN_KHOAN_MOCK` | [API sales](#sales), [ERD payments](DB-MIGRATION.md#erd), [checkout](HSHOP-ANALYSIS.md#checkout) | [Dũng](members/P1-DUNG.md#coordination) + [Hưng](members/P3-HUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination) — **đã chốt 2026-10-23:** `CHUYEN_KHOAN_MOCK`, COD thu khi giao |
 | Field/endpoint còn thiếu cho filter giá, sort tên, upload, wishlist/compare và PDP; nơi lưu dữ liệu tương ứng | [Catalog](#catalog), [ERD](DB-MIGRATION.md#erd), [PLP](HSHOP-ANALYSIS.md#plp), [PDP](HSHOP-ANALYSIS.md#pdp) | [Dũng](members/P1-DUNG.md#coordination) + [Giàu](members/P2-GIAU.md#coordination) + [Gấm](members/P4-GAM.md#coordination) |
-| Mua hàng có cần đăng nhập; xác minh mã + số điện thoại khi tra cứu; xử lý gửi checkout lặp, hủy đơn/hoàn kho và trạng thái payment | [Sales](#sales), [checkout](HSHOP-ANALYSIS.md#checkout), [transaction](DB-MIGRATION.md#data-safety) | [Dũng](members/P1-DUNG.md#coordination) + [Hưng](members/P3-HUNG.md#coordination); [Giàu](members/P2-GIAU.md#coordination) khi liên quan kho, [Gấm](members/P4-GAM.md#coordination) khi liên quan UI |
+| Mua hàng có cần đăng nhập; xác minh mã + số điện thoại khi tra cứu; xử lý gửi checkout lặp, hủy đơn/hoàn kho và trạng thái payment | [Sales](#sales), [checkout](HSHOP-ANALYSIS.md#checkout), [transaction](DB-MIGRATION.md#data-safety) | [Dũng](members/P1-DUNG.md#coordination) + [Hưng](members/P3-HUNG.md#coordination); [Giàu](members/P2-GIAU.md#coordination) khi liên quan kho, [Gấm](members/P4-GAM.md#coordination) khi liên quan UI — **đã chốt 2026-10-23:** bắt buộc đăng nhập; tra cứu bằng mã + số điện thoại; checkout lặp bị chặn khi giỏ trống; hủy đơn hoàn kho/voucher, payment đã trả chuyển `refunded` |
 | CSRF và lỗi validation đã có [contract P1](#auth), chờ Gấm xác nhận; response rỗng/upload còn cần chốt | [Nguyên tắc API](#principles), [HTML](CODING-CONVENTION.md#html), [JS](CODING-CONVENTION.md#javascript) | [Dũng](members/P1-DUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination), chủ API liên quan |
 | Số bài blog/review tối thiểu khi nghiệm thu | [Yêu cầu content](HSHOP-ANALYSIS.md#content) và [DoD MVP](DEFINITION-OF-DONE.md#mvp) đang ghi khác nhau | [Dũng](members/P1-DUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination) |
