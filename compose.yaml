@@ -1,5 +1,15 @@
 name: electrohub
 
+x-app-environment: &app-environment
+  SECRET_KEY: ${SECRET_KEY:?Set a random SECRET_KEY of at least 32 characters in .env}
+  MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set a strong MSSQL_SA_PASSWORD in .env}
+  SQLSERVER_HOST: sqlserver
+  SQLSERVER_PORT: "1433"
+  SQLSERVER_DATABASE: ElectroHub
+  SQLSERVER_TRUST_CERTIFICATE: ${SQLSERVER_TRUST_CERTIFICATE:-true}
+  COOKIE_SECURE: ${COOKIE_SECURE:-false}
+  ACCESS_TOKEN_MINUTES: ${ACCESS_TOKEN_MINUTES:-60}
+
 services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -36,15 +46,27 @@ services:
     command: ["-S", "sqlserver", "-U", "sa", "-C", "-b", "-i", "/init.sql"]
     restart: "no"
 
-  app:
+  migrate:
     build: .
+    image: electrohub-app:local
+    environment: *app-environment
     depends_on:
       sqlserver-init:
+        condition: service_completed_successfully
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+
+  app:
+    build: .
+    image: electrohub-app:local
+    environment: *app-environment
+    depends_on:
+      migrate:
         condition: service_completed_successfully
     ports:
       - "127.0.0.1:${APP_PORT:-8000}:8000"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=3).close()"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3).close()"]
       interval: 10s
       timeout: 5s
       retries: 5

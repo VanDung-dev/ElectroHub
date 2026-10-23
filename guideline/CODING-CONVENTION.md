@@ -8,9 +8,9 @@ Backend: [Dũng](members/P1-DUNG.md#tasks), [Giàu](members/P2-GIAU.md#tasks), [
 
 ## 1. Python / FastAPI (Dũng P1, Giàu P2, Hưng P3)
 
-* Python 3.13, format `ruff` + `black` (line-length 100). Chạy trước khi push:
+* Python 3.13, dùng Ruff lint/format (line-length 100 trong `pyproject.toml`). Chạy trong `.venv` trước khi push:
   ```sh
-  ruff check app/ && ruff format --check app/
+  ruff check . && ruff format --check .
   pytest -q
   ```
 * Đặt tên: file `snake_case`, class `PascalCase`, hàm/biến `snake_case`, hằng `UPPER_SNAKE`.
@@ -18,6 +18,7 @@ Backend: [Dũng](members/P1-DUNG.md#tasks), [Giàu](members/P2-GIAU.md#tasks), [
   ```python
   # app/routers/products.py
   from fastapi import APIRouter, Depends, Query
+
   router = APIRouter(prefix="/api/v1/products", tags=["products"])
   # GET /api/v1/products?category=&brand=&sort=&page=
   # service chứa logic, router chỉ validate + gọi service
@@ -39,6 +40,8 @@ Backend: [Dũng](members/P1-DUNG.md#tasks), [Giàu](members/P2-GIAU.md#tasks), [
   ```
 * Dùng `url_for('static', path='...')` cho css/js/img, không hardcode `/static/...`.
 * Form POST có CSRF token (do Dũng P1 cấp). Hiển thị lỗi server bằng block chung, không alert bừa.
+  Template nhận biến `csrf_token`; fetch JSON gửi header `X-CSRF-Token` lấy từ
+  `/api/v1/auth/csrf`. Lấy lại sau login/logout; xem [contract auth](API-DESIGN.md#auth).
 * Ảnh sản phẩm bắt buộc `alt`, `loading="lazy"`, width/height để tránh nhảy layout.
 
 <a id="css"></a>

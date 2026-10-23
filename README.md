@@ -1,83 +1,135 @@
 # ElectroHub
 
-Môi trường phát triển ban đầu: Python 3.13.9/FastAPI và SQL Server 2022 Developer.
-Database `ElectroHub` được tạo tự động; chạy lại bước khởi tạo không xóa database có sẵn.
-Ứng dụng hiện phục vụ các endpoint mẫu, chưa kết nối SQL Server.
+Đồ án web bán hàng dùng Python 3.13, FastAPI, HTML/CSS/JS và SQL Server 2022.
+Hiện có nền tảng/auth; catalog, giỏ hàng và giao diện đang được bổ sung.
+Phân công và tiến độ: [guideline](guideline/README.md) · [bàn giao P1](guideline/P1-HANDOFF.md).
 
-## Chạy bằng Docker Compose
+Chọn **một** cách chạy; thực hiện lệnh tại thư mục gốc repo:
 
-Cần Docker Engine và Docker Compose v2 trở lên. SQL Server cần ít nhất 2 GB RAM;
-để thêm tài nguyên cho Python và Docker.
+| Máy của bạn | Cách chạy |
+| --- | --- |
+| Có Docker Desktop hoặc OrbStack | [Docker: chạy cả app và SQL Server](#docker) |
+| Đã cài SQL Server trên Windows | [Windows: chạy Python trực tiếp](#windows) |
 
-1. Sao chép `.env.example` thành `.env`.
-2. Điền `MSSQL_SA_PASSWORD`: ít nhất 8 ký tự, gồm ít nhất 3 nhóm chữ hoa,
-   chữ thường, chữ số, ký tự đặc biệt. Không commit `.env`.
-3. Chạy tại thư mục repository:
+Trước lần chạy đầu, sao chép `.env.example` thành `.env`.
+Nếu đã có `.env`, bổ sung biến còn thiếu và giữ nguyên mật khẩu DB. Không commit `.env`.
+
+<a id="docker"></a>
+
+## 1. Docker / OrbStack
+
+Bật Docker Desktop hoặc OrbStack. Máy chỉ cần Docker và Compose v2; Python/ODBC được cài trong image.
+
+**Cấu hình lần đầu:** tạo khóa bằng lệnh sau, rồi dán kết quả vào `SECRET_KEY=` trong `.env`:
+
+```sh
+docker run --rm python:3.13.9-slim-bookworm python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Điền thêm `MSSQL_SA_PASSWORD=` trong `.env`: ít nhất 8 ký tự, gồm 3 trong 4 nhóm
+chữ hoa, chữ thường, số, ký tự đặc biệt. Giữ các biến khác theo `.env.example`.
+
+**Khởi động:**
 
 ```sh
 docker compose up --build --wait --wait-timeout 240
 ```
 
-Compose chờ SQL Server sẵn sàng, tạo database rồi khởi động FastAPI.
+DB và migration được khởi tạo tự động. Các lần sau dùng lại lệnh trên; thay đổi code cần build lại.
+Có thể đổi `APP_PORT` hoặc `SQLSERVER_PORT` trong `.env` nếu cổng bị trùng.
+Kết nối từ SSMS vào DB Docker: `localhost,1433`, SQL Server Authentication,
+user `sa`, mật khẩu `MSSQL_SA_PASSWORD` (đổi 1433 theo `SQLSERVER_PORT` nếu đã chỉnh).
 
-- FastAPI: http://localhost:8000
-- Swagger UI: http://localhost:8000/docs
-- SQL Server từ máy cá nhân: `localhost,1433`, database `ElectroHub`,
-  tài khoản `sa`, mật khẩu trong `.env`.
-- SQL Server từ container cùng mạng Compose: `sqlserver:1433`.
-
-Có thể đổi `SQLSERVER_PORT` và `APP_PORT` trong `.env` nếu cổng đang được sử dụng.
-Các cổng chỉ mở trên `127.0.0.1` của máy chạy Docker.
-
-Kiểm tra database:
-
-```sh
-docker compose exec sqlserver sh -c 'SQLCMDPASSWORD="$MSSQL_SA_PASSWORD" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -b -d ElectroHub -Q "SELECT DB_NAME()"'
-```
-
-Dừng dịch vụ và giữ dữ liệu:
+**Dừng và giữ dữ liệu:**
 
 ```sh
 docker compose down
 ```
 
-Dữ liệu SQL Server nằm trong named volume `electrohub_sqlserver_data`.
-`docker compose down -v` sẽ xóa volume và toàn bộ dữ liệu database.
-Sau khi volume đã được tạo, thay mật khẩu trong `.env` không tự đổi mật khẩu
-`sa` trong database; cần đổi mật khẩu qua SQL Server rồi cập nhật `.env`.
+Không thêm `-v` vì sẽ xóa dữ liệu. Đổi mật khẩu trong `.env` không tự đổi mật khẩu DB đã tạo.
+SQL Server cần ít nhất 2 GB RAM; dành thêm RAM cho app. Máy Mac ARM chạy SQL Server qua giả lập:
+đã test được trên OrbStack; môi trường SQL Server được Microsoft hỗ trợ là Linux x86-64.
 
-## Python chạy trực tiếp, SQL Server chạy trong Docker
+<a id="windows"></a>
 
-```sh
-docker compose up --wait --wait-timeout 240 sqlserver
-docker compose run --rm sqlserver-init
-python -m venv .venv
+## 2. SQL Server trên Windows + Python
+
+**Chuẩn bị một lần:**
+
+1. Cài Python **3.13**, SQL Server 2022 Developer và SSMS.
+2. Cài [Microsoft ODBC Driver 18 for SQL Server](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver17).
+3. Trong SQL Server Configuration Manager, bật TCP/IP cho instance đang dùng.
+   Ở TCP/IP → IP Addresses → IPAll, xóa `TCP Dynamic Ports`, đặt `TCP Port = 1433`,
+   rồi restart dịch vụ SQL Server. Nếu dùng cổng khác, đổi số cổng trong URL bên dưới.
+   [Hướng dẫn Microsoft](https://learn.microsoft.com/en-us/sql/database-engine/configure-windows/configure-a-server-to-listen-on-a-specific-tcp-port?view=sql-server-ver17).
+4. Mở SSMS bằng Windows Authentication, kết nối đúng instance, chạy file
+   [docker/init.sql](docker/init.sql) để tạo DB `ElectroHub` nếu chưa có.
+   File này cũng dùng được cho SQL Server cài trực tiếp trên Windows.
+
+Mở **PowerShell** tại repo và chạy (bỏ lệnh tạo venv nếu đã có `.venv` dùng Python 3.13):
+
+```powershell
+py -3.13 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-Kích hoạt `.venv` theo hệ điều hành, sau đó:
+Dán khóa vừa tạo vào `SECRET_KEY=` trong `.env`. Thêm dòng sau để dùng
+**Windows Authentication** bằng tài khoản Windows đang chạy Python; tài khoản này cần quyền trên DB:
 
-```sh
-python -m pip install -r requirements.txt
-python -m uvicorn main:app --reload
+```dotenv
+DATABASE_URL="mssql+pyodbc://localhost:1433/ElectroHub?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes"
 ```
 
-Nếu máy hoàn toàn không dùng Docker, cài SQL Server trên Windows/Linux tương thích
-hoặc dùng SQL Server từ máy chủ khác; chạy `docker/init.sql` bằng công cụ SQL
-để tạo database, rồi chạy Python theo hướng dẫn trên.
-Không chia sẻ `.venv` giữa các máy. Thư viện/driver kết nối database sẽ được bổ sung
-khi triển khai tầng dữ liệu.
+`DATABASE_URL` ghi đè các biến kết nối `SQLSERVER_*` cho Python local.
+Nếu dùng **SQL Server Authentication**, bỏ dòng `DATABASE_URL`, điền `SQLSERVER_USER`
+và `MSSQL_SA_PASSWORD` theo SQL login của bạn; server cần bật Mixed Mode và login có quyền trên DB.
+Thông tin host/port/database lấy từ các biến `SQLSERVER_*` trong `.env.example`.
 
-## Giới hạn môi trường phát triển
+**Khởi động:**
 
-SQL Server image chỉ được Microsoft hỗ trợ trên Linux x86-64.
-Compose đặt `platform: linux/amd64` để Docker ARM có thể thử chạy bằng giả lập;
-đây không phải nền tảng được Microsoft hỗ trợ. Nếu không chạy được, dùng SQL Server
-trên máy Windows/Linux x86-64 bên ngoài.
+```powershell
+.\.venv\Scripts\python.exe -m alembic upgrade head
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
+```
 
-Cấu hình này dùng SQL Server Developer cho phát triển/kiểm thử và `sa` để khởi tạo.
-Chưa phải cấu hình production. `sqlcmd -C` tin cậy chứng chỉ của SQL Server local;
-triển khai thật cần cấu hình chứng chỉ và tài khoản ứng dụng riêng.
+Chạy lại hai lệnh này sau khi pull code để cập nhật DB. Dừng app bằng `Ctrl+C`.
+App mặc định dùng cổng 8000; muốn đổi cổng local, thêm `--port 8001` vào lệnh uvicorn
+(`APP_PORT` chỉ dùng cho Compose).
 
-Tham khảo:
-- https://learn.microsoft.com/en-us/sql/linux/quickstart-install-connect-docker?view=sql-server-ver16
-- https://docs.docker.com/compose/how-tos/startup-order/
+## Mở ứng dụng và tạo admin
+
+- [Trang web](http://localhost:8000) — template còn rỗng hiện trả thông báo HTML 503.
+- [Swagger / thử API](http://localhost:8000/docs).
+- [Kiểm tra kết nối DB](http://localhost:8000/api/v1/health).
+
+Đổi 8000 trong URL nếu đã cấu hình cổng khác. Tạo admin bằng lệnh ứng với cách chạy,
+thay email/tên của bạn và nhập mật khẩu khi được hỏi:
+
+```sh
+# Docker: app phải đang chạy
+docker compose exec app python -m app.create_admin --email dung@example.com --name "Nguyễn Lê Văn Dũng"
+```
+
+```powershell
+# Windows: mở PowerShell thứ hai tại repo
+.\.venv\Scripts\python.exe -m app.create_admin --email dung@example.com --name "Nguyễn Lê Văn Dũng"
+```
+
+Chạy lại lệnh không đổi mật khẩu admin đã có. Đăng ký qua API tạo tài khoản customer.
+Để thử POST trong Swagger: gọi `GET /api/v1/auth/csrf`, dùng `csrf_token` làm
+`X-CSRF-Token`; lấy token mới sau login/logout. Chi tiết: [contract auth](guideline/API-DESIGN.md#auth).
+
+## Kiểm tra code
+
+Phần này dành cho người chạy Python local, sau khi cài `requirements-dev.txt`:
+
+```sh
+python -m ruff check .
+python -m ruff format --check .
+python -m pytest -q
+```
+
+Trên Windows thay `python` bằng `.\.venv\Scripts\python.exe`; trên macOS/Linux dùng
+Python của `.venv`. Test tự dùng DB SQLite tạm. Chi tiết Docker/SQL Server đã kiểm chứng
+và phần còn chờ nhóm nằm ở [checklist P1](guideline/P1-HANDOFF.md#verification).

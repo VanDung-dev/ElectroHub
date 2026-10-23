@@ -32,7 +32,34 @@ POST /api/v1/auth/register  {email, password, name}
 POST /api/v1/auth/login     {email, password} -> set cookie
 POST /api/v1/auth/logout
 GET  /api/v1/auth/me
+GET  /api/v1/auth/csrf     -> {csrf_token}, set cookie CSRF
 ```
+
+Đã implement ở nền tảng P1; Gấm cần xác nhận tích hợp UI trước khi nghiệm thu:
+
+* Register trả `201`, user công khai `{id,email,name,role,created_at}`; không tự đăng nhập.
+  Login trả user cùng format và set cookie `electrohub_access`; `/me` trả user hoặc `401`.
+  Logout trả `200 {"detail":"Đã đăng xuất"}` và xóa cookie auth/CSRF.
+* Email được chuẩn hóa chữ thường và unique; tên 1–100 đơn vị UTF-16 sau trim
+  (khớp NVARCHAR(100), ký tự ngoài BMP như emoji chiếm hai đơn vị).
+  Mật khẩu 8 ký tự trở lên, tối đa 72 byte UTF-8 để không bị bcrypt cắt ngắn.
+  Register không nhận `role`; account mới luôn là `customer`. Admin được tạo bằng CLI trong README.
+* Cookie host-only, HttpOnly, SameSite=Lax, path `/`; Secure theo `COOKIE_SECURE`.
+  JWT hết hạn theo `ACCESS_TOKEN_MINUTES` (mặc định 60). Logout xóa cookie;
+  thu hồi JWT bị sao chép trước hạn vẫn là việc cần làm trước production.
+* **Mọi POST/PUT/PATCH/DELETE**, kể cả register/login/logout, cần CSRF:
+  gọi `/api/v1/auth/csrf`, giữ cookie và gửi field `csrf_token` nhận được qua header `X-CSRF-Token`.
+  Form HTML có thể gửi hidden field `csrf_token` do template context cấp.
+  Token được ký HMAC và gắn với phiên, kiểm tra cả cookie lẫn header/form;
+  lấy lại sau login/logout. Thiếu/sai token trả `403 {"detail":"CSRF token không hợp lệ"}`.
+  Nếu trình duyệt gửi `Origin`, backend yêu cầu cùng origin với app.
+* Validation trả `422 {"detail":"Dữ liệu không hợp lệ"}`; email trùng `409`;
+  sai credentials/chưa đăng nhập `401`; thiếu quyền admin `403`.
+  Response không chứa password, password_hash hoặc JWT; lỗi không phản chiếu request nhạy cảm.
+* Auth nhận JSON; form HTML gửi qua fetch theo contract JSON. Cơ chế kiểm tra hidden CSRF
+  đã sẵn sàng cho route form do nhóm bổ sung, không tự chuyển auth API sang form-urlencoded.
+
+Ví dụ fetch và cách gắn router: [bàn giao P1](P1-HANDOFF.md#integration).
 
 <a id="catalog"></a>
 
@@ -97,5 +124,5 @@ Các mục dưới đây là điểm chưa thống nhất hoặc chưa được 
 | Tên và hành vi thanh toán giả lập: `VNPAY_MOCK` hay `CHUYEN_KHOAN_MOCK` | [API sales](#sales), [ERD payments](DB-MIGRATION.md#erd), [checkout](HSHOP-ANALYSIS.md#checkout) | [Dũng](members/P1-DUNG.md#coordination) + [Hưng](members/P3-HUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination) |
 | Field/endpoint còn thiếu cho filter giá, sort tên, upload, wishlist/compare và PDP; nơi lưu dữ liệu tương ứng | [Catalog](#catalog), [ERD](DB-MIGRATION.md#erd), [PLP](HSHOP-ANALYSIS.md#plp), [PDP](HSHOP-ANALYSIS.md#pdp) | [Dũng](members/P1-DUNG.md#coordination) + [Giàu](members/P2-GIAU.md#coordination) + [Gấm](members/P4-GAM.md#coordination) |
 | Mua hàng có cần đăng nhập; xác minh mã + số điện thoại khi tra cứu; xử lý gửi checkout lặp, hủy đơn/hoàn kho và trạng thái payment | [Sales](#sales), [checkout](HSHOP-ANALYSIS.md#checkout), [transaction](DB-MIGRATION.md#data-safety) | [Dũng](members/P1-DUNG.md#coordination) + [Hưng](members/P3-HUNG.md#coordination); [Giàu](members/P2-GIAU.md#coordination) khi liên quan kho, [Gấm](members/P4-GAM.md#coordination) khi liên quan UI |
-| CSRF cho fetch, lỗi validation, response rỗng/upload và cách dùng `api.js` | [Nguyên tắc API](#principles), [HTML](CODING-CONVENTION.md#html), [JS](CODING-CONVENTION.md#javascript) | [Dũng](members/P1-DUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination), chủ API liên quan |
+| CSRF và lỗi validation đã có [contract P1](#auth), chờ Gấm xác nhận; response rỗng/upload còn cần chốt | [Nguyên tắc API](#principles), [HTML](CODING-CONVENTION.md#html), [JS](CODING-CONVENTION.md#javascript) | [Dũng](members/P1-DUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination), chủ API liên quan |
 | Số bài blog/review tối thiểu khi nghiệm thu | [Yêu cầu content](HSHOP-ANALYSIS.md#content) và [DoD MVP](DEFINITION-OF-DONE.md#mvp) đang ghi khác nhau | [Dũng](members/P1-DUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination) |

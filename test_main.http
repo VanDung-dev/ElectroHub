@@ -1,11 +1,37 @@
-# Test your FastAPI endpoints
+@base = http://127.0.0.1:8000
+# Set your local test password in the HTTP client's private environment.
+@password = {{test_password}}
 
-GET http://127.0.0.1:8000/
-Accept: application/json
+### Health checks the database
+GET {{base}}/api/v1/health
 
-###
+### Fetch CSRF (HTTP client must retain cookies)
+GET {{base}}/api/v1/auth/csrf
 
-GET http://127.0.0.1:8000/hello/User
-Accept: application/json
+> {% client.global.set("csrf_token", response.body.csrf_token); %}
 
-###
+### Register customer (does not sign in)
+POST {{base}}/api/v1/auth/register
+Content-Type: application/json
+X-CSRF-Token: {{csrf_token}}
+
+{"email":"customer@example.com","password":"{{password}}","name":"Khách hàng"}
+
+### Login sets HttpOnly cookie; fetch CSRF again afterward
+POST {{base}}/api/v1/auth/login
+Content-Type: application/json
+X-CSRF-Token: {{csrf_token}}
+
+{"email":"customer@example.com","password":"{{password}}"}
+
+### Current public user
+GET {{base}}/api/v1/auth/me
+
+### Refresh CSRF after login
+GET {{base}}/api/v1/auth/csrf
+
+> {% client.global.set("csrf_token", response.body.csrf_token); %}
+
+### Logout clears auth and CSRF cookies
+POST {{base}}/api/v1/auth/logout
+X-CSRF-Token: {{csrf_token}}
