@@ -28,6 +28,10 @@ def test_health_swagger_html_and_static(client):
         "/api/v1/auth/login",
         "/api/v1/auth/logout",
         "/api/v1/auth/me",
+        "/api/v1/cart",
+        "/api/v1/cart/items",
+        "/api/v1/cart/items/{item_id}",
+        "/api/v1/cart/apply-voucher",
     }
     assert schema["components"]["schemas"]["RegisterRequest"]["examples"]
     assert schema["paths"]["/api/v1/auth/login"]["post"]["responses"]["422"]["content"][

@@ -35,3 +35,34 @@ GET {{base}}/api/v1/auth/csrf
 ### Logout clears auth and CSRF cookies
 POST {{base}}/api/v1/auth/logout
 X-CSRF-Token: {{csrf_token}}
+
+# --- Sales (P3): cart ---
+# Login first; every write below needs the CSRF token from GET /api/v1/auth/csrf.
+
+### Current cart with subtotal, shipping fee and total
+GET {{base}}/api/v1/cart
+
+### Add product (accumulates when the product is already in the cart)
+POST {{base}}/api/v1/cart/items
+Content-Type: application/json
+X-CSRF-Token: {{csrf_token}}
+
+{"product_id": 1, "qty": 2}
+
+### Change quantity of one cart line (1..99, cannot exceed stock)
+PUT {{base}}/api/v1/cart/items/1
+Content-Type: application/json
+X-CSRF-Token: {{csrf_token}}
+
+{"qty": 3}
+
+### Remove one cart line
+DELETE {{base}}/api/v1/cart/items/1
+X-CSRF-Token: {{csrf_token}}
+
+### Preview a voucher discount (does not consume a voucher turn)
+POST {{base}}/api/v1/cart/apply-voucher
+Content-Type: application/json
+X-CSRF-Token: {{csrf_token}}
+
+{"code": "WELCOME10"}
