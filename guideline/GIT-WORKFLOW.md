@@ -74,6 +74,9 @@ Một commit chứa một thay đổi có mục đích rõ ràng. Không commit 
 
 ## Kiểm tra trước PR
 
+Hiện nhóm chạy kiểm tra thủ công, chưa sử dụng GitHub Actions. Ghi lệnh đã chạy và kết quả
+trong PR để người review đối chiếu.
+
 - Backend: chạy lint/format và pytest theo [quy ước Python](CODING-CONVENTION.md#python); API có ví dụ Swagger và test theo [quy định API](API-DESIGN.md#implementation).
 - UI: làm theo [quy ước HTML/CSS/JS](CODING-CONVENTION.md#html) và tiêu chí page trong [Definition of Done](DEFINITION-OF-DONE.md#page).
 - Thay đổi ảnh hưởng tích hợp hoặc cấu hình: chạy Docker theo [README chạy dự án](../README.md) và ghi kết quả trong PR.

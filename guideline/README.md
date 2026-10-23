@@ -69,7 +69,7 @@ Stack chung: Python 3.13 + FastAPI, Jinja2/HTML/CSS/JS thuần, SQL Server 2022.
 
 | Owner | Task tự làm | Phối hợp và bàn giao |
 | --- | --- | --- |
-| **Dũng P1** | CI, quyền, config, hướng dẫn chạy máy sạch. | Điều phối blocker và demo với cả nhóm; bàn giao build/test trên máy sạch. |
+| **Dũng P1** | Kiểm tra local/Docker, quyền, config, hướng dẫn chạy máy sạch. | Điều phối blocker và demo với cả nhóm; bàn giao build/test trên máy sạch. |
 | **Giàu P2** | Test filter/sort/ảnh/seed và lỗi catalog. | Rà soát PLP/PDP mobile với Gấm; bàn giao seed/test lặp lại được. |
 | **Hưng P3** | Test tính tiền, voucher, hủy đơn, tồn kho đồng thời và lỗi checkout. | Migration/transaction với Dũng; stock với Giàu; lỗi/trạng thái UI với Gấm. |
 | **Gấm P4** | Hoàn tất chính sách/blog/review; test responsive, ảnh, console và loading/empty/error. | Rà soát dữ liệu với Giàu/Hưng, route/auth với Dũng; bàn giao page đạt [DoD](DEFINITION-OF-DONE.md#page). |

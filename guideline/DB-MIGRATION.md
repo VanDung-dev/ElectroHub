@@ -12,6 +12,12 @@
 * Mọi bảng/column/index đi qua Alembic migration versioned. Không `ALTER` tay trên SSMS rồi quên ghi lại.
 * Dũng P1 sở hữu ERD + migration. Giàu P2 / Hưng P3 đề xuất schema qua issue, Dũng P1 duyệt rồi mới code migration.
 
+Đã có `Base`/`get_db` tại `app/core/database.py` và migration `0001_users` chỉ tạo bảng users.
+Các bảng business trong ERD dưới đây vẫn là bản tối thiểu cần chủ domain đề xuất/duyệt,
+chưa được migration tạo. Import model mới vào `app/models/__init__.py` để Alembic thấy metadata.
+Users lưu Unicode, email unique, constraint role admin/customer; `created_at` UTC không timezone
+(SQL Server dùng `DATETIME2`). CLI tạo admin xem [README](../README.md).
+
 <a id="erd"></a>
 
 ## 2. ERD tối thiểu (Dũng P1 chốt W1, Giàu P2 bổ sung product, Hưng P3 bổ sung order)
