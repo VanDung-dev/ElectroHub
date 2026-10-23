@@ -4,6 +4,10 @@
 
 Cả nhóm tự kiểm tra trước khi mở PR; [Dũng phụ trách review/nghiệm thu](members/P1-DUNG.md#handoff).
 
+Mục 1–3 là checklist mẫu áp dụng cho từng task/API/page, không đại diện tiến độ toàn repo.
+Tiến độ kỹ thuật của Dũng nằm trong [checklist P1](P1-HANDOFF.md#verification);
+mục 5 ghi kết quả nghiệm thu từng phần của MVP.
+
 <a id="task"></a>
 
 ## 1. Done của 1 task
@@ -12,7 +16,7 @@ Cả nhóm tự kiểm tra trước khi mở PR; [Dũng phụ trách review/nghi
 * [ ] Backend: có test (`pytest`) + hiện đúng trên `/docs` + chạy bằng `docker compose up --build`.
 * [ ] Frontend (Gấm P4): không lỗi console, responsive 360px/768px/1024px, ảnh có `alt + lazy`.
 * [ ] Không hardcode secret/port/host trong code. `.env.example` cập nhật nếu thêm biến mới (Dũng P1 duyệt).
-* [ ] PR pass `ruff + pytest`, có approve Dũng P1 (+ chủ vùng nếu liên quan: Giàu P2 / Hưng P3 / Gấm P4).
+* [ ] PR ghi kết quả chạy `ruff + pytest` thủ công, có approve Dũng P1 (+ chủ vùng nếu liên quan: Giàu P2 / Hưng P3 / Gấm P4).
 
 <a id="api"></a>
 
@@ -47,7 +51,7 @@ Cả nhóm tự kiểm tra trước khi mở PR; [Dũng phụ trách review/nghi
 
 ## 5. Checklist nghiệm thu MVP
 
-* [ ] Register/login/logout + phân quyền admin/customer.
+* [x] Register/login/logout + phân quyền admin/customer — backend đã pass test trên Docker/SQL Server ngày 2026-10-23; UI auth còn chờ Gấm.
 * [ ] CRUD product + search/filter/sort + wishlist/compare.
 * [ ] Cart -> checkout -> COD/mock pay -> tra cứu đơn -> admin đổi trạng thái.
 * [ ] Seed >= 50 sản phẩm + chính sách + 1 blog/review mẫu.
