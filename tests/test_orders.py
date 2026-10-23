@@ -1,9 +1,13 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models.order import Order, OrderItem
+from app.models.payment import Payment
 from app.models.product import Product
+from app.models.user import User
 from app.models.voucher import Voucher
 from tests.conftest import csrf_headers, login, register
 
@@ -236,3 +240,281 @@ def test_cart_voucher_rejects_unknown_and_empty_cart(client, database):
         404,
         {"detail": "Voucher không tồn tại"},
     )
+
+
+def checkout(client, headers, **overrides):
+    return client.post(
+        "/api/v1/orders",
+        json={
+            "name": "Khách hàng",
+            "phone": "0901234567",
+            "address": "269/20 Lý Thường Kiệt, TP.HCM",
+            "payment_method": "COD",
+            **overrides,
+        },
+        headers=headers,
+    )
+
+
+def make_admin(client, database, email="admin@example.com"):
+    register(client, email=email, name="Quản trị")
+    with Session(database) as db:
+        db.scalar(select(User).where(User.email == email)).role = "admin"
+        db.commit()
+    assert login(client, email=email).status_code == 200
+    return csrf_headers(client)
+
+
+def test_checkout_creates_order_decrements_stock_and_clears_cart(client, database):
+    product_id = make_product(database, price=100_000, sale_price=90_000, stock=5)
+    make_voucher(database, percent=10, max_discount=100_000)
+    headers = signed_in(client)
+    assert add_to_cart(client, product_id, 2, headers).status_code == 200
+
+    response = checkout(client, headers, voucher_code="welcome10")
+    assert response.status_code == 201
+    order = response.json()
+    assert order["code"].startswith("EH-") and len(order["code"]) == 7
+    assert order["status"] == "pending"
+    assert (order["subtotal"], order["discount"], order["shipping_fee"]) == (
+        180_000,
+        18_000,
+        30_000,
+    )
+    assert order["total"] == 192_000
+    assert order["voucher_code"] == "WELCOME10"
+    assert order["address"]["phone"] == "0901234567"
+    assert order["payment"] == {"method": "COD", "status": "pending"}
+    assert order["items"] == [
+        {
+            "product_id": product_id,
+            "slug": "esp32-devkit",
+            "name": "ESP32 DevKit",
+            "price": 90_000,
+            "qty": 2,
+            "line_total": 180_000,
+        }
+    ]
+
+    with Session(database) as db:
+        assert db.get(Product, product_id).stock == 3
+        assert db.get(Voucher, 1).qty_left == 4
+        saved = db.scalar(select(Order))
+        assert saved.code == order["code"] and saved.total == 192_000
+        assert saved.address["name"] == "Khách hàng"
+        assert db.scalar(select(OrderItem)).price == 90_000
+        assert db.scalar(select(Payment)).method == "COD"
+
+    assert client.get("/api/v1/cart").json()["items"] == []
+    history = client.get("/api/v1/orders").json()
+    assert history["total"] == 1 and history["page_size"] == 10
+    assert history["items"][0]["item_count"] == 2
+
+
+def test_checkout_rejects_empty_cart_and_invalid_payload(client, database):
+    headers = signed_in(client)
+    response = checkout(client, headers)
+    assert (response.status_code, response.json()) == (
+        400,
+        {"detail": "Giỏ hàng đang trống"},
+    )
+
+    product_id = make_product(database)
+    add_to_cart(client, product_id, 1, headers)
+    assert checkout(client, headers, phone="12345").status_code == 422
+    assert checkout(client, headers, payment_method="VNPAY").status_code == 422
+    assert checkout(client, headers, extra="x").status_code == 422
+
+
+def test_checkout_rejects_stock_changed_after_cart_added(client, database):
+    product_id = make_product(database, name="STM32", stock=5)
+    headers = signed_in(client)
+    add_to_cart(client, product_id, 2, headers)
+    with Session(database) as db:
+        db.get(Product, product_id).stock = 1
+        db.commit()
+
+    response = checkout(client, headers)
+    assert (response.status_code, response.json()) == (
+        409,
+        {"detail": "STM32 chỉ còn 1 sản phẩm trong kho"},
+    )
+    with Session(database) as db:
+        assert db.get(Product, product_id).stock == 1
+        assert db.scalar(select(Order)) is None
+    assert len(client.get("/api/v1/cart").json()["items"]) == 1
+
+
+def test_checkout_is_atomic_when_a_later_line_is_short(client, database):
+    first = make_product(database, slug="first", sku="EH-101", stock=5)
+    second = make_product(database, slug="second", sku="EH-102", stock=5)
+    headers = signed_in(client)
+    add_to_cart(client, first, 2, headers)
+    add_to_cart(client, second, 2, headers)
+    with Session(database) as db:
+        db.get(Product, second).stock = 0
+        db.commit()
+
+    assert checkout(client, headers).status_code == 409
+    with Session(database) as db:
+        assert db.get(Product, first).stock == 5
+        assert db.get(Product, second).stock == 0
+        assert db.scalar(select(Order)) is None
+        assert len(db.scalars(select(OrderItem)).all()) == 0
+    assert len(client.get("/api/v1/cart").json()["items"]) == 2
+
+
+@pytest.mark.parametrize(
+    "method,paid",
+    [("COD", False), ("CHUYEN_KHOAN_MOCK", True)],
+)
+def test_pay_cod_confirms_and_transfer_mock_marks_paid(client, database, method, paid):
+    product_id = make_product(database)
+    headers = signed_in(client)
+    add_to_cart(client, product_id, 1, headers)
+    code = checkout(client, headers, payment_method=method).json()["code"]
+
+    response = client.post(f"/api/v1/orders/{code}/pay", json={"method": method}, headers=headers)
+    assert response.status_code == 200
+    payment = response.json()["payment"]
+    assert payment["status"] == ("paid" if paid else "pending")
+    if paid:
+        with Session(database) as db:
+            saved = db.scalar(select(Payment))
+            assert saved.status == "paid" and saved.payload["reference"].startswith("MOCK-")
+        response = client.post(
+            f"/api/v1/orders/{code}/pay", json={"method": method}, headers=headers
+        )
+        assert (response.status_code, response.json()) == (
+            409,
+            {"detail": "Đơn hàng đã được thanh toán"},
+        )
+
+
+def test_pay_rejects_wrong_method_and_other_users_order(client, database):
+    product_id = make_product(database)
+    headers = signed_in(client)
+    add_to_cart(client, product_id, 1, headers)
+    code = checkout(client, headers).json()["code"]
+    response = client.post(
+        f"/api/v1/orders/{code}/pay",
+        json={"method": "CHUYEN_KHOAN_MOCK"},
+        headers=headers,
+    )
+    assert (response.status_code, response.json()) == (
+        409,
+        {"detail": "Phương thức thanh toán không khớp với đơn hàng"},
+    )
+
+    other = signed_in(client, email="other@example.com")
+    response = client.post(f"/api/v1/orders/{code}/pay", json={"method": "COD"}, headers=other)
+    assert (response.status_code, response.json()) == (
+        404,
+        {"detail": "Không tìm thấy đơn hàng"},
+    )
+
+
+def test_tracking_requires_code_and_phone_but_owner_skips_phone(client, database):
+    product_id = make_product(database)
+    headers = signed_in(client)
+    add_to_cart(client, product_id, 1, headers)
+    code = checkout(client, headers).json()["code"]
+
+    assert client.get(f"/api/v1/orders/{code}").status_code == 200
+    client.cookies.clear()
+    assert client.get(f"/api/v1/orders/{code}").status_code == 400
+    assert client.get(f"/api/v1/orders/{code}?phone=0999999999").status_code == 404
+    assert client.get(f"/api/v1/orders/{code}?phone=0901234567").status_code == 200
+    assert client.get(f"/api/v1/orders/{code.lower()}?phone=0901234567").status_code == 200
+    assert client.get("/api/v1/orders/EH-0000?phone=0901234567").status_code == 404
+
+
+def test_order_history_is_scoped_to_the_signed_in_user(client, database):
+    product_id = make_product(database)
+    headers = signed_in(client)
+    add_to_cart(client, product_id, 1, headers)
+    checkout(client, headers)
+
+    signed_in(client, email="other@example.com")
+    history = client.get("/api/v1/orders").json()
+    assert history["items"] == [] and history["total"] == 0
+
+
+def test_admin_order_status_transitions_and_cancel_restores_stock_and_voucher(client, database):
+    product_id = make_product(database, stock=5)
+    make_voucher(database, qty_left=5)
+    customer = signed_in(client)
+    add_to_cart(client, product_id, 2, customer)
+    code = checkout(client, customer, voucher_code="WELCOME10").json()["code"]
+
+    assert client.get("/api/v1/admin/orders").status_code == 403
+    client.post("/api/v1/auth/logout", headers=customer)
+    assert client.get("/api/v1/admin/orders").status_code == 401
+
+    admin = make_admin(client, database)
+    listing = client.get("/api/v1/admin/orders").json()
+    assert listing["total"] == 1 and listing["items"][0]["code"] == code
+    assert client.get("/api/v1/admin/orders?status=done").json()["total"] == 0
+    assert client.get(f"/api/v1/admin/orders?q={code[3:]}").json()["total"] == 1
+
+    response = client.patch(
+        f"/api/v1/admin/orders/{code}", json={"status": "shipping"}, headers=admin
+    )
+    assert response.status_code == 409
+    for target in ["confirmed", "shipping", "done"]:
+        response = client.patch(
+            f"/api/v1/admin/orders/{code}", json={"status": target}, headers=admin
+        )
+        assert response.status_code == 200 and response.json()["status"] == target
+    response = client.patch(f"/api/v1/admin/orders/{code}", json={"status": "done"}, headers=admin)
+    assert response.status_code == 409
+
+    with Session(database) as db:
+        assert db.get(Product, product_id).stock == 3
+        assert db.get(Voucher, 1).qty_left == 4
+
+    # A second, paid order can still be cancelled: stock and voucher turn come back.
+    login(client, email="customer@example.com")
+    headers = csrf_headers(client)
+    add_to_cart(client, product_id, 1, headers)
+    cancel_code = checkout(client, headers, payment_method="CHUYEN_KHOAN_MOCK").json()["code"]
+    client.post(
+        f"/api/v1/orders/{cancel_code}/pay",
+        json={"method": "CHUYEN_KHOAN_MOCK"},
+        headers=headers,
+    )
+    admin = make_admin(client, database)
+    response = client.patch(
+        f"/api/v1/admin/orders/{cancel_code}",
+        json={"status": "cancelled"},
+        headers=admin,
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "cancelled"
+    assert response.json()["payment"]["status"] == "refunded"
+    with Session(database) as db:
+        assert db.get(Product, product_id).stock == 3
+        assert db.get(Voucher, 1).qty_left == 4
+        cancelled = db.scalar(select(Order).where(Order.code == cancel_code))
+        assert db.scalar(select(Payment).where(Payment.order_id == cancelled.id)).status == (
+            "refunded"
+        )
+
+
+def test_sales_mutations_require_csrf(client, database):
+    product_id = make_product(database)
+    signed_in(client)
+    assert (
+        client.post(
+            "/api/v1/orders",
+            json={
+                "name": "Khách",
+                "phone": "0901234567",
+                "address": "269/20 Lý Thường Kiệt",
+            },
+        ).status_code
+        == 403
+    )
+    add_to_cart(client, product_id, 1)
+    headers = csrf_headers(client)
+    assert client.post("/api/v1/orders", json={}, headers=headers).status_code == 422
