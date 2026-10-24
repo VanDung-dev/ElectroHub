@@ -68,20 +68,28 @@ Ví dụ fetch và cách gắn router: [bàn giao P1](P1-HANDOFF.md#integration)
 **Người thực hiện:** [Giàu P2 — nhiệm vụ và phối hợp](members/P2-GIAU.md#tasks). **UI sử dụng:** [Gấm P4](members/P4-GAM.md#coordination).
 
 ```text
-GET /api/v1/categories            # cây đa cấp
-GET /api/v1/brands
-GET /api/v1/products?category=&brand=&q=&sort=price_asc|price_desc|newest&page=1&page_size=20
-GET /api/v1/products/{slug}
-POST /api/v1/products             # admin
-PUT  /api/v1/products/{id}        # admin
-GET /api/v1/wishlist  POST /api/v1/wishlist/{product_id}  DELETE ...
+GET    /api/v1/categories
+GET    /api/v1/brands
+GET    /api/v1/products?category=&brand=&q=&price_min=&price_max=&sort=&page=1&page_size=20
+GET    /api/v1/products/{slug}
+POST   /api/v1/products           # admin
+PUT    /api/v1/products/{id}      # admin
+POST   /api/v1/products/{id}/images # admin, multipart upload
+GET    /api/v1/wishlist
+POST   /api/v1/wishlist/{product_id}
+DELETE /api/v1/wishlist/{product_id}
+GET    /api/v1/compare
+POST   /api/v1/compare/{product_id}
+DELETE /api/v1/compare/{product_id}
 ```
+
+Contract catalog chi tiết đang là [đề xuất của P2, chờ các owner xác nhận](members/P2-GIAU-catalog-proposal.md). Các điểm về field, lọc/sort theo giá áp dụng, giới hạn trang và upload trong tài liệu đó chưa được coi là đã duyệt.
 
 Response list chuẩn:
 
 ```json
 {
-  "items": [{ "id": 1, "slug": "esp32-devkit", "name": "ESP32 DevKit", "price": 185000, "sale_price": 165000, "stock": 42, "brand": "Espressif", "image": "/static/img/esp32.jpg" }],
+  "items": [{ "id": 1, "slug": "esp32-devkit", "sku": "EH-001", "name": "ESP32 DevKit", "price": 185000, "sale_price": 165000, "stock": 42, "brand": "Espressif", "image": "/static/img/products/1/main.webp" }],
   "total": 120, "page": 1, "page_size": 20
 }
 ```
@@ -140,9 +148,10 @@ Các mục dưới đây là điểm chưa thống nhất hoặc chưa được 
 
 | Điểm cần chốt | Đối chiếu ở đâu | Người phối hợp |
 | --- | --- | --- |
-| `price`/`sale_price`: giá bán, giá gạch, giá dùng để lọc và tính tiền | [Ví dụ catalog](#catalog) và [card PLP](HSHOP-ANALYSIS.md#plp) đang mô tả chưa khớp | [Dũng](members/P1-DUNG.md#coordination) + [Giàu](members/P2-GIAU.md#coordination) + [Hưng](members/P3-HUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination) — **đã chốt 2026-10-23:** tính tiền dùng `sale_price` nếu có, ngược lại `price`; lọc/sort theo giá còn chờ Giàu chốt |
+| Giá dùng để lọc/sort catalog | [Đề xuất catalog P2](members/P2-GIAU-catalog-proposal.md), [PLP](HSHOP-ANALYSIS.md#plp) | [Giàu](members/P2-GIAU.md#coordination) đề xuất dùng `sale_price` nếu có, ngược lại `price`, để khớp giá checkout; chờ Hưng và Dũng xác nhận |
+| Quy tắc stock và cập nhật stock | [ERD](DB-MIGRATION.md#erd), [an toàn dữ liệu](DB-MIGRATION.md#data-safety) | [Giàu](members/P2-GIAU.md#coordination) + [Hưng](members/P3-HUNG.md#coordination), chờ xác nhận field/điểm trừ kho trong checkout |
+| Field/endpoint catalog còn thiếu: CRUD category/brand/product, upload, PDP và wishlist/compare | [Catalog](#catalog), [đề xuất P2](members/P2-GIAU-catalog-proposal.md), [ERD](DB-MIGRATION.md#erd), [PLP](HSHOP-ANALYSIS.md#plp), [PDP](HSHOP-ANALYSIS.md#pdp) | [Dũng](members/P1-DUNG.md#coordination) + [Giàu](members/P2-GIAU.md#coordination) + [Gấm](members/P4-GAM.md#coordination) |
 | Tên và hành vi thanh toán giả lập: `VNPAY_MOCK` hay `CHUYEN_KHOAN_MOCK` | [API sales](#sales), [ERD payments](DB-MIGRATION.md#erd), [checkout](HSHOP-ANALYSIS.md#checkout) | [Dũng](members/P1-DUNG.md#coordination) + [Hưng](members/P3-HUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination) — **đã chốt 2026-10-23:** `CHUYEN_KHOAN_MOCK`, COD thu khi giao |
-| Field/endpoint còn thiếu cho filter giá, sort tên, upload, wishlist/compare và PDP; nơi lưu dữ liệu tương ứng | [Catalog](#catalog), [ERD](DB-MIGRATION.md#erd), [PLP](HSHOP-ANALYSIS.md#plp), [PDP](HSHOP-ANALYSIS.md#pdp) | [Dũng](members/P1-DUNG.md#coordination) + [Giàu](members/P2-GIAU.md#coordination) + [Gấm](members/P4-GAM.md#coordination) |
 | Mua hàng có cần đăng nhập; xác minh mã + số điện thoại khi tra cứu; xử lý gửi checkout lặp, hủy đơn/hoàn kho và trạng thái payment | [Sales](#sales), [checkout](HSHOP-ANALYSIS.md#checkout), [transaction](DB-MIGRATION.md#data-safety) | [Dũng](members/P1-DUNG.md#coordination) + [Hưng](members/P3-HUNG.md#coordination); [Giàu](members/P2-GIAU.md#coordination) khi liên quan kho, [Gấm](members/P4-GAM.md#coordination) khi liên quan UI — **đã chốt 2026-10-23:** bắt buộc đăng nhập; tra cứu bằng mã + số điện thoại; checkout lặp bị chặn khi giỏ trống; hủy đơn hoàn kho/voucher, payment đã trả chuyển `refunded` |
 | CSRF và lỗi validation đã có [contract P1](#auth), chờ Gấm xác nhận; response rỗng/upload còn cần chốt | [Nguyên tắc API](#principles), [HTML](CODING-CONVENTION.md#html), [JS](CODING-CONVENTION.md#javascript) | [Dũng](members/P1-DUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination), chủ API liên quan |
 | Số bài blog/review tối thiểu khi nghiệm thu | [Yêu cầu content](HSHOP-ANALYSIS.md#content) và [DoD MVP](DEFINITION-OF-DONE.md#mvp) đang ghi khác nhau | [Dũng](members/P1-DUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination) |
