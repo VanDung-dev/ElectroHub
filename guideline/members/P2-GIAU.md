@@ -18,6 +18,7 @@ Vùng file: `app/models/{category,brand,product,product_image}.py`, `app/routers
 
 | Việc cần làm | Hướng dẫn áp dụng | Kết quả cần bàn giao |
 | --- | --- | --- |
+| Chốt contract catalog trước khi implement | [Đề xuất schema/API/upload/seed](P2-GIAU-catalog-proposal.md), [API catalog](../API-DESIGN.md#catalog), [ERD](../DB-MIGRATION.md#erd) | Dũng duyệt schema/API; Hưng xác nhận giá/stock; Gấm xác nhận payload PLP/PDP |
 | CRUD category đa cấp, brand, product và upload ảnh | [API catalog](../API-DESIGN.md#catalog), [backend](../CODING-CONVENTION.md#python), [ERD](../DB-MIGRATION.md#erd) | API/schema và dữ liệu để Gấm dựng trang sản phẩm/admin |
 | List/detail/search/filter/sort/paginate | [Yêu cầu PLP](../HSHOP-ANALYSIS.md#plp), [PDP](../HSHOP-ANALYSIS.md#pdp), [contract catalog](../API-DESIGN.md#catalog) | Dữ liệu đủ checklist; list theo `{items,total,page,page_size}` |
 | Wishlist và so sánh sản phẩm | [Scope MVP](../DEFINITION-OF-DONE.md#mvp), [API catalog](../API-DESIGN.md#catalog) | Thống nhất contract và cách lưu với Dũng; bàn giao dữ liệu cho Gấm nối UI |
