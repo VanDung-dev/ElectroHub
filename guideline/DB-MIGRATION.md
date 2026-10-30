@@ -29,14 +29,18 @@ brands(id, name, slug UQ)
 products(id, slug UQ, sku UQ, name, category_id FK, brand_id FK, price INT, sale_price INT NULL, stock INT, specs JSON, created_at)
 product_images(id, product_id FK, url, sort)
 cart_items(id, user_id FK, product_id FK, qty, UQ(user_id, product_id))
-orders(id, code UQ, user_id FK, status, subtotal, discount, shipping_fee, total, address JSON, created_at)
+orders(id, code UQ, user_id FK, status, subtotal, discount, shipping_fee, total, voucher_code NULL, address JSON, created_at)
 order_items(id, order_id FK, product_id FK, price, qty)
-payments(id, order_id FK UQ, method[COD,VNPAY_MOCK], status, payload JSON)
+payments(id, order_id FK UQ, method[COD,CHUYEN_KHOAN_MOCK], status, payload JSON)
 vouchers(id, code UQ, percent, max_discount, qty_left, expired_at)
 posts(id, slug UQ, title, tag[ARDUINO,ESP32,RASPBERRY,MICROBIT,REVIEW], content, created_at)
 ```
 
 Quy ước: PK `id INT IDENTITY`, tiền `INT`, thời gian `DATETIME2`, `slug/code` unique, FK có index.
+
+Hiện trạng migration business: `0002_products_minimal` (bảng `products` tối thiểu do P3 tạo tạm để
+cart/order có FK — P2 thay bằng migration catalog đầy đủ), `0003_cart_items`, `0004_vouchers`,
+`0005_orders`. `orders.voucher_code` bổ sung ngoài ERD cũ để lưu vết và hoàn lượt voucher.
 
 <a id="migrations"></a>
 
