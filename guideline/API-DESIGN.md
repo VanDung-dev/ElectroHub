@@ -106,7 +106,9 @@ POST /api/v1/cart/apply-voucher {code}
 POST /api/v1/orders              # checkout từ cart -> trừ tồn kho trong transaction
 GET  /api/v1/orders              # lịch sử user
 GET  /api/v1/orders/{code}       # tra cứu
-POST /api/v1/orders/{code}/pay   # COD xác nhận / mock VNPay
+GET  /api/v1/payments/orders/{code}          # chủ đơn xem thông tin thanh toán
+POST /api/v1/payments/orders/{code}/session  # trả URL mô phỏng nội bộ
+POST /api/v1/payments/orders/{code}/simulate # result: paid hoặc failed
 PATCH /api/v1/admin/orders/{code} # admin đổi trạng thái: pending->confirmed->shipping->done|cancelled
 GET  /api/v1/admin/orders        # admin: danh sách/lọc trạng thái, mã đơn (bổ sung khi làm UI admin)
 ```
@@ -117,9 +119,9 @@ GET  /api/v1/admin/orders        # admin: danh sách/lọc trạng thái, mã đ
 * Giá tính tiền = `sale_price` nếu có, ngược lại `price`; mọi số tiền là `int` VND.
 * Phí ship cố định `30.000` đồng cho đơn có hàng; quy tắc này phải khớp nội dung
   chính sách vận chuyển Gấm hiển thị (còn chờ chốt ngưỡng miễn phí nếu có).
-* Thanh toán MVP: `COD` và `CHUYEN_KHOAN_MOCK` (không gọi VNPay thật).
-  `POST /orders/{code}/pay` với COD chỉ xác nhận, payment vẫn `pending`;
-  với `CHUYEN_KHOAN_MOCK` payment chuyển `paid` kèm `reference` mock.
+* Thanh toán: chỉ `PAYPAL` và `VNPAY`, bắt buộc chọn khi tạo đơn. Cả hai là mô phỏng nội bộ, không thu tiền thật và không yêu cầu API key.
+* POST simulate chỉ dành cho chủ đơn, yêu cầu CSRF; kết quả `paid`/`failed`. Có thể thử lại sau thất bại, xác nhận thành công lặp lại không gây tác dụng phụ; không thanh toán đơn đã hủy/hoàn tiền.
+* Nhân viên chỉ xác nhận/giao đơn khi payment đã `paid`. Hủy đơn đã thanh toán mô phỏng sẽ hoàn kho và ghi `refunded`.
 * Mã đơn `EH-XXXX` (4 ký tự), duy nhất; checkout trả `201`.
 * `POST /cart/apply-voucher` chỉ xem trước giảm giá, **không** trừ lượt;
   checkout nhận `voucher_code` và trừ đúng 1 lượt trong transaction.
@@ -151,7 +153,6 @@ Các mục dưới đây là điểm chưa thống nhất hoặc chưa được 
 | Giá dùng để lọc/sort catalog | [Đề xuất catalog P2](members/P2-GIAU-catalog-proposal.md), [PLP](HSHOP-ANALYSIS.md#plp) | [Giàu](members/P2-GIAU.md#coordination) đề xuất dùng `sale_price` nếu có, ngược lại `price`, để khớp giá checkout; chờ Hưng và Dũng xác nhận |
 | Quy tắc stock và cập nhật stock | [ERD](DB-MIGRATION.md#erd), [an toàn dữ liệu](DB-MIGRATION.md#data-safety) | [Giàu](members/P2-GIAU.md#coordination) + [Hưng](members/P3-HUNG.md#coordination), chờ xác nhận field/điểm trừ kho trong checkout |
 | Field/endpoint catalog còn thiếu: CRUD category/brand/product, upload, PDP và wishlist/compare | [Catalog](#catalog), [đề xuất P2](members/P2-GIAU-catalog-proposal.md), [ERD](DB-MIGRATION.md#erd), [PLP](HSHOP-ANALYSIS.md#plp), [PDP](HSHOP-ANALYSIS.md#pdp) | [Dũng](members/P1-DUNG.md#coordination) + [Giàu](members/P2-GIAU.md#coordination) + [Gấm](members/P4-GAM.md#coordination) |
-| Tên và hành vi thanh toán giả lập: `VNPAY_MOCK` hay `CHUYEN_KHOAN_MOCK` | [API sales](#sales), [ERD payments](DB-MIGRATION.md#erd), [checkout](HSHOP-ANALYSIS.md#checkout) | [Dũng](members/P1-DUNG.md#coordination) + [Hưng](members/P3-HUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination) — **đã chốt 2026-10-23:** `CHUYEN_KHOAN_MOCK`, COD thu khi giao |
 | Mua hàng có cần đăng nhập; xác minh mã + số điện thoại khi tra cứu; xử lý gửi checkout lặp, hủy đơn/hoàn kho và trạng thái payment | [Sales](#sales), [checkout](HSHOP-ANALYSIS.md#checkout), [transaction](DB-MIGRATION.md#data-safety) | [Dũng](members/P1-DUNG.md#coordination) + [Hưng](members/P3-HUNG.md#coordination); [Giàu](members/P2-GIAU.md#coordination) khi liên quan kho, [Gấm](members/P4-GAM.md#coordination) khi liên quan UI — **đã chốt 2026-10-23:** bắt buộc đăng nhập; tra cứu bằng mã + số điện thoại; checkout lặp bị chặn khi giỏ trống; hủy đơn hoàn kho/voucher, payment đã trả chuyển `refunded` |
 | CSRF và lỗi validation đã có [contract P1](#auth), chờ Gấm xác nhận; response rỗng/upload còn cần chốt | [Nguyên tắc API](#principles), [HTML](CODING-CONVENTION.md#html), [JS](CODING-CONVENTION.md#javascript) | [Dũng](members/P1-DUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination), chủ API liên quan |
 | Số bài blog/review tối thiểu khi nghiệm thu | [Yêu cầu content](HSHOP-ANALYSIS.md#content) và [DoD MVP](DEFINITION-OF-DONE.md#mvp) đang ghi khác nhau | [Dũng](members/P1-DUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination) |
