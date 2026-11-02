@@ -23,6 +23,16 @@ def test_health_swagger_html_and_static(client):
     schema = client.get("/openapi.json").json()
     assert set(schema["paths"]) == {
         "/api/v1/health",
+        "/api/v1/products",
+        "/api/v1/products/{slug}",
+        "/api/v1/admin/products",
+        "/api/v1/admin/products/{product_id}",
+        "/api/v1/newsletter/send",
+        "/api/v1/newsletter/subscribe",
+        "/api/v1/newsletter/unsubscribe",
+        "/api/v1/payments/orders/{code}",
+        "/api/v1/payments/orders/{code}/session",
+        "/api/v1/payments/orders/{code}/simulate",
         "/api/v1/auth/csrf",
         "/api/v1/auth/register",
         "/api/v1/auth/login",
@@ -34,7 +44,6 @@ def test_health_swagger_html_and_static(client):
         "/api/v1/cart/apply-voucher",
         "/api/v1/orders",
         "/api/v1/orders/{code}",
-        "/api/v1/orders/{code}/pay",
         "/api/v1/admin/orders",
         "/api/v1/admin/orders/{code}",
     }
@@ -42,11 +51,12 @@ def test_health_swagger_html_and_static(client):
     assert schema["paths"]["/api/v1/auth/login"]["post"]["responses"]["422"]["content"][
         "application/json"
     ]["schema"]["$ref"].endswith("DetailResponse")
-    for path in ["/", "/collections/all", "/products/demo", "/account/login"]:
+    for path in ["/", "/collections/all", "/account/login", "/account/register"]:
         response = client.get(path)
-        assert response.status_code == 503
+        assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/html")
-    assert client.get("/static/js/api.js").status_code == 200
+    assert client.get("/products/missing").status_code == 404
+    assert client.get("/static/js/store.js").status_code == 200
     assert client.get("/missing").json() == {"detail": "Not Found"}
 
 
