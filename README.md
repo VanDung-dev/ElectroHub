@@ -41,7 +41,20 @@ Sau khi app khởi động lần đầu, nạp một vài sản phẩm minh họ
 docker compose exec app python -m app.seeds.seed
 ```
 
-DB và migration được khởi tạo tự động. Các lần sau dùng lại lệnh trên; thay đổi code cần build lại.
+DB, migration và ba tài khoản demo được khởi tạo tự động trước khi app chạy.
+Database mới cũng có sẵn các tài khoản sau, mật khẩu chung là `Demo@2026!`:
+
+| Vai trò | Email |
+| --- | --- |
+| Khách hàng | `customer.demo@example.com` |
+| Nhân viên | `staff.demo@example.com` |
+| Quản lý | `manager.demo@example.com` |
+
+Đây là tài khoản demo với mật khẩu công khai. Chạy lại Compose chỉ thêm tài khoản còn thiếu,
+không đặt lại mật khẩu hay thay đổi quyền/tên của tài khoản đã có.
+Khi chạy Python trực tiếp, có thể nạp bằng `python -m app.seeds.accounts` sau migration.
+
+Các lần sau dùng lại lệnh khởi động trên; thay đổi code cần build lại.
 Có thể đổi `APP_PORT` hoặc `SQLSERVER_PORT` trong `.env` nếu cổng bị trùng.
 Kết nối từ SSMS vào DB Docker: `localhost,1433`, SQL Server Authentication,
 user `sa`, mật khẩu `MSSQL_SA_PASSWORD` (đổi 1433 theo `SQLSERVER_PORT` nếu đã chỉnh).

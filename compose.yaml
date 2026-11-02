@@ -62,7 +62,7 @@ services:
     depends_on:
       sqlserver-init:
         condition: service_completed_successfully
-    command: ["alembic", "upgrade", "head"]
+    command: ["sh", "-c", "alembic upgrade head && python -m app.seeds.accounts"]
     restart: "no"
 
   app:
