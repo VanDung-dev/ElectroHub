@@ -24,7 +24,6 @@ from app.schemas.cart import (
     OrderPayment,
     OrderResponse,
     OrderSummary,
-    PayRequest,
 )
 
 SHIPPING_FEE = 30_000
@@ -321,9 +320,7 @@ def checkout(db: Session, user: User, data: CheckoutRequest) -> OrderResponse:
                 order_id=order.id,
                 method=data.payment_method,
                 status="pending",
-                payload={
-                    "provider": "cod" if data.payment_method == "COD" else "chuyen_khoan_mock"
-                },
+                payload={"provider": data.payment_method.lower(), "simulation": True},
             )
         )
         db.execute(delete(CartItem).where(CartItem.user_id == user.id))
@@ -390,7 +387,7 @@ def get_order_for_tracking(
     db: Session, code: str, user: User | None, phone: str | None
 ) -> OrderResponse:
     order = _find_order(db, code)
-    allowed = user is not None and (user.id == order.user_id or user.role == "admin")
+    allowed = user is not None and (user.id == order.user_id or user.role in {"admin", "staff"})
     if not allowed:
         if not phone:
             raise HTTPException(400, "Cần số điện thoại để tra cứu đơn hàng")
@@ -399,46 +396,13 @@ def get_order_for_tracking(
     return _order_response(db, order)
 
 
-def pay_order(db: Session, user_id: int, code: str, data: PayRequest) -> OrderResponse:
-    order = db.scalar(
-        select(Order)
-        .where(Order.code == code.strip().upper(), Order.user_id == user_id)
-        .with_for_update()
-    )
-    if order is None:
-        raise HTTPException(404, "Không tìm thấy đơn hàng")
-    if order.status == "cancelled":
-        raise HTTPException(409, "Đơn hàng đã bị hủy")
-    payment = db.scalar(select(Payment).where(Payment.order_id == order.id).with_for_update())
-    if payment is None:
-        raise HTTPException(404, "Đơn hàng chưa có thông tin thanh toán")
-    if payment.method != data.method:
-        raise HTTPException(409, "Phương thức thanh toán không khớp với đơn hàng")
-    if payment.status == "paid":
-        raise HTTPException(409, "Đơn hàng đã được thanh toán")
-    if payment.status == "refunded":
-        raise HTTPException(409, "Đơn hàng đã được hoàn tiền")
-
-    payload = dict(payment.payload or {})
-    if data.method == "COD":
-        # COD is collected on delivery; confirming it here does not mark the order paid.
-        payload["confirmed_at"] = _now().isoformat()
-    else:
-        payment.status = "paid"
-        payload.update(
-            {
-                "provider": "chuyen_khoan_mock",
-                "paid_at": _now().isoformat(),
-                "reference": f"MOCK-{secrets.token_hex(4).upper()}",
-            }
-        )
-    payment.payload = payload
-    db.commit()
-    db.refresh(order)
-    return _order_response(db, order)
-
-
 def _restock(db: Session, order: Order) -> None:
+    if (
+        order.payment
+        and order.payment.status == "paid"
+        and not (order.payment.payload or {}).get("simulation")
+    ):
+        raise HTTPException(409, "Đơn cũ cần được hoàn tiền thực tế trước khi hủy")
     for item in order.items:
         db.execute(
             update(Product)
@@ -463,6 +427,10 @@ def update_order_status(db: Session, code: str, data: AdminOrderUpdate) -> Order
         raise HTTPException(409, "Đơn hàng đã ở trạng thái này")
     if data.status not in ORDER_TRANSITIONS[order.status]:
         raise HTTPException(409, f"Không thể chuyển từ {order.status} sang {data.status}")
+    if data.status in {"confirmed", "shipping", "done"} and (
+        order.payment is None or order.payment.status != "paid"
+    ):
+        raise HTTPException(409, "Đơn hàng cần thanh toán thành công trước khi xử lý")
     try:
         if data.status == "cancelled":
             _restock(db, order)

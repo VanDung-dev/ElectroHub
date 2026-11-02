@@ -28,6 +28,10 @@ class Product(Base):
     slug: Mapped[str] = mapped_column(Unicode(200), unique=True)
     sku: Mapped[str] = mapped_column(String(32), unique=True)
     name: Mapped[str] = mapped_column(Unicode(200))
+    description: Mapped[str] = mapped_column(Unicode(1000), default="")
+    image_url: Mapped[str] = mapped_column(
+        String(500), default="/static/img/product-placeholder.svg"
+    )
     price: Mapped[int] = mapped_column(Integer)
     sale_price: Mapped[int | None] = mapped_column(Integer, nullable=True)
     stock: Mapped[int] = mapped_column(Integer, default=0)
