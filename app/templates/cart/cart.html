@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block content %}
+<nav class="breadcrumb" aria-label="Đường dẫn"><a href="/">Trang chủ</a><span>/</span><span>Giỏ hàng</span></nav><div class="section-heading"><h1>Giỏ hàng của bạn</h1><a href="/collections/all">Tiếp tục mua sắm →</a></div>
+<div class="shopping-layout"><section data-cart aria-label="Sản phẩm trong giỏ"><p>Đang tải giỏ hàng…</p></section><aside class="order-summary"><h2>Tóm tắt đơn hàng</h2><div data-cart-summary></div><a class="button" href="/checkout" data-checkout-link hidden>Tiến hành đặt hàng →</a><p class="purchase-note">Kiểm tra sản phẩm và số lượng trước khi đặt hàng.</p></aside></div><p data-message role="status" aria-live="polite"></p>
+{% endblock %}
