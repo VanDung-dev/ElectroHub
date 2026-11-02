@@ -22,7 +22,7 @@ def upgrade() -> None:
         sa.Column("expired_at", sa.DateTime().with_variant(DATETIME2(), "mssql"), nullable=False),
         sa.PrimaryKeyConstraint("id", name="pk_vouchers"),
         sa.UniqueConstraint("code", name="uq_vouchers_code"),
-        sa.CheckConstraint("percent BETWEEN 1 AND 100", name=op.f("ck_vouchers_percent")),
+        sa.CheckConstraint("[percent] BETWEEN 1 AND 100", name=op.f("ck_vouchers_percent")),
         sa.CheckConstraint("max_discount >= 0", name=op.f("ck_vouchers_max_discount")),
         sa.CheckConstraint("qty_left >= 0", name=op.f("ck_vouchers_qty_left")),
     )
