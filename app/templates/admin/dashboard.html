@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="workspace-heading"><div><p class="eyebrow">KHU VỰC QUẢN LÝ</p><h1>Tổng quan cửa hàng</h1><p>Quản lý sản phẩm, đơn hàng và nội dung gửi khách hàng.</p></div><span class="role-pill">Quản lý</span></section>
+<section class="manager-stats" data-manager-stats aria-live="polite"><article><span>Sản phẩm</span><strong>—</strong></article><article><span>Đơn hàng</span><strong>—</strong></article><article><span>Đang chờ xử lý</span><strong>—</strong></article></section>
+<section class="workspace-links" aria-label="Công cụ quản lý">
+  <a href="/admin/products"><span class="workspace-icon" aria-hidden="true">01</span><strong>Danh mục sản phẩm</strong><span>Thêm sản phẩm, cập nhật giá và tồn kho.</span><b>Quản lý sản phẩm →</b></a>
+  <a href="/admin/orders"><span class="workspace-icon" aria-hidden="true">02</span><strong>Đơn hàng</strong><span>Theo dõi và cập nhật trạng thái giao hàng.</span><b>Xem đơn hàng →</b></a>
+  <a href="/admin/newsletter"><span class="workspace-icon" aria-hidden="true">03</span><strong>Email marketing</strong><span>Gửi thông báo tới khách đã đăng ký nhận tin.</span><b>Soạn email →</b></a>
+</section>
+{% endblock %}

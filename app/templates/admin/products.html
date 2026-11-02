@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Quản lý sản phẩm</h1>
+<form data-admin-product class="form-card">
+  <input type="hidden" name="id">
+  <label>Tên sản phẩm<input name="name" required maxlength="200"></label>
+  <label>Slug URL<input name="slug" required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="200"></label>
+  <label>Mã SKU<input name="sku" required pattern="[A-Z0-9-]+" maxlength="32"></label>
+  <label>Mô tả ngắn<textarea name="description" maxlength="1000" rows="3"></textarea></label>
+  <label>URL ảnh (HTTPS hoặc /static/img/)<input name="image_url" required maxlength="500" value="/static/img/product-placeholder.svg"></label>
+  <label>Giá gốc (VND)<input name="price" required type="number" min="0"></label>
+  <label>Giá khuyến mãi (không bắt buộc)<input name="sale_price" type="number" min="0"></label>
+  <label>Tồn kho<input name="stock" required type="number" min="0"></label>
+  <div><button>Lưu sản phẩm</button> <button type="button" data-reset-product>Thêm mới</button></div>
+</form>
+<p data-message role="status" aria-live="polite"></p>
+<div class="product-grid" data-admin-products></div>
+{% endblock %}
