@@ -13,7 +13,7 @@ DUMMY_PASSWORD_HASH = hash_password("unused-password")
 
 
 def create_user(
-    db: Session, data: RegisterRequest, *, role: Literal["admin", "customer"] = "customer"
+    db: Session, data: RegisterRequest, *, role: Literal["admin", "staff", "customer"] = "customer"
 ) -> User:
     user = User(
         email=str(data.email),

@@ -24,11 +24,24 @@ class Settings(BaseSettings):
     sqlserver_user: str = "sa"
     mssql_sa_password: SecretStr | None = None
     sqlserver_trust_certificate: bool = True
+    site_url: str = "http://localhost:8000"
+    smtp_host: str | None = None
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_username: str | None = None
+    smtp_password: SecretStr | None = None
+    mail_from: str | None = None
+    facebook_page_url: str | None = None
+    zalo_page_url: str | None = None
+    subiz_embed_code: str | None = None
 
     @model_validator(mode="after")
     def require_database_credentials(self):
         if not self.database_url and not self.mssql_sa_password:
             raise ValueError("Set MSSQL_SA_PASSWORD or DATABASE_URL")
+        for name in ("smtp_password",):
+            value = getattr(self, name)
+            if value is not None and not value.get_secret_value().strip():
+                setattr(self, name, None)
         return self
 
     @property

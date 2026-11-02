@@ -8,7 +8,7 @@ from app.core.deps import CurrentUser, DbSession
 from app.core.security import ACCESS_COOKIE, decode_access_token
 from app.models.user import User
 from app.schemas.auth import DetailResponse
-from app.schemas.cart import CheckoutRequest, OrderListResponse, OrderResponse, PayRequest
+from app.schemas.cart import CheckoutRequest, OrderListResponse, OrderResponse
 from app.services import order_service
 
 router = APIRouter(
@@ -67,9 +67,3 @@ def track_order(
 ):
     """Tra cứu công khai bằng mã đơn + số điện thoại; owner/admin không cần số điện thoại."""
     return order_service.get_order_for_tracking(db, code, user, phone)
-
-
-@router.post("/{code}/pay", response_model=OrderResponse)
-def pay_order(code: str, data: PayRequest, user: CurrentUser, db: DbSession):
-    """COD xác nhận (chờ thu khi giao) hoặc thanh toán chuyển khoản mock."""
-    return order_service.pay_order(db, user.id, code, data)

@@ -61,3 +61,9 @@ def require_admin(user: CurrentUser) -> User:
     if user.role != "admin":
         raise HTTPException(403, "Bạn không có quyền admin")
     return user
+
+
+def require_staff(user: CurrentUser) -> User:
+    if user.role not in {"staff", "admin"}:
+        raise HTTPException(403, "Bạn không có quyền nhân viên")
+    return user

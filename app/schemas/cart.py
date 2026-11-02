@@ -63,7 +63,7 @@ class CartResponse(BaseModel):
     voucher: CartVoucher | None = None
 
 
-PaymentMethod = Literal["COD", "CHUYEN_KHOAN_MOCK"]
+PaymentMethod = Literal["PAYPAL", "VNPAY"]
 OrderStatus = Literal["pending", "confirmed", "shipping", "done", "cancelled"]
 
 
@@ -76,7 +76,7 @@ class CheckoutRequest(BaseModel):
                     "name": "Khách hàng",
                     "phone": "0901234567",
                     "address": "269/20 Lý Thường Kiệt, TP.HCM",
-                    "payment_method": "COD",
+                    "payment_method": "PAYPAL",
                     "voucher_code": "WELCOME10",
                 }
             ]
@@ -86,7 +86,7 @@ class CheckoutRequest(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     phone: str = Field(min_length=10, max_length=10, pattern=r"^0\d{9}$")
     address: str = Field(min_length=5, max_length=255)
-    payment_method: PaymentMethod = "COD"
+    payment_method: PaymentMethod
     voucher_code: str | None = Field(default=None, max_length=32)
 
     @field_validator("name", "address")
@@ -153,12 +153,6 @@ class OrderListResponse(BaseModel):
     total: int
     page: int
     page_size: int
-
-
-class PayRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    method: PaymentMethod
 
 
 class AdminOrderUpdate(BaseModel):

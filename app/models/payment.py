@@ -7,7 +7,7 @@ from app.core.database import Base
 class Payment(Base):
     __tablename__ = "payments"
     __table_args__ = (
-        CheckConstraint("method IN ('COD', 'CHUYEN_KHOAN_MOCK')", name="method"),
+        CheckConstraint("method IN ('PAYPAL', 'VNPAY')", name="method"),
         CheckConstraint(
             "status IN ('pending', 'paid', 'failed', 'refunded')",
             name="status",

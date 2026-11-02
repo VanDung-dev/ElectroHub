@@ -10,7 +10,7 @@ from app.core.database import Base
 class Voucher(Base):
     __tablename__ = "vouchers"
     __table_args__ = (
-        CheckConstraint("percent BETWEEN 1 AND 100", name="percent"),
+        CheckConstraint("[percent] BETWEEN 1 AND 100", name="percent"),
         CheckConstraint("max_discount >= 0", name="max_discount"),
         CheckConstraint("qty_left >= 0", name="qty_left"),
     )
