@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block content %}
+<nav class="breadcrumb" aria-label="Đường dẫn"><a href="/">Trang chủ</a><span>/</span><span>Sản phẩm</span></nav>
+<div class="section-heading catalog-heading"><div><h1>Tất cả sản phẩm</h1><p data-product-count aria-live="polite">Đang tải sản phẩm…</p></div></div>
+<section class="catalog-toolbar" aria-label="Lọc sản phẩm"><label class="catalog-search"><span class="sr-only">Tìm sản phẩm trong danh sách</span><input type="search" data-product-search placeholder="Tên sản phẩm hoặc mã SKU…"></label><label class="check-filter"><input type="checkbox" data-stock-filter> Chỉ còn hàng</label><label class="check-filter"><input type="checkbox" data-sale-filter> Đang giảm giá</label><label>Sắp xếp <select data-product-sort><option value="name">Tên A–Z</option><option value="price-asc">Giá tăng dần</option><option value="price-desc">Giá giảm dần</option><option value="newest">Mới nhất</option></select></label></section>
+<div class="product-grid" data-products aria-live="polite"></div><p data-message role="status" aria-live="polite"></p>
+{% endblock %}

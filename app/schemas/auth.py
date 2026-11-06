@@ -60,7 +60,7 @@ class UserResponse(BaseModel):
     id: int
     email: EmailStr
     name: str
-    role: Literal["admin", "customer"]
+    role: Literal["admin", "staff", "customer"]
     created_at: datetime
 
 

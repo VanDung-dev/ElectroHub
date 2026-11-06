@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page_title }}</title>
+  <meta name="description" content="{{ page_description }}">
+  <meta name="robots" content="{{ robots_policy | default('index,follow') }}">
+  <link rel="canonical" href="{{ canonical_url }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="ElectroHub">
+  <meta property="og:title" content="{{ page_title }}">
+  <meta property="og:description" content="{{ page_description }}">
+  <meta property="og:url" content="{{ canonical_url }}">
+  <meta property="og:image" content="{{ page_image }}">
+  <meta property="og:image:alt" content="{{ page_image_alt | default('ElectroHub') }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ page_title }}">
+  <meta name="twitter:description" content="{{ page_description }}">
+  <meta name="twitter:image" content="{{ page_image }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/base.css') }}">
+  <script defer src="{{ url_for('static', path='js/store.js') }}"></script>
+</head>
+<body>
+  <div class="store-topbar"><span>ElectroHub · Linh kiện điện tử & thiết bị</span><a href="/cart/tracking">Tra cứu đơn hàng</a></div>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="ElectroHub - trang chủ">ElectroHub<span>LINH KIỆN & THIẾT BỊ</span></a>
+    <form class="header-search" action="/collections/all" method="get" role="search"><label class="sr-only" for="store-search">Tìm tên sản phẩm hoặc mã SKU</label><input id="store-search" name="q" type="search" placeholder="Bạn cần tìm linh kiện gì?" maxlength="200"><button>Tìm kiếm</button></form>
+    <nav class="user-nav" data-user-nav aria-label="Tài khoản"><a href="/account/login">Đăng nhập</a><a class="nav-register" href="/account/register">Đăng ký</a></nav>
+  </header>
+  <nav class="shop-nav" aria-label="Điều hướng cửa hàng"><div><a href="/collections/all">Tất cả sản phẩm</a><a href="/collections/all?sale=1">Sản phẩm giảm giá</a><a href="/account/orders">Đơn hàng của tôi</a><a class="cart-link" href="/cart">Giỏ hàng <span data-cart-count>0</span></a></div></nav>
+  <main class="container">{% block content %}{% endblock %}</main>
+  <footer class="site-footer">
+    <section><h2>Nhận tin từ ElectroHub</h2><p>Tin sản phẩm và ưu đãi mới, gửi qua email.</p>
+      <form data-newsletter><label class="sr-only" for="newsletter-email">Email</label><input id="newsletter-email" name="email" type="email" required placeholder="Email của bạn"><label><input name="consent" type="checkbox" required> Tôi đồng ý nhận email ưu đãi và có thể hủy bất cứ lúc nào.</label><button>Đăng ký</button></form>
+      <p data-newsletter-message role="status" aria-live="polite"></p>
+    </section>
+    <nav class="footer-links" aria-label="Thông tin mua hàng"><a href="/collections/all">Sản phẩm</a><a href="/cart/tracking">Tra cứu đơn hàng</a><a href="/account/orders">Đơn hàng của tôi</a></nav><p>© ElectroHub · Thiết bị điện tử và linh kiện</p>
+  </footer>
+  <aside class="chat-links" aria-label="Liên hệ trực tuyến">
+    {% if facebook_page_url %}<a href="{{ facebook_page_url }}" target="_blank" rel="noopener noreferrer">Nhắn Facebook</a>{% endif %}
+    {% if zalo_page_url %}<a href="{{ zalo_page_url }}" target="_blank" rel="noopener noreferrer">Chat Zalo</a>{% endif %}
+  </aside>
+  {% if subiz_embed_code %}{{ subiz_embed_code | safe }}{% endif %}
+</body>
+</html>

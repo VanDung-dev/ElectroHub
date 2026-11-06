@@ -249,7 +249,7 @@ def checkout(client, headers, **overrides):
             "name": "Khách hàng",
             "phone": "0901234567",
             "address": "269/20 Lý Thường Kiệt, TP.HCM",
-            "payment_method": "COD",
+            "payment_method": "PAYPAL",
             **overrides,
         },
         headers=headers,
@@ -284,7 +284,7 @@ def test_checkout_creates_order_decrements_stock_and_clears_cart(client, databas
     assert order["total"] == 192_000
     assert order["voucher_code"] == "WELCOME10"
     assert order["address"]["phone"] == "0901234567"
-    assert order["payment"] == {"method": "COD", "status": "pending"}
+    assert order["payment"] == {"method": "PAYPAL", "status": "pending"}
     assert order["items"] == [
         {
             "product_id": product_id,
@@ -303,7 +303,7 @@ def test_checkout_creates_order_decrements_stock_and_clears_cart(client, databas
         assert saved.code == order["code"] and saved.total == 192_000
         assert saved.address["name"] == "Khách hàng"
         assert db.scalar(select(OrderItem)).price == 90_000
-        assert db.scalar(select(Payment)).method == "COD"
+        assert db.scalar(select(Payment)).method == "PAYPAL"
 
     assert client.get("/api/v1/cart").json()["items"] == []
     history = client.get("/api/v1/orders").json()
@@ -322,7 +322,9 @@ def test_checkout_rejects_empty_cart_and_invalid_payload(client, database):
     product_id = make_product(database)
     add_to_cart(client, product_id, 1, headers)
     assert checkout(client, headers, phone="12345").status_code == 422
-    assert checkout(client, headers, payment_method="VNPAY").status_code == 422
+    assert checkout(client, headers, payment_method="COD").status_code == 422
+    assert checkout(client, headers, payment_method="STRIPE").status_code == 422
+    assert checkout(client, headers, payment_method="CHUYEN_KHOAN_MOCK").status_code == 422
     assert checkout(client, headers, extra="x").status_code == 422
 
 
@@ -364,54 +366,80 @@ def test_checkout_is_atomic_when_a_later_line_is_short(client, database):
     assert len(client.get("/api/v1/cart").json()["items"]) == 2
 
 
-@pytest.mark.parametrize(
-    "method,paid",
-    [("COD", False), ("CHUYEN_KHOAN_MOCK", True)],
-)
-def test_pay_cod_confirms_and_transfer_mock_marks_paid(client, database, method, paid):
+@pytest.mark.parametrize("method", ["PAYPAL", "VNPAY"])
+def test_simulated_payment_failure_retry_and_idempotence(client, database, method):
     product_id = make_product(database)
     headers = signed_in(client)
     add_to_cart(client, product_id, 1, headers)
     code = checkout(client, headers, payment_method=method).json()["code"]
+    base = f"/api/v1/payments/orders/{code}"
+    page = client.get("/checkout").text
+    assert 'value="PAYPAL"' in page and 'value="VNPAY"' in page
+    assert 'value="COD"' not in page
+    assert "Không có giao dịch thật" in client.get(f"/payments/{code}").text
+    assert client.post(base + "/session", json={}, headers=headers).json() == {
+        "url": f"/payments/{code}"
+    }
+    assert client.post(base + "/simulate", json={"result": "paid"}).status_code == 403
+    failed = client.post(base + "/simulate", json={"result": "failed"}, headers=headers)
+    assert failed.json()["status"] == "failed"
+    assert client.post(base + "/session", json={}, headers=headers).status_code == 200
+    paid = client.post(base + "/simulate", json={"result": "paid"}, headers=headers)
+    assert paid.status_code == 200 and paid.json()["status"] == "paid"
+    assert paid.json()["method"] == method and paid.json()["simulation"] is True
+    assert (
+        client.post(base + "/simulate", json={"result": "paid"}, headers=headers).json()
+        == paid.json()
+    )
+    assert (
+        client.post(base + "/simulate", json={"result": "failed"}, headers=headers).status_code
+        == 409
+    )
+    assert client.post(base + "/session", json={}, headers=headers).status_code == 409
+    with Session(database) as db:
+        assert db.get(Product, product_id).stock == 9
 
-    response = client.post(f"/api/v1/orders/{code}/pay", json={"method": method}, headers=headers)
-    assert response.status_code == 200
-    payment = response.json()["payment"]
-    assert payment["status"] == ("paid" if paid else "pending")
-    if paid:
-        with Session(database) as db:
-            saved = db.scalar(select(Payment))
-            assert saved.status == "paid" and saved.payload["reference"].startswith("MOCK-")
-        response = client.post(
-            f"/api/v1/orders/{code}/pay", json={"method": method}, headers=headers
-        )
-        assert (response.status_code, response.json()) == (
-            409,
-            {"detail": "Đơn hàng đã được thanh toán"},
-        )
 
-
-def test_pay_rejects_wrong_method_and_other_users_order(client, database):
+def test_simulated_payment_rejects_other_users_order(client, database):
     product_id = make_product(database)
     headers = signed_in(client)
     add_to_cart(client, product_id, 1, headers)
     code = checkout(client, headers).json()["code"]
-    response = client.post(
-        f"/api/v1/orders/{code}/pay",
-        json={"method": "CHUYEN_KHOAN_MOCK"},
-        headers=headers,
-    )
-    assert (response.status_code, response.json()) == (
-        409,
-        {"detail": "Phương thức thanh toán không khớp với đơn hàng"},
+    other = signed_in(client, email="other@example.com")
+    base = f"/api/v1/payments/orders/{code}"
+    assert client.get(base).status_code == 404
+    assert client.post(base + "/session", json={}, headers=other).status_code == 404
+    assert (
+        client.post(base + "/simulate", json={"result": "paid"}, headers=other).status_code == 404
     )
 
-    other = signed_in(client, email="other@example.com")
-    response = client.post(f"/api/v1/orders/{code}/pay", json={"method": "COD"}, headers=other)
-    assert (response.status_code, response.json()) == (
-        404,
-        {"detail": "Không tìm thấy đơn hàng"},
+
+def test_unpaid_and_cancelled_order_cannot_be_processed_or_paid(client, database):
+    product_id = make_product(database)
+    owner = signed_in(client)
+    add_to_cart(client, product_id, 1, owner)
+    code = checkout(client, owner).json()["code"]
+    admin = make_admin(client, database)
+    assert (
+        client.patch(
+            f"/api/v1/admin/orders/{code}", json={"status": "confirmed"}, headers=admin
+        ).status_code
+        == 409
     )
+    assert (
+        client.patch(
+            f"/api/v1/admin/orders/{code}", json={"status": "cancelled"}, headers=admin
+        ).status_code
+        == 200
+    )
+    login(client, email="customer@example.com")
+    owner = csrf_headers(client)
+    base = f"/api/v1/payments/orders/{code}"
+    assert client.post(base + "/session", json={}, headers=owner).status_code == 409
+    assert (
+        client.post(base + "/simulate", json={"result": "paid"}, headers=owner).status_code == 409
+    )
+    assert client.get(base).json()["status"] == "pending"
 
 
 def test_tracking_requires_code_and_phone_but_owner_skips_phone(client, database):
@@ -447,6 +475,12 @@ def test_admin_order_status_transitions_and_cancel_restores_stock_and_voucher(cl
     add_to_cart(client, product_id, 2, customer)
     code = checkout(client, customer, voucher_code="WELCOME10").json()["code"]
 
+    assert (
+        client.post(
+            f"/api/v1/payments/orders/{code}/simulate", json={"result": "paid"}, headers=customer
+        ).status_code
+        == 200
+    )
     assert client.get("/api/v1/admin/orders").status_code == 403
     client.post("/api/v1/auth/logout", headers=customer)
     assert client.get("/api/v1/admin/orders").status_code == 401
@@ -477,10 +511,10 @@ def test_admin_order_status_transitions_and_cancel_restores_stock_and_voucher(cl
     login(client, email="customer@example.com")
     headers = csrf_headers(client)
     add_to_cart(client, product_id, 1, headers)
-    cancel_code = checkout(client, headers, payment_method="CHUYEN_KHOAN_MOCK").json()["code"]
+    cancel_code = checkout(client, headers, payment_method="VNPAY").json()["code"]
     client.post(
-        f"/api/v1/orders/{cancel_code}/pay",
-        json={"method": "CHUYEN_KHOAN_MOCK"},
+        f"/api/v1/payments/orders/{cancel_code}/simulate",
+        json={"result": "paid"},
         headers=headers,
     )
     admin = make_admin(client, database)

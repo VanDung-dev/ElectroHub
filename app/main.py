@@ -3,20 +3,26 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException
 
 from app.core.config import ROOT, get_settings
 from app.core.database import get_engine
 from app.core.deps import DbSession, require_csrf
 from app.core.pages import router as pages_router
+from app.models.product import Product
 from app.routers.admin_orders import router as admin_orders_router
 from app.routers.auth import router as auth_router
 from app.routers.cart import router as cart_router
+from app.routers.newsletter import router as newsletter_router
 from app.routers.orders import router as orders_router
+from app.routers.payments import router as payments_router
+from app.routers.products import admin_router as admin_products_router
+from app.routers.products import router as products_router
 from app.schemas.auth import DetailResponse
 
 logger = logging.getLogger("electrohub")
@@ -70,7 +76,32 @@ def create_app() -> FastAPI:
     app.include_router(cart_router)
     app.include_router(orders_router)
     app.include_router(admin_orders_router)
+    app.include_router(products_router)
+    app.include_router(admin_products_router)
+    app.include_router(newsletter_router)
+    app.include_router(payments_router)
     app.include_router(pages_router)
+
+    @app.get("/sitemap.xml", include_in_schema=False)
+    def sitemap():
+        with Session(get_engine()) as db:
+            pages = ["/", "/collections/all"]
+            pages.extend(f"/products/{slug}" for slug in db.scalars(select(Product.slug)).all())
+        base = get_settings().site_url.rstrip("/")
+        urls = "".join(f"<url><loc>{base}{path}</loc></url>" for path in pages)
+        return Response(
+            f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>',
+            media_type="application/xml",
+        )
+
+    @app.get("/robots.txt", include_in_schema=False)
+    def robots():
+        return Response(
+            "User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /manager\nDisallow: /staff/\n"
+            f"Sitemap: {get_settings().site_url.rstrip('/')}/sitemap.xml\n",
+            media_type="text/plain",
+        )
+
     app.mount("/static", StaticFiles(directory=ROOT / "app/static"), name="static")
     return app
 
