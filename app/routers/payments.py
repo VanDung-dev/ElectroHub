@@ -45,6 +45,7 @@ def _details(db: DbSession, order: Order, payment: Payment) -> PaymentDetailsOut
     return PaymentDetailsOut(
         code=order.code,
         total=order.total,
+        vat=order.vat,
         method=payment.method,
         status=payment.status,
         provider=payment.provider,
@@ -109,6 +110,9 @@ def simulate_payment(code: str, data: SimulationRequest, user: CurrentUser, db: 
         raise HTTPException(409, "Trạng thái đơn hàng đã thay đổi; vui lòng tải lại")
     db.commit()
     db.refresh(payment)
+    if payment.status == "paid":
+        payment_service.clear_purchased_items(db, order)
+        db.commit()
     return _details(db, order, payment)
 
 

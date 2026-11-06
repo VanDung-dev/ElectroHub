@@ -60,6 +60,8 @@ class CartResponse(BaseModel):
     items: list[CartLine]
     subtotal: int
     discount: int
+    vat: int
+    vat_percent: int
     shipping_fee: int
     total: int
     voucher: CartVoucher | None = None
@@ -133,6 +135,7 @@ class OrderResponse(BaseModel):
     status: OrderStatus
     subtotal: int
     discount: int
+    vat: int
     shipping_fee: int
     total: int
     voucher_code: str | None

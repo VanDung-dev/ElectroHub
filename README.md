@@ -159,7 +159,9 @@ Quản lý có thể cập nhật sản phẩm, xử lý đơn và gửi email m
 `PAYMENT_MODE=mock` (mặc định) giữ luồng mô phỏng cho test. Đặt `PAYMENT_MODE=sandbox`
 trong `.env` cùng credential VNPAY/PayPal để thanh toán thật trên môi trường sandbox;
 app dừng ngay nếu thiếu credential. Return/IPN/webhook được suy ra từ `SITE_URL`, nên
-khi demo cần URL public HTTPS. Thiết kế, credential checklist và trạng thái còn lại:
+khi demo cần URL public HTTPS. Checkout hiển thị tỷ giá quy đổi PayPal/VNPAY kèm VAT
+(`VAT_PERCENT`, mặc định 10%) và giỏ hàng chỉ được xóa sau khi thanh toán xác nhận.
+Thiết kế, credential checklist và trạng thái còn lại:
 [guideline/PAYMENT-SANDBOX.md](guideline/PAYMENT-SANDBOX.md).
 
 Sau khi `docker compose up -d --build`, chạy smoke test E2E trên SQL Server thật:

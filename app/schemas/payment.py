@@ -15,6 +15,7 @@ class PaymentSessionOut(BaseModel):
 class PaymentDetailsOut(OrderPayment):
     code: str
     total: int
+    vat: int = 0
     provider: str
     currency: str
     amount_minor: int | None = None

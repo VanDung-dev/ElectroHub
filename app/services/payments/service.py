@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.models.cart import CartItem
 from app.models.order import Order
 from app.models.payment import Payment
 from app.models.refund import Refund, utc_now
@@ -111,6 +112,23 @@ def create_session(db: Session, order: Order, payment: Payment, ip_addr: str) ->
     }
 
 
+def clear_purchased_items(db: Session, order: Order) -> None:
+    """Remove only the bought quantities; items added after checkout stay in the cart."""
+    for item in order.items:
+        cart_item = db.scalar(
+            select(CartItem).where(
+                CartItem.user_id == order.user_id,
+                CartItem.product_id == item.product_id,
+            )
+        )
+        if cart_item is None:
+            continue
+        if cart_item.qty <= item.qty:
+            db.delete(cart_item)
+        else:
+            cart_item.qty -= item.qty
+
+
 def apply_result(
     db: Session,
     payment_id: int,
@@ -142,6 +160,9 @@ def apply_result(
     if outcome.status == "paid":
         payment.status = "paid"
         payment.paid_at = utc_now()
+        order = db.get(Order, payment.order_id)
+        if order is not None:
+            clear_purchased_items(db, order)
     elif outcome.status == "pending":
         payment.status = "pending"
     elif outcome.status == "failed":

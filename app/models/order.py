@@ -20,7 +20,7 @@ class Order(Base):
             name="status",
         ),
         CheckConstraint(
-            "subtotal >= 0 AND discount >= 0 AND shipping_fee >= 0 AND total >= 0",
+            "subtotal >= 0 AND discount >= 0 AND vat >= 0 AND shipping_fee >= 0 AND total >= 0",
             name="amounts",
         ),
     )
@@ -31,6 +31,7 @@ class Order(Base):
     status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
     subtotal: Mapped[int] = mapped_column(Integer)
     discount: Mapped[int] = mapped_column(Integer, default=0)
+    vat: Mapped[int] = mapped_column(Integer, default=0)
     shipping_fee: Mapped[int] = mapped_column(Integer)
     total: Mapped[int] = mapped_column(Integer)
     # ERD has no column for the applied code; it is kept for audit and to return a voucher
