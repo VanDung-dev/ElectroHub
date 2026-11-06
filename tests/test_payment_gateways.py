@@ -124,7 +124,7 @@ def test_sandbox_vnpay_session_builds_url_and_blocks_simulate(client, database, 
     assert response.status_code == 200
     session = response.json()
     assert session["provider"] == "vnpay" and session["simulation"] is False
-    assert session["currency"] == "VND" and session["amount_minor"] == 13_000_000
+    assert session["currency"] == "VND" and session["amount_minor"] == 14_000_000
     query = {key: value[0] for key, value in parse_qs(urlparse(session["url"]).query).items()}
     assert vnpay.verify_callback(query, "test-secret") is True
 

@@ -126,6 +126,9 @@ PAYPAL_VND_PER_USD=25000
 
 # Hoàn tiền: chờ 72h rồi shop xác nhận
 REFUND_HOLD_HOURS=72
+
+# VAT trên giá trị hàng sau giảm giá (phí giao hàng không chịu VAT)
+VAT_PERCENT=10
 ```
 
 Return/IPN/webhook URL **không cấu hình riêng**; tất cả derive từ `SITE_URL`:
@@ -145,6 +148,18 @@ Quy tắc:
 - Không commit `.env`; secret chỉ đọc từ env/secret manager.
 
 `site_url` hiện tại (`http://localhost:8000`) **không đủ** cho IPN/webhook. Khi test local phải dùng tunnel (mục 11). Khi có URL public, đổi `SITE_URL` rồi tạo lại PayPal webhook với đúng `{SITE_URL}/api/v1/payments/paypal/webhook`.
+
+### 3.1. VAT, tỷ giá và giỏ hàng
+
+- `vat = round_half_up((subtotal - discount) * VAT_PERCENT / 100)`; phí giao hàng **không** chịu VAT.
+- `total = subtotal - discount + vat + shipping_fee`, lưu `orders.vat` (migration `0012_order_vat`).
+- Cart/checkout/trang thanh toán/chi tiết đơn đều hiển thị dòng VAT kèm `VAT_PERCENT`.
+- Checkout hiển thị số tiền từng cổng ngay khi chọn phương thức:
+  - PayPal: `USD = round(total / PAYPAL_VND_PER_USD, 2)` kèm tỷ giá và ghi chú "đã gồm VAT".
+  - VNPAY: thu đúng `total` bằng VND, không quy đổi.
+- **Cổng thanh toán mở trong tab mới** (kể cả QR VNPAY): checkout và nút "Thanh toán ngay" mở gateway sang tab mới, trang hiện tại giữ lại trên ElectroHub (tracking/trạng thái). Tab gốc tự cập nhật trạng thái + giỏ hàng qua tín hiệu `localStorage` hoặc khi quay lại focus tab.
+- **Giỏ hàng chỉ bị xóa khi payment chuyển `paid`** (IPN/return/webhook/capture hoặc `simulate`). Checkout chỉ trừ kho và tạo order; nếu khách bỏ ngang cổng thanh toán, giỏ vẫn còn hàng.
+- Khi thanh toán xác nhận, chỉ trừ đúng số lượng đã mua; sản phẩm/số lượng thêm sau checkout được giữ lại trong giỏ.
 
 ---
 
@@ -1022,7 +1037,9 @@ PAYPAL_VND_PER_USD=25000
 - Adapter VNPAY (ký URL, verify callback, refund) và PayPal (OAuth, create/capture, webhook verify, refund, quy đổi USD).
 - Payment session chuyển hướng gateway; IPN/return/webhook; retry khi `failed`.
 - Refund giữ 72h, staff xem danh sách, admin confirm/reject; reject trả payment về `paid`.
-- Migration `0010`, `0011` đã chạy trên SQL Server trong Docker.
+- VAT 10% mặc định trên giá trị hàng sau giảm giá, lưu ở `orders.vat`; giỏ hàng chỉ xóa khi payment `paid`.
+- Hiển thị tỷ giá PayPal và số tiền VNPAY ngay tại checkout khi chọn phương thức.
+- Migration `0010`, `0011`, `0012` đã chạy trên SQL Server trong Docker.
 - Test: `pytest` xanh; smoke E2E bằng `scripts/smoke_payments.py`.
 
 Còn phụ thuộc môi trường ngoài:

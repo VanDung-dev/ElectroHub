@@ -2,7 +2,7 @@ import secrets
 from datetime import UTC, datetime
 
 from fastapi import HTTPException
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -79,6 +79,14 @@ def _cart_rows(db: Session, user_id: int) -> list[tuple[CartItem, Product]]:
     )
 
 
+def _totals(net: int, *, has_items: bool) -> tuple[int, int, int]:
+    """Return (vat, shipping, total); VAT applies to goods after discount only."""
+    base = max(net, 0)
+    vat = (base * get_settings().vat_percent + 50) // 100
+    shipping = SHIPPING_FEE if has_items else 0
+    return vat, shipping, base + vat + shipping
+
+
 def _quote(
     db: Session, rows: list[tuple[CartItem, Product]], voucher_code: str | None = None
 ) -> CartResponse:
@@ -106,13 +114,15 @@ def _quote(
             max_discount=voucher.max_discount,
             discount=discount,
         )
-    shipping_fee = SHIPPING_FEE if lines else 0
+    vat, shipping_fee, total = _totals(subtotal - discount, has_items=bool(lines))
     return CartResponse(
         items=lines,
         subtotal=subtotal,
         discount=discount,
+        vat=vat,
+        vat_percent=get_settings().vat_percent,
         shipping_fee=shipping_fee,
-        total=max(subtotal - discount, 0) + shipping_fee,
+        total=total,
         voucher=applied,
     )
 
@@ -216,6 +226,7 @@ def _order_response(db: Session, order: Order) -> OrderResponse:
         status=order.status,
         subtotal=order.subtotal,
         discount=order.discount,
+        vat=order.vat,
         shipping_fee=order.shipping_fee,
         total=order.total,
         voucher_code=order.voucher_code,
@@ -289,7 +300,7 @@ def checkout(db: Session, user: User, data: CheckoutRequest) -> OrderResponse:
     discount = 0
     if data.voucher_code:
         voucher, discount = resolve_voucher(db, data.voucher_code, subtotal, lock=True)
-    total = max(subtotal - discount, 0) + SHIPPING_FEE
+    vat, shipping_fee, total = _totals(subtotal - discount, has_items=True)
     code = _generate_order_code(db)
     settings = get_settings()
     provider = "mock" if settings.is_mock_payment else data.payment_method.lower()
@@ -325,7 +336,8 @@ def checkout(db: Session, user: User, data: CheckoutRequest) -> OrderResponse:
             status="pending",
             subtotal=subtotal,
             discount=discount,
-            shipping_fee=SHIPPING_FEE,
+            vat=vat,
+            shipping_fee=shipping_fee,
             total=total,
             voucher_code=data.voucher_code,
             address=OrderAddress(
@@ -354,7 +366,8 @@ def checkout(db: Session, user: User, data: CheckoutRequest) -> OrderResponse:
                 payload={"provider": provider, "simulation": settings.is_mock_payment},
             )
         )
-        db.execute(delete(CartItem).where(CartItem.user_id == user.id))
+        # The cart is cleared only when the payment is confirmed, so an abandoned
+        # gateway redirect does not lose the customer's selection.
         db.commit()
     except Exception:
         db.rollback()

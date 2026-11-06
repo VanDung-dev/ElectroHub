@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     # call the real gateways and therefore require provider credentials.
     payment_mode: Literal["mock", "sandbox", "live"] = "mock"
     refund_hold_hours: int = Field(default=72, ge=0, le=24 * 30)
+    # VAT applied to the discounted goods value (shipping stays untaxed).
+    vat_percent: int = Field(default=10, ge=0, le=100)
 
     vnpay_tmn_code: str | None = None
     vnpay_hash_secret: SecretStr | None = None

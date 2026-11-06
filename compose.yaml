@@ -21,6 +21,7 @@ x-app-environment: &app-environment
   # Payments: the app container needs these explicitly; .env alone is not injected.
   PAYMENT_MODE: ${PAYMENT_MODE:-mock}
   REFUND_HOLD_HOURS: ${REFUND_HOLD_HOURS:-72}
+  VAT_PERCENT: ${VAT_PERCENT:-10}
   VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
   VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
   VNPAY_PAY_URL: ${VNPAY_PAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
