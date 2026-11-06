@@ -44,8 +44,12 @@ def test_health_swagger_html_and_static(client):
         "/api/v1/cart/apply-voucher",
         "/api/v1/orders",
         "/api/v1/orders/{code}",
+        "/api/v1/orders/{code}/cancel",
         "/api/v1/admin/orders",
         "/api/v1/admin/orders/{code}",
+        "/api/v1/admin/refunds",
+        "/api/v1/admin/refunds/{refund_id}/confirm",
+        "/api/v1/admin/refunds/{refund_id}/reject",
     }
     assert schema["components"]["schemas"]["RegisterRequest"]["examples"]
     assert schema["paths"]["/api/v1/auth/login"]["post"]["responses"]["422"]["content"][

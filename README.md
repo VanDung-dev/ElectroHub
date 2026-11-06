@@ -154,6 +154,20 @@ Quản lý có thể cập nhật sản phẩm, xử lý đơn và gửi email m
 Để thử POST trong Swagger: gọi `GET /api/v1/auth/csrf`, dùng `csrf_token` làm
 `X-CSRF-Token`; lấy token mới sau login/logout. Chi tiết: [contract auth](guideline/API-DESIGN.md#auth).
 
+## Thanh toán sandbox (VNPAY + PayPal)
+
+`PAYMENT_MODE=mock` (mặc định) giữ luồng mô phỏng cho test. Đặt `PAYMENT_MODE=sandbox`
+trong `.env` cùng credential VNPAY/PayPal để thanh toán thật trên môi trường sandbox;
+app dừng ngay nếu thiếu credential. Return/IPN/webhook được suy ra từ `SITE_URL`, nên
+khi demo cần URL public HTTPS. Thiết kế, credential checklist và trạng thái còn lại:
+[guideline/PAYMENT-SANDBOX.md](guideline/PAYMENT-SANDBOX.md).
+
+Sau khi `docker compose up -d --build`, chạy smoke test E2E trên SQL Server thật:
+
+```sh
+python3 scripts/smoke_payments.py
+```
+
 ## Kiểm tra code
 
 Phần này dành cho người chạy Python local, sau khi cài `requirements-dev.txt`:
