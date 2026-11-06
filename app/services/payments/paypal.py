@@ -184,6 +184,11 @@ def outcome_from_order(data: dict) -> GatewayOutcome:
     )
 
 
+def get_order(settings: Settings, paypal_order_id: str) -> dict:
+    """Read the authoritative gateway state; used when capture itself fails."""
+    return _request(settings, "GET", f"/v2/checkout/orders/{paypal_order_id}")
+
+
 def capture_order(settings: Settings, paypal_order_id: str, *, txn_ref: str) -> GatewayOutcome:
     data = _request(
         settings,
@@ -193,6 +198,10 @@ def capture_order(settings: Settings, paypal_order_id: str, *, txn_ref: str) -> 
         request_id=f"capture-{txn_ref}",
     )
     return outcome_from_order(data)
+
+
+def read_outcome(settings: Settings, paypal_order_id: str) -> GatewayOutcome:
+    return outcome_from_order(get_order(settings, paypal_order_id))
 
 
 def verify_webhook(settings: Settings, headers: dict[str, str], event: dict) -> bool:

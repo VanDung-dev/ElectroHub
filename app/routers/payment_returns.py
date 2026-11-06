@@ -42,7 +42,9 @@ def paypal_return(
     if not code:
         return RedirectResponse("/cart/tracking?payment=notfound", status_code=303)
     try:
-        _, order = payment_service.capture_paypal(db, code, token)
+        # sync: the browser may return after the gateway already captured, so a
+        # rejected capture must fall back to the authoritative order state.
+        _, order = payment_service.capture_paypal(db, code, token, sync=True)
     except Exception:
         db.rollback()
         # The payment page reads the authoritative state from the database.

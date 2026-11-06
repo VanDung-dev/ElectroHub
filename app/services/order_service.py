@@ -269,6 +269,11 @@ def _summary_rows(db: Session, orders: list[Order]) -> list[OrderSummary]:
             total=order.total,
             item_count=counts.get(order.id, 0),
             created_at=order.created_at,
+            payment=(
+                OrderPayment(method=order.payment.method, status=order.payment.status)
+                if order.payment is not None
+                else None
+            ),
         )
         for order in orders
     ]

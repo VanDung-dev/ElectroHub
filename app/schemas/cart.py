@@ -152,6 +152,9 @@ class OrderSummary(BaseModel):
     total: int
     item_count: int
     created_at: datetime
+    # Trạng thái đơn (chờ xác nhận) và trạng thái thanh toán là hai khái niệm
+    # riêng; danh sách đơn phải trả cả hai để người dùng biết tiền đã vào chưa.
+    payment: OrderPayment | None = None
 
 
 class OrderListResponse(BaseModel):

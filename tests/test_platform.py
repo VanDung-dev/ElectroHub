@@ -33,6 +33,7 @@ def test_health_swagger_html_and_static(client):
         "/api/v1/payments/orders/{code}",
         "/api/v1/payments/orders/{code}/session",
         "/api/v1/payments/orders/{code}/simulate",
+        "/api/v1/payments/orders/{code}/sync",
         "/api/v1/auth/csrf",
         "/api/v1/auth/register",
         "/api/v1/auth/login",
