@@ -111,7 +111,7 @@ def test_admin_dependency_checks_current_database_role(client, database):
         user = db.scalar(select(User))
         user.role = "admin"
         db.commit()
-    assert client.get("/admin/products").status_code == 503  # P4 template is still empty.
+    assert client.get("/admin/products").status_code == 200
     assert client.get("/api/v1/auth/me").json()["role"] == "admin"
     with Session(database) as db:
         db.scalar(select(User)).role = "customer"
@@ -165,3 +165,23 @@ def test_csrf_checks_browser_origin_even_with_valid_signed_token(client):
         ).status_code
         == 200
     )
+
+
+@pytest.mark.parametrize(
+    "role,landing",
+    [("customer", "/account/orders"), ("staff", "/staff/orders"), ("admin", "/manager")],
+)
+def test_each_role_can_login_and_open_its_workspace(client, database, role, landing):
+    register(client)
+    with Session(database) as db:
+        db.scalar(select(User)).role = role
+        db.commit()
+    response = login(client)
+    assert response.status_code == 200 and response.json()["role"] == role
+    assert client.get("/api/v1/auth/me").json()["role"] == role
+    assert client.get(landing).status_code == 200
+    if role != "admin":
+        assert client.get("/manager").status_code == 403
+        assert client.get("/api/v1/admin/products").status_code == 403
+    if role == "customer":
+        assert client.get("/staff/orders").status_code == 403

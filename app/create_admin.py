@@ -13,11 +13,12 @@ from app.services.auth_service import create_user
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Tạo admin; không đổi quyền tài khoản đã tồn tại")
+    parser = argparse.ArgumentParser(description="Tạo tài khoản quản lý hoặc nhân viên")
     parser.add_argument("--email", required=True)
     parser.add_argument("--name", required=True)
+    parser.add_argument("--role", choices=("admin", "staff"), default="admin")
     args = parser.parse_args()
-    password = getpass("Mật khẩu admin: ")
+    password = getpass("Mật khẩu: ")
     if password != getpass("Nhập lại mật khẩu: "):
         raise SystemExit("Mật khẩu không khớp")
     try:
@@ -29,14 +30,14 @@ def main() -> None:
     with Session(get_engine()) as db:
         existing = db.scalar(select(User).where(User.email == str(data.email)))
         if existing:
-            if existing.role != "admin":
+            if existing.role != args.role:
                 raise SystemExit("Email đã thuộc customer; không tự động nâng quyền")
-            parser.exit(message="Admin đã tồn tại; không thay đổi mật khẩu\n")
+            parser.exit(message="Tài khoản đã tồn tại; không thay đổi mật khẩu\n")
         try:
-            create_user(db, data, role="admin")
+            create_user(db, data, role=args.role)
         except HTTPException as exc:
             raise SystemExit(exc.detail) from None
-    parser.exit(message="Đã tạo admin\n")
+    parser.exit(message=f"Đã tạo tài khoản {args.role}\n")
 
 
 if __name__ == "__main__":

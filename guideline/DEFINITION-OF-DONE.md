@@ -53,6 +53,6 @@ mục 5 ghi kết quả nghiệm thu từng phần của MVP.
 
 * [x] Register/login/logout + phân quyền admin/customer — backend đã pass test trên Docker/SQL Server ngày 2026-10-23; UI auth còn chờ Gấm.
 * [ ] CRUD product + search/filter/sort + wishlist/compare.
-* [ ] Cart -> checkout -> COD/mock pay -> tra cứu đơn -> admin đổi trạng thái.
+* [ ] Cart -> checkout -> PayPal/VNPAY mô phỏng -> tra cứu đơn -> admin đổi trạng thái.
 * [ ] Seed >= 50 sản phẩm + chính sách + 1 blog/review mẫu.
 * [ ] [README ở gốc repo](../README.md) hướng dẫn chạy Docker từ đầu tới cuối không lỗi trên máy thứ 2.

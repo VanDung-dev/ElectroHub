@@ -31,7 +31,7 @@ product_images(id, product_id FK, url, sort)
 cart_items(id, user_id FK, product_id FK, qty, UQ(user_id, product_id))
 orders(id, code UQ, user_id FK, status, subtotal, discount, shipping_fee, total, voucher_code NULL, address JSON, created_at)
 order_items(id, order_id FK, product_id FK, price, qty)
-payments(id, order_id FK UQ, method[COD,CHUYEN_KHOAN_MOCK], status, payload JSON)
+payments(id, order_id FK UQ, method[PAYPAL,VNPAY], status, payload JSON)
 vouchers(id, code UQ, percent, max_discount, qty_left, expired_at)
 posts(id, slug UQ, title, tag[ARDUINO,ESP32,RASPBERRY,MICROBIT,REVIEW], content, created_at)
 ```

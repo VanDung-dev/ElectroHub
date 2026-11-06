@@ -74,7 +74,7 @@ GET  /api/v1/orders/{code}                  # tra cứu công khai bằng code +
 PATCH /api/v1/admin/orders/{code}           # pending→confirmed→shipping→done|cancelled
 ```
 
-* Thanh toán MVP: `COD + CHUYEN_KHOAN_MOCK` (không tích hợp VNPay thật). Không bắt user chờ gọi điện mới được chuyển khoản.
+* Thanh toán MVP: `PAYPAL + VNPAY` (cả hai mô phỏng) (không tích hợp VNPay thật). Không bắt user chờ gọi điện mới được chuyển khoản.
 * Địa chỉ nhận: `name/phone/address + ship_fee cố định W4`. Email thông báo để phase 2.
 * Popup `Mua hàng thành công → Thanh toán ngay` của hshop giữ lại dưới dạng redirect `/cart/tracking.html?code=`.
 

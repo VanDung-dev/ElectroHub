@@ -9,7 +9,7 @@ from app.core.database import Base
 
 class User(Base):
     __tablename__ = "users"
-    __table_args__ = (CheckConstraint("role IN ('admin', 'customer')", name="role"),)
+    __table_args__ = (CheckConstraint("role IN ('admin', 'staff', 'customer')", name="role"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(Unicode(254), unique=True)

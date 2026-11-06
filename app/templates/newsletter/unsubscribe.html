@@ -1,0 +1,2 @@
+{% extends "base.html" %}
+{% block content %}<h1>Hủy nhận email</h1><p>Chọn xác nhận để ngừng nhận email marketing từ ElectroHub.</p><form data-unsubscribe><input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button>Hủy đăng ký</button></form><p data-message role="status"></p>{% endblock %}

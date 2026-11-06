@@ -1,0 +1,2 @@
+{% extends "base.html" %}
+{% block content %}<h1>Gửi email marketing</h1><p>Email sẽ được gửi tới người đã đăng ký nhận tin.</p><form data-campaign class="form-card"><label>Tiêu đề<input name="subject" required maxlength="160"></label><label>Nội dung<textarea name="body" required minlength="10" maxlength="5000" rows="8"></textarea></label><button>Gửi email</button></form><p data-message role="status" aria-live="polite"></p>{% endblock %}

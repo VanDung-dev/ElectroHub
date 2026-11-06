@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="workspace-heading"><div><p class="eyebrow">TÀI KHOẢN CỦA BẠN</p><h1>Đơn hàng của tôi</h1><p>Xem trạng thái và thông tin thanh toán của các đơn đã đặt.</p></div><a class="button button-light" href="/collections/all">Tiếp tục mua sắm</a></section>
+<div class="account-orders" data-account-orders aria-live="polite"><p>Đang tải đơn hàng…</p></div>
+<p data-message role="status" aria-live="polite"></p>
+{% endblock %}

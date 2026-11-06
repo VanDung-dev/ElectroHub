@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 
-from app.core.deps import DbSession, require_admin
+from app.core.deps import DbSession, require_staff
 from app.schemas.auth import DetailResponse
 from app.schemas.cart import AdminOrderUpdate, OrderListResponse, OrderResponse
 from app.services import order_service
@@ -8,7 +8,7 @@ from app.services import order_service
 router = APIRouter(
     prefix="/api/v1/admin/orders",
     tags=["admin-orders"],
-    dependencies=[Depends(require_admin)],
+    dependencies=[Depends(require_staff)],
     responses={
         401: {"model": DetailResponse},
         403: {"model": DetailResponse},
@@ -26,7 +26,7 @@ def list_orders(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=50),
 ):
-    """Danh sách đơn cho admin, lọc theo trạng thái và mã đơn."""
+    """Danh sách đơn cho nhân viên và quản lý, lọc theo trạng thái và mã đơn."""
     return order_service.list_all_orders(db, status=status, query=q, page=page, page_size=page_size)
 
 

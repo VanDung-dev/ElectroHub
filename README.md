@@ -1,7 +1,7 @@
 # ElectroHub
 
 Đồ án web bán hàng dùng Python 3.13, FastAPI, HTML/CSS/JS và SQL Server 2022.
-Hiện có nền tảng/auth; catalog, giỏ hàng và giao diện đang được bổ sung.
+Storefront đơn giản, API sản phẩm/giỏ hàng/đơn hàng, SEO cơ bản, newsletter và thanh toán tùy cấu hình.
 Phân công và tiến độ: [guideline](guideline/README.md) · [bàn giao P1](guideline/P1-HANDOFF.md).
 
 Chọn **một** cách chạy; thực hiện lệnh tại thư mục gốc repo:
@@ -35,7 +35,26 @@ chữ hoa, chữ thường, số, ký tự đặc biệt. Giữ các biến khá
 docker compose up --build --wait --wait-timeout 240
 ```
 
-DB và migration được khởi tạo tự động. Các lần sau dùng lại lệnh trên; thay đổi code cần build lại.
+Sau khi app khởi động lần đầu, nạp một vài sản phẩm minh họa để xem luồng cửa hàng:
+
+```sh
+docker compose exec app python -m app.seeds.seed
+```
+
+DB, migration và ba tài khoản demo được khởi tạo tự động trước khi app chạy.
+Database mới cũng có sẵn các tài khoản sau, mật khẩu chung là `Demo@2026!`:
+
+| Vai trò | Email |
+| --- | --- |
+| Khách hàng | `customer.demo@example.com` |
+| Nhân viên | `staff.demo@example.com` |
+| Quản lý | `manager.demo@example.com` |
+
+Đây là tài khoản demo với mật khẩu công khai. Chạy lại Compose chỉ thêm tài khoản còn thiếu,
+không đặt lại mật khẩu hay thay đổi quyền/tên của tài khoản đã có.
+Khi chạy Python trực tiếp, có thể nạp bằng `python -m app.seeds.accounts` sau migration.
+
+Các lần sau dùng lại lệnh khởi động trên; thay đổi code cần build lại.
 Có thể đổi `APP_PORT` hoặc `SQLSERVER_PORT` trong `.env` nếu cổng bị trùng.
 Kết nối từ SSMS vào DB Docker: `localhost,1433`, SQL Server Authentication,
 user `sa`, mật khẩu `MSSQL_SA_PASSWORD` (đổi 1433 theo `SQLSERVER_PORT` nếu đã chỉnh).
@@ -93,13 +112,20 @@ Thông tin host/port/database lấy từ các biến `SQLSERVER_*` trong `.env.e
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
 ```
 
+Nạp catalog minh họa (tùy chọn):
+
+```powershell
+.\.venv\Scripts\python.exe -m app.seeds.seed
+```
+
 Chạy lại hai lệnh này sau khi pull code để cập nhật DB. Dừng app bằng `Ctrl+C`.
 App mặc định dùng cổng 8000; muốn đổi cổng local, thêm `--port 8001` vào lệnh uvicorn
 (`APP_PORT` chỉ dùng cho Compose).
 
 ## Mở ứng dụng và tạo admin
 
-- [Trang web](http://localhost:8000) — template còn rỗng hiện trả thông báo HTML 503.
+- [Trang web](http://localhost:8000), danh sách tại `/collections/all`, sản phẩm theo slug tại `/products/{slug}`.
+- Sitemap: `/sitemap.xml`; robots: `/robots.txt`.
 - [Swagger / thử API](http://localhost:8000/docs).
 - [Kiểm tra kết nối DB](http://localhost:8000/api/v1/health).
 
@@ -116,7 +142,15 @@ docker compose exec app python -m app.create_admin --email dung@example.com --na
 .\.venv\Scripts\python.exe -m app.create_admin --email dung@example.com --name "Nguyễn Lê Văn Dũng"
 ```
 
-Chạy lại lệnh không đổi mật khẩu admin đã có. Đăng ký qua API tạo tài khoản customer.
+Chạy lại lệnh không đổi mật khẩu tài khoản đã có. Đăng ký trên trang tạo tài khoản chỉ tạo customer.
+Tạo nhân viên bằng cùng lệnh với `--role staff`:
+
+```sh
+docker compose exec app python -m app.create_admin --role staff --email nhanvien@example.com --name "Nhân viên cửa hàng"
+```
+
+Khách hàng dùng `/account/orders`, nhân viên dùng `/staff/orders`, quản lý vào `/manager`.
+Quản lý có thể cập nhật sản phẩm, xử lý đơn và gửi email marketing; nhân viên chỉ xử lý đơn.
 Để thử POST trong Swagger: gọi `GET /api/v1/auth/csrf`, dùng `csrf_token` làm
 `X-CSRF-Token`; lấy token mới sau login/logout. Chi tiết: [contract auth](guideline/API-DESIGN.md#auth).
 
@@ -133,3 +167,15 @@ python -m pytest -q
 Trên Windows thay `python` bằng `.\.venv\Scripts\python.exe`; trên macOS/Linux dùng
 Python của `.venv`. Test tự dùng DB SQLite tạm. Chi tiết Docker/SQL Server đã kiểm chứng
 và phần còn chờ nhóm nằm ở [checklist P1](guideline/P1-HANDOFF.md#verification).
+
+## Bật các tích hợp tùy chọn
+
+- **Thanh toán mô phỏng:** chọn PayPal hoặc VNPAY khi đặt hàng. Trang `/payments/{code}` cho chủ đơn mô phỏng thành công hoặc thất bại; có thể thử lại trên cùng đơn. Không kết nối dịch vụ bên ngoài, không cần API key, không thu tiền thật. Đơn chỉ được chuyển sang xác nhận/giao hàng sau khi thanh toán thành công. Hủy đơn đã trả tiền sẽ ghi nhận hoàn tiền mô phỏng.
+- **Email marketing:** cấu hình SMTP và `MAIL_FROM`; khách đăng ký ở chân trang,
+  admin gửi chiến dịch tại `/admin/newsletter`. Email có liên kết hủy đăng ký.
+- **Sản phẩm và ảnh chia sẻ:** admin quản lý tại `/admin/products`; nhập URL ảnh HTTPS
+  hoặc đường dẫn dưới `/static/img/`. Trang sản phẩm dùng tên, mô tả và ảnh này cho Open Graph.
+- **Chat:** đặt `FACEBOOK_PAGE_URL` và `ZALO_PAGE_URL` cho các nút liên hệ. Để nhúng
+  live chat Subiz, dán nguyên embed snippet do tài khoản Subiz cấp vào `SUBIZ_EMBED_CODE`.
+- **SEO/chia sẻ:** đặt `SITE_URL` thành địa chỉ HTTPS công khai của website trước khi
+  phát hành để canonical, Open Graph, sitemap và URL callback dùng đúng domain.

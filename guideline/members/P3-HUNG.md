@@ -19,7 +19,7 @@ Vùng file: `app/models/{cart,order,payment,voucher}.py`, `app/routers/{cart,ord
 | Việc cần làm | Hướng dẫn áp dụng | Kết quả cần bàn giao |
 | --- | --- | --- |
 | Thêm/sửa/xóa cart item, tính tiền và áp voucher | [API sales](../API-DESIGN.md#sales), [backend](../CODING-CONVENTION.md#python), [ERD](../DB-MIGRATION.md#erd) | API cart và số tiền để Gấm hiển thị |
-| Checkout: tạo order, thanh toán COD + giả lập, trừ kho | [Luồng checkout](../HSHOP-ANALYSIS.md#checkout), [API sales](../API-DESIGN.md#sales), [transaction](../DB-MIGRATION.md#data-safety) | Tạo đơn, trừ stock/voucher trong transaction; tính đúng tiền, tránh race condition |
+| Checkout: tạo order, thanh toán PayPal/VNPAY mô phỏng, trừ kho | [Luồng checkout](../HSHOP-ANALYSIS.md#checkout), [API sales](../API-DESIGN.md#sales), [transaction](../DB-MIGRATION.md#data-safety) | Tạo đơn, trừ stock/voucher trong transaction; tính đúng tiền, tránh race condition |
 | Tra cứu đơn, lịch sử user, admin cập nhật trạng thái | [Contract sales](../API-DESIGN.md#sales), [tracking](../HSHOP-ANALYSIS.md#checkout), [quyền admin](../API-DESIGN.md#implementation) | API tracking/history và đổi trạng thái đúng quyền |
 | Áp dụng chính sách vận chuyển/bảo hành vào logic giá/ship | [Yêu cầu checkout](../HSHOP-ANALYSIS.md#checkout), [nội dung chính sách](../HSHOP-ANALYSIS.md#content) | Quy tắc phí và thông tin khớp nội dung Gấm hiển thị |
 | Test API và luồng cart → checkout → payment → tracking | [Done của API](../DEFINITION-OF-DONE.md#api), [demo Docker](../DEFINITION-OF-DONE.md#monitoring) | Test happy/error, Swagger, ví dụ HTTP và flow E2E bằng Docker |
