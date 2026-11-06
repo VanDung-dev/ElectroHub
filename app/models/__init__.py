@@ -3,6 +3,7 @@ from app.models.newsletter import NewsletterSubscriber
 from app.models.order import Order, OrderItem
 from app.models.payment import Payment
 from app.models.product import Product
+from app.models.refund import Refund
 from app.models.user import User
 from app.models.voucher import Voucher
 
@@ -13,6 +14,7 @@ __all__ = [
     "NewsletterSubscriber",
     "Payment",
     "Product",
+    "Refund",
     "User",
     "Voucher",
 ]

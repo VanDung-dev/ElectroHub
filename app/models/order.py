@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.mssql import DATETIME2
@@ -6,6 +7,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.models.payment import Payment
+
+if TYPE_CHECKING:
+    from app.models.refund import Refund
 
 
 class Order(Base):
@@ -42,6 +46,9 @@ class Order(Base):
         back_populates="order", order_by="OrderItem.id", lazy="selectin"
     )
     payment: Mapped[Payment | None] = relationship(lazy="selectin", uselist=False)
+    refund: Mapped["Refund | None"] = relationship(
+        back_populates="order", lazy="selectin", uselist=False
+    )
 
 
 class OrderItem(Base):
