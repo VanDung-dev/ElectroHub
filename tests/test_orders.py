@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.order import Order, OrderItem
 from app.models.payment import Payment
 from app.models.product import Product
+from app.models.refund import Refund
 from app.models.user import User
 from app.models.voucher import Voucher
 from tests.conftest import csrf_headers, login, register
@@ -377,9 +378,9 @@ def test_simulated_payment_failure_retry_and_idempotence(client, database, metho
     assert 'value="PAYPAL"' in page and 'value="VNPAY"' in page
     assert 'value="COD"' not in page
     assert "Không có giao dịch thật" in client.get(f"/payments/{code}").text
-    assert client.post(base + "/session", json={}, headers=headers).json() == {
-        "url": f"/payments/{code}"
-    }
+    session = client.post(base + "/session", json={}, headers=headers).json()
+    assert session["url"] == f"/payments/{code}"
+    assert session["provider"] == "mock" and session["simulation"] is True
     assert client.post(base + "/simulate", json={"result": "paid"}).status_code == 403
     failed = client.post(base + "/simulate", json={"result": "failed"}, headers=headers)
     assert failed.json()["status"] == "failed"
@@ -525,10 +526,28 @@ def test_admin_order_status_transitions_and_cancel_restores_stock_and_voucher(cl
     )
     assert response.status_code == 200
     assert response.json()["status"] == "cancelled"
-    assert response.json()["payment"]["status"] == "refunded"
+    assert response.json()["payment"]["status"] == "refund_pending"
+    assert response.json()["refund"]["status"] == "scheduled"
     with Session(database) as db:
         assert db.get(Product, product_id).stock == 3
         assert db.get(Voucher, 1).qty_left == 4
+        cancelled = db.scalar(select(Order).where(Order.code == cancel_code))
+        assert db.scalar(select(Payment).where(Payment.order_id == cancelled.id)).status == (
+            "refund_pending"
+        )
+
+    # The shop cannot confirm before the hold window, then can refund with one click.
+    refund_id = response.json()["refund"]["id"]
+    early = client.post(f"/api/v1/admin/refunds/{refund_id}/confirm", json={}, headers=admin)
+    assert early.status_code == 409
+    with Session(database) as db:
+        refund = db.get(Refund, refund_id)
+        refund.due_at = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=1)
+        db.commit()
+    confirmed = client.post(f"/api/v1/admin/refunds/{refund_id}/confirm", json={}, headers=admin)
+    assert confirmed.status_code == 200
+    assert confirmed.json()["status"] == "succeeded"
+    with Session(database) as db:
         cancelled = db.scalar(select(Order).where(Order.code == cancel_code))
         assert db.scalar(select(Payment).where(Payment.order_id == cancelled.id)).status == (
             "refunded"
@@ -552,3 +571,35 @@ def test_sales_mutations_require_csrf(client, database):
     add_to_cart(client, product_id, 1)
     headers = csrf_headers(client)
     assert client.post("/api/v1/orders", json={}, headers=headers).status_code == 422
+
+
+def test_rejected_refund_returns_payment_to_paid(client, database):
+    product_id = make_product(database, stock=5)
+    headers = signed_in(client)
+    add_to_cart(client, product_id, 1, headers)
+    code = checkout(client, headers, payment_method="VNPAY").json()["code"]
+    client.post(
+        f"/api/v1/payments/orders/{code}/simulate", json={"result": "paid"}, headers=headers
+    )
+
+    cancelled = client.post(
+        f"/api/v1/orders/{code}/cancel", json={"reason": "Đổi ý"}, headers=headers
+    )
+    assert cancelled.status_code == 200
+    refund_id = cancelled.json()["refund"]["id"]
+    assert cancelled.json()["payment"]["status"] == "refund_pending"
+
+    admin = make_admin(client, database)
+    rejected = client.post(
+        f"/api/v1/admin/refunds/{refund_id}/reject",
+        json={"reason": "Hàng đã giao đúng"},
+        headers=admin,
+    )
+    assert rejected.status_code == 200
+    assert rejected.json()["status"] == "rejected"
+
+    with Session(database) as db:
+        order = db.scalar(select(Order).where(Order.code == code))
+        payment = db.scalar(select(Payment).where(Payment.order_id == order.id))
+        assert payment.status == "paid"
+        assert db.get(Refund, refund_id).reason == "Hàng đã giao đúng"
