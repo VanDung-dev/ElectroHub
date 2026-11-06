@@ -1,5 +1,9 @@
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
 const money = (value) => `${Number(value).toLocaleString("vi-VN")} ₫`;
+// Refund amounts are stored in minor units: VND*100, or PayPal USD cents.
+const moneyMinor = (value, currency) => currency === "USD"
+  ? (Number(value) / 100).toLocaleString("en-US", {style:"currency", currency:"USD"})
+  : `${(Number(value) / 100).toLocaleString("vi-VN")} ₫`;
 const message = (text) => { const node = document.querySelector("[data-message]"); if (node) node.textContent = text; };
 
 async function request(path, options = {}) {
@@ -35,6 +39,7 @@ async function loadUserNav() {
   if (!nav) return;
   try {
     const user = await request("/api/v1/auth/me");
+    window.currentUser = user;
     const roleLinks = user.role === "admin"
       ? `<a href="/manager">Quản lý</a>`
       : user.role === "staff" ? `<a href="/staff/orders">Xử lý đơn</a>` : `<a href="/account/orders">Đơn hàng của tôi</a>`;
@@ -265,13 +270,29 @@ async function trackOrder(form) {
   try {
     const phone = data.get("phone");
     const order = await request(`/api/v1/orders/${encodeURIComponent(data.get("code"))}${phone ? `?phone=${encodeURIComponent(phone)}` : ""}`);
-    const paymentNames = {pending:"Chờ thanh toán",paid:"Đã thanh toán",failed:"Thanh toán chưa thành công",refunded:"Đã hoàn tiền"};
-    result.innerHTML = `<article class="order-summary"><h2>Đơn hàng ${escapeHtml(order.code)}</h2><p class="status-tag">${escapeHtml(statusNames[order.status])}</p><p>Thanh toán: ${escapeHtml(paymentNames[order.payment?.status] || "Chờ thanh toán")} · ${escapeHtml(order.payment?.method || "")}</p><p>${escapeHtml(order.address.name)} · ${escapeHtml(order.address.phone)}</p><p>${escapeHtml(order.address.address)}</p>${order.items.map((item) => `<p class="summary-line"><span>${escapeHtml(item.name)} × ${item.qty}</span><strong>${money(item.line_total)}</strong></p>`).join("")}<hr><p>Tổng thanh toán: <strong>${money(order.total)}</strong></p>${["pending", "failed"].includes(order.payment?.status) && order.status !== "cancelled" ? `<a class="button" href="/payments/${encodeURIComponent(order.code)}">Tiếp tục thanh toán mô phỏng</a>` : ""}<a href="/collections/all">Tiếp tục mua sắm →</a></article>`;
+    const paymentNames = {pending:"Chờ thanh toán",paid:"Đã thanh toán",failed:"Thanh toán chưa thành công",refund_pending:"Đã hủy, chờ shop xác nhận hoàn tiền",refunded:"Đã hoàn tiền"};
+    const refundNames = {scheduled:"Chờ đủ thời hạn giữ tiền",processing:"Đang xử lý hoàn tiền",succeeded:"Đã hoàn tiền",failed:"Hoàn tiền lỗi, shop sẽ thử lại",rejected:"Shop từ chối hoàn tiền"};
+    const refund = order.refund ? `<p class="refund-note">Hoàn tiền ${moneyMinor(order.refund.amount, order.refund.currency)}: ${escapeHtml(refundNames[order.refund.status] || order.refund.status)} · đủ điều kiện ${new Date(order.refund.due_at).toLocaleString("vi-VN")}</p>` : "";
+    const payable = ["pending", "failed"].includes(order.payment?.status) && order.status !== "cancelled";
+    const cancellable = ["pending", "confirmed"].includes(order.status);
+    result.innerHTML = `<article class="order-summary"><h2>Đơn hàng ${escapeHtml(order.code)}</h2><p class="status-tag">${escapeHtml(statusNames[order.status])}</p><p>Thanh toán: ${escapeHtml(paymentNames[order.payment?.status] || "Chờ thanh toán")} · ${escapeHtml(order.payment?.method || "")}</p><p>${escapeHtml(order.address.name)} · ${escapeHtml(order.address.phone)}</p><p>${escapeHtml(order.address.address)}</p>${order.items.map((item) => `<p class="summary-line"><span>${escapeHtml(item.name)} × ${item.qty}</span><strong>${money(item.line_total)}</strong></p>`).join("")}<hr><p>Tổng thanh toán: <strong>${money(order.total)}</strong></p>${refund}${payable ? `<a class="button" href="/payments/${encodeURIComponent(order.code)}">Tiếp tục thanh toán</a>` : ""}${cancellable ? `<button class="button-light" data-cancel-order="${escapeHtml(order.code)}">Hủy đơn</button>` : ""}<a href="/collections/all">Tiếp tục mua sắm →</a></article>`;
   } catch (error) { result.textContent = error.message; }
 }
 const trackingForm = document.querySelector("[data-track]");
 trackingForm?.addEventListener("submit", (event) => { event.preventDefault(); trackOrder(event.currentTarget); });
 if (trackingForm?.elements.code.value) trackOrder(trackingForm);
+
+document.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-cancel-order]");
+  if (!button || !confirm("Hủy đơn hàng này? Nếu đã thanh toán, shop sẽ xác nhận hoàn tiền sau thời hạn giữ tiền.")) return;
+  button.disabled = true;
+  try {
+    await request(`/api/v1/orders/${encodeURIComponent(button.dataset.cancelOrder)}/cancel`, {method:"POST", body:JSON.stringify({reason:"Khách hủy đơn"})});
+    message("Đã hủy đơn hàng.");
+    const form = document.querySelector("[data-track]");
+    if (form) await trackOrder(form);
+  } catch (error) { message(error.message); button.disabled = false; }
+});
 
 document.querySelector("[data-campaign]")?.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -335,6 +356,40 @@ document.querySelector("[data-reset-product]")?.addEventListener("click", () => 
   form.elements.image_url.value = "/static/img/product-placeholder.svg";
 });
 
+async function currentRole() {
+  if (window.currentUser) return window.currentUser.role;
+  try { window.currentUser = await request("/api/v1/auth/me"); return window.currentUser.role; } catch { return null; }
+}
+
+async function loadAdminRefunds() {
+  const list = document.querySelector("[data-admin-refunds]");
+  if (!list) return;
+  try {
+    const [data, role] = await Promise.all([request("/api/v1/admin/refunds"), currentRole()]);
+    const isAdmin = role === "admin";
+    list.innerHTML = data.items.map((refund) => {
+      const actionable = isAdmin && ["scheduled", "failed"].includes(refund.status);
+      return `<article class="order-card" data-refund-card="${refund.id}"><div><h2>Đơn ${escapeHtml(refund.order_code)} · ${moneyMinor(refund.amount, refund.currency)}</h2><p>${escapeHtml(refund.method)} · ${escapeHtml(refund.provider)} · thanh toán ${escapeHtml(paymentStatusNames[refund.payment_status] || refund.payment_status)}</p><p>Yêu cầu ${new Date(refund.requested_at).toLocaleString("vi-VN")} · đủ điều kiện ${new Date(refund.due_at).toLocaleString("vi-VN")} · ${escapeHtml(refundStatusNames[refund.status] || refund.status)}</p>${refund.reason ? `<p>Lý do: ${escapeHtml(refund.reason)}</p>` : ""}${actionable ? `<p><button type="button" data-confirm-refund="${refund.id}" ${refund.due ? "" : "disabled"}>${refund.due ? "Xác nhận hoàn tiền" : "Chưa đủ hạn"}</button> <button type="button" class="button-light" data-reject-refund="${refund.id}">Từ chối</button></p>` : ""}</div></article>`;
+    }).join("") || "<p>Không có yêu cầu hoàn tiền.</p>";
+  } catch (error) { list.innerHTML = `<p>${escapeHtml(error.message)}</p>`; }
+}
+
+document.querySelector("[data-admin-refunds]")?.addEventListener("click", async (event) => {
+  const confirmButton = event.target.closest("[data-confirm-refund]");
+  const rejectButton = event.target.closest("[data-reject-refund]");
+  if (!confirmButton && !rejectButton) return;
+  if (confirmButton && !confirm("Gọi cổng thanh toán để hoàn tiền cho đơn này?")) return;
+  const id = confirmButton ? confirmButton.dataset.confirmRefund : rejectButton.dataset.rejectRefund;
+  const reason = rejectButton ? prompt("Lý do từ chối hoàn tiền:", "Chưa nhận lại hàng") : null;
+  if (rejectButton && reason === null) return;
+  (confirmButton || rejectButton).disabled = true;
+  try {
+    await request(`/api/v1/admin/refunds/${id}/${confirmButton ? "confirm" : "reject"}`, {method:"POST", body:JSON.stringify(confirmButton ? {} : {reason:reason || ""})});
+    message(confirmButton ? "Đã hoàn tiền thành công." : "Đã từ chối yêu cầu hoàn tiền.");
+    await loadAdminRefunds();
+  } catch (error) { message(error.message); (confirmButton || rejectButton).disabled = false; }
+});
+
 loadProducts();
 loadCart();
 loadAdminProducts();
@@ -342,6 +397,18 @@ loadUserNav();
 loadManagerStats();
 loadAccountOrders();
 loadStaffOrders();
+loadAdminRefunds();
+
+const paymentStatusNames = {pending:"Chờ thanh toán",paid:"Đã thanh toán",failed:"Thanh toán chưa thành công; bạn có thể thử lại",refund_pending:"Đã hủy, chờ shop xác nhận hoàn tiền",refunded:"Đã hoàn tiền"};
+const refundStatusNames = {scheduled:"Chờ đủ thời hạn giữ tiền",processing:"Đang xử lý hoàn tiền",succeeded:"Đã hoàn tiền",failed:"Hoàn tiền lỗi, shop sẽ thử lại",rejected:"Shop từ chối hoàn tiền"};
+
+function paymentAmount(payment) {
+  if (payment.currency === "USD" && payment.amount_minor !== null && payment.amount_minor !== undefined) {
+    const usd = (payment.amount_minor / 100).toLocaleString("en-US", {style:"currency", currency:"USD"});
+    return `<strong class="price">${escapeHtml(usd)}</strong><small>≈ ${money(payment.total)} theo tỷ giá cấu hình</small>`;
+  }
+  return `<strong class="price">${money(payment.total)}</strong>`;
+}
 
 async function loadPaymentDemo() {
   const summary = document.querySelector("[data-payment-summary]");
@@ -349,17 +416,36 @@ async function loadPaymentDemo() {
   const code = decodeURIComponent(location.pathname.split("/").pop());
   try {
     const payment = await request(`/api/v1/payments/orders/${encodeURIComponent(code)}`);
-    document.querySelector("[data-payment-provider]").textContent = `${payment.method === "PAYPAL" ? "PayPal" : "VNPAY"} · Mô phỏng`;
-    summary.innerHTML = `<p>Đơn hàng <strong>${escapeHtml(payment.code)}</strong></p><p>Tổng thanh toán</p><strong class="price">${money(payment.total)}</strong><p>${escapeHtml({pending:"Chờ thanh toán",paid:"Đã thanh toán (mô phỏng)",failed:"Thanh toán thất bại; bạn có thể thử lại",refunded:"Đã hoàn tiền (mô phỏng)"}[payment.status])}</p>`;
-    document.querySelector("[data-payment-actions]").hidden = !["pending", "failed"].includes(payment.status);
+    const label = payment.method === "PAYPAL" ? "PayPal" : "VNPAY";
+    document.querySelector("[data-payment-provider]").textContent = `${label} · ${payment.simulation ? "Mô phỏng" : "Sandbox"}`;
+    const refund = payment.refund ? `<p class="refund-note">Hoàn tiền ${moneyMinor(payment.refund.amount, payment.refund.currency)}: ${escapeHtml(refundStatusNames[payment.refund.status] || payment.refund.status)} · đủ điều kiện ${new Date(payment.refund.due_at).toLocaleString("vi-VN")}</p>` : "";
+    summary.innerHTML = `<p>Đơn hàng <strong>${escapeHtml(payment.code)}</strong></p><p>Tổng thanh toán</p>${paymentAmount(payment)}<p>${escapeHtml(paymentStatusNames[payment.status] || payment.status)}</p>${refund}`;
+    const settled = ["paid", "refund_pending", "refunded"].includes(payment.status);
+    const actions = document.querySelector("[data-payment-actions]");
+    actions.hidden = settled;
+    document.querySelectorAll("[data-simulate]").forEach((node) => node.hidden = !payment.simulation);
+    const retry = document.querySelector("[data-payment-retry]");
+    retry.hidden = payment.simulation;
+    retry.textContent = (payment.attempt || 1) > 1 ? "Thanh toán lại" : "Thanh toán ngay";
+    if (new URLSearchParams(location.search).get("payment") === "cancelled") message("Bạn đã hủy thanh toán tại cổng. Đơn hàng vẫn chờ thanh toán.");
   } catch (error) { summary.textContent = error.message; }
 }
+
 document.querySelector("[data-payment-actions]")?.addEventListener("click", async (event) => {
+  const code = decodeURIComponent(location.pathname.split("/").pop());
+  const retry = event.target.closest("[data-payment-retry]");
+  if (retry) {
+    retry.disabled = true;
+    try {
+      const session = await request(`/api/v1/payments/orders/${encodeURIComponent(code)}/session`, {method:"POST", body:"{}"});
+      location.assign(session.url);
+    } catch (error) { message(error.message); retry.disabled = false; }
+    return;
+  }
   const button = event.target.closest("[data-simulate]");
   if (!button) return;
   const buttons = document.querySelectorAll("[data-simulate]");
   buttons.forEach((node) => node.disabled = true);
-  const code = decodeURIComponent(location.pathname.split("/").pop());
   try {
     await request(`/api/v1/payments/orders/${encodeURIComponent(code)}/simulate`, {method:"POST", body:JSON.stringify({result:button.dataset.simulate})});
     if (button.dataset.simulate === "paid") location.assign(`/cart/tracking?code=${encodeURIComponent(code)}`);

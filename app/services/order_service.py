@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.models.cart import CartItem
 from app.models.order import Order, OrderItem
 from app.models.payment import Payment
@@ -25,6 +26,9 @@ from app.schemas.cart import (
     OrderResponse,
     OrderSummary,
 )
+from app.schemas.refund import RefundInfo
+from app.services.payments import paypal
+from app.services.payments import service as payment_service
 
 SHIPPING_FEE = 30_000
 CART_QTY_MAX = 99
@@ -206,6 +210,7 @@ def _order_response(db: Session, order: Order) -> OrderResponse:
         for item in order.items
     ]
     payment = order.payment
+    refund = order.refund
     return OrderResponse(
         code=order.code,
         status=order.status,
@@ -218,6 +223,21 @@ def _order_response(db: Session, order: Order) -> OrderResponse:
         created_at=order.created_at,
         items=lines,
         payment=(OrderPayment(method=payment.method, status=payment.status) if payment else None),
+        refund=(
+            RefundInfo(
+                id=refund.id,
+                status=refund.status,
+                amount=refund.amount,
+                currency=refund.currency,
+                reason=refund.reason,
+                requested_at=refund.requested_at,
+                due_at=refund.due_at,
+                confirmed_at=refund.confirmed_at,
+                provider_refund_id=refund.provider_refund_id,
+            )
+            if refund is not None
+            else None
+        ),
     )
 
 
@@ -271,6 +291,14 @@ def checkout(db: Session, user: User, data: CheckoutRequest) -> OrderResponse:
         voucher, discount = resolve_voucher(db, data.voucher_code, subtotal, lock=True)
     total = max(subtotal - discount, 0) + SHIPPING_FEE
     code = _generate_order_code(db)
+    settings = get_settings()
+    provider = "mock" if settings.is_mock_payment else data.payment_method.lower()
+    if provider == "paypal":
+        currency = settings.paypal_currency.upper()
+        amount_minor = paypal.vnd_to_usd_minor(settings, total)
+    else:
+        currency = "VND"
+        amount_minor = total * 100
 
     try:
         # Atomic guard: never trust the stock value read above when two carts race.
@@ -320,7 +348,10 @@ def checkout(db: Session, user: User, data: CheckoutRequest) -> OrderResponse:
                 order_id=order.id,
                 method=data.payment_method,
                 status="pending",
-                payload={"provider": data.payment_method.lower(), "simulation": True},
+                provider=provider,
+                currency=currency,
+                amount_minor=amount_minor,
+                payload={"provider": provider, "simulation": settings.is_mock_payment},
             )
         )
         db.execute(delete(CartItem).where(CartItem.user_id == user.id))
@@ -396,13 +427,14 @@ def get_order_for_tracking(
     return _order_response(db, order)
 
 
-def _restock(db: Session, order: Order) -> None:
-    if (
-        order.payment
-        and order.payment.status == "paid"
-        and not (order.payment.payload or {}).get("simulation")
-    ):
-        raise HTTPException(409, "Đơn cũ cần được hoàn tiền thực tế trước khi hủy")
+def _restock(
+    db: Session,
+    order: Order,
+    *,
+    requested_by: int | None = None,
+    reason: str | None = None,
+) -> None:
+    """Restore stock/voucher immediately and open the held refund request."""
     for item in order.items:
         db.execute(
             update(Product)
@@ -415,11 +447,12 @@ def _restock(db: Session, order: Order) -> None:
             .where(Voucher.code == order.voucher_code)
             .values(qty_left=Voucher.qty_left + 1)
         )
-    if order.payment is not None and order.payment.status == "paid":
-        order.payment.status = "refunded"
+    payment_service.request_refund(db, order, requested_by=requested_by, reason=reason)
 
 
-def update_order_status(db: Session, code: str, data: AdminOrderUpdate) -> OrderResponse:
+def update_order_status(
+    db: Session, code: str, data: AdminOrderUpdate, user: User | None = None
+) -> OrderResponse:
     order = db.scalar(select(Order).where(Order.code == code.strip().upper()).with_for_update())
     if order is None:
         raise HTTPException(404, "Không tìm thấy đơn hàng")
@@ -433,8 +466,29 @@ def update_order_status(db: Session, code: str, data: AdminOrderUpdate) -> Order
         raise HTTPException(409, "Đơn hàng cần thanh toán thành công trước khi xử lý")
     try:
         if data.status == "cancelled":
-            _restock(db, order)
+            _restock(db, order, requested_by=user.id if user else None)
         order.status = data.status
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    db.refresh(order)
+    return _order_response(db, order)
+
+
+def cancel_order(db: Session, code: str, user: User, reason: str | None = None) -> OrderResponse:
+    order = db.scalar(
+        select(Order)
+        .where(Order.code == code.strip().upper(), Order.user_id == user.id)
+        .with_for_update()
+    )
+    if order is None:
+        raise HTTPException(404, "Không tìm thấy đơn hàng")
+    if order.status not in {"pending", "confirmed"}:
+        raise HTTPException(409, "Đơn hàng không thể hủy ở trạng thái này")
+    try:
+        _restock(db, order, requested_by=user.id, reason=reason)
+        order.status = "cancelled"
         db.commit()
     except Exception:
         db.rollback()

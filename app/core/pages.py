@@ -78,6 +78,7 @@ def page_endpoint(template_name: str):
             context={
                 "csrf_token": csrf_token,
                 "site_url": get_settings().site_url.rstrip("/"),
+                "payment_mode": get_settings().payment_mode,
                 "facebook_page_url": get_settings().facebook_page_url,
                 "zalo_page_url": get_settings().zalo_page_url,
                 "subiz_embed_code": get_settings().subiz_embed_code,

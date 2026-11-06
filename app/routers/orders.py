@@ -8,7 +8,12 @@ from app.core.deps import CurrentUser, DbSession
 from app.core.security import ACCESS_COOKIE, decode_access_token
 from app.models.user import User
 from app.schemas.auth import DetailResponse
-from app.schemas.cart import CheckoutRequest, OrderListResponse, OrderResponse
+from app.schemas.cart import (
+    CancelOrderRequest,
+    CheckoutRequest,
+    OrderListResponse,
+    OrderResponse,
+)
 from app.services import order_service
 
 router = APIRouter(
@@ -67,3 +72,14 @@ def track_order(
 ):
     """Tra cứu công khai bằng mã đơn + số điện thoại; owner/admin không cần số điện thoại."""
     return order_service.get_order_for_tracking(db, code, user, phone)
+
+
+@router.post("/{code}/cancel", response_model=OrderResponse)
+def cancel_order(
+    code: str,
+    user: CurrentUser,
+    db: DbSession,
+    data: CancelOrderRequest | None = None,
+):
+    """Khách hủy đơn của mình; hoàn kho ngay và mở yêu cầu hoàn tiền 72h nếu đã trả."""
+    return order_service.cancel_order(db, code, user, data.reason if data else None)

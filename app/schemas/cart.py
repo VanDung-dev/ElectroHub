@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.schemas.refund import RefundInfo
+
 
 class CartItemAdd(BaseModel):
     model_config = ConfigDict(
@@ -123,7 +125,7 @@ class OrderLine(BaseModel):
 
 class OrderPayment(BaseModel):
     method: PaymentMethod
-    status: Literal["pending", "paid", "failed", "refunded"]
+    status: Literal["pending", "paid", "failed", "refund_pending", "refunded"]
 
 
 class OrderResponse(BaseModel):
@@ -138,6 +140,7 @@ class OrderResponse(BaseModel):
     created_at: datetime
     items: list[OrderLine]
     payment: OrderPayment | None = None
+    refund: RefundInfo | None = None
 
 
 class OrderSummary(BaseModel):
@@ -161,3 +164,9 @@ class AdminOrderUpdate(BaseModel):
     )
 
     status: OrderStatus
+
+
+class CancelOrderRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", json_schema_extra={"examples": [{"reason": "Đổi ý"}]})
+
+    reason: str | None = Field(default=None, max_length=255)
