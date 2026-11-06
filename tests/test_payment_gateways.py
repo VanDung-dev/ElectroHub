@@ -8,6 +8,7 @@ from app.core.config import Settings
 from app.models.order import Order
 from app.models.payment import Payment
 from app.services.payments import paypal, service, vnpay
+from app.services.payments.base import GatewayOutcome, PaymentGatewayError
 from tests.test_orders import add_to_cart, checkout, make_product, signed_in
 
 
@@ -150,3 +151,73 @@ def test_vnpay_ipn_rejects_bad_signature_and_paypal_webhook_skips_csrf(client):
     # No CSRF header: webhooks must not be rejected by the global dependency.
     webhook = client.post("/api/v1/payments/paypal/webhook", json={})
     assert webhook.status_code == 200 and webhook.json() == {"status": "ignored"}
+
+
+def test_paypal_sync_reads_gateway_order_when_capture_is_rejected(client, database, monkeypatch):
+    """Capture bị từ chối dù khách đã trả: đọc đơn PayPal để không kẹt "Chờ thanh toán"."""
+    settings = sandbox_settings()
+    for target in (
+        "app.services.order_service.get_settings",
+        "app.services.payments.service.get_settings",
+        "app.routers.payments.get_settings",
+    ):
+        monkeypatch.setattr(target, lambda: settings)
+
+    monkeypatch.setattr(
+        paypal,
+        "create_order",
+        lambda *_args, **_kwargs: {
+            "id": "PAYPAL-ORDER-1",
+            "status": "CREATED",
+            "links": [
+                {
+                    "rel": "payer-action",
+                    "href": "https://www.sandbox.paypal.com/checkoutnow?token=X",
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(paypal, "approve_url", lambda order: order["links"][0]["href"])
+
+    captured: dict[str, int] = {}
+
+    def _capture(*_args, **_kwargs):
+        raise PaymentGatewayError("Order is already captured")
+
+    monkeypatch.setattr(paypal, "capture_order", _capture)
+    monkeypatch.setattr(
+        paypal,
+        "read_outcome",
+        lambda *_args, **_kwargs: GatewayOutcome(
+            status="paid",
+            provider_status="COMPLETED",
+            provider_txn_id="CAPTURE-1",
+            amount_minor=captured["minor"],
+            currency="USD",
+            raw={"status": "COMPLETED"},
+        ),
+    )
+
+    product_id = make_product(database, price=100_000, stock=5)
+    headers = signed_in(client)
+    add_to_cart(client, product_id, 1, headers)
+    code = checkout(client, headers, payment_method="PAYPAL").json()["code"]
+
+    session = client.post(f"/api/v1/payments/orders/{code}/session", json={}, headers=headers)
+    assert session.status_code == 200
+    captured["minor"] = session.json()["amount_minor"]
+
+    synced = client.post(f"/api/v1/payments/orders/{code}/sync", json={}, headers=headers)
+    assert synced.status_code == 200, synced.text
+    body = synced.json()
+    assert body["method"] == "PAYPAL"
+    assert body["status"] == "paid"
+    # Đơn hàng vẫn chờ shop xác nhận, thanh toán đã thành công — hai trạng thái riêng.
+    assert body["order_status"] == "pending"
+
+    history = client.get("/api/v1/orders").json()
+    assert history["items"][0]["payment"] == {"method": "PAYPAL", "status": "paid"}
+
+    # Đã settled: lần gọi sau không đụng tới cổng nữa.
+    again = client.post(f"/api/v1/payments/orders/{code}/sync", json={}, headers=headers)
+    assert again.status_code == 200 and again.json()["status"] == "paid"

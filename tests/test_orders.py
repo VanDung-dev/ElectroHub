@@ -335,6 +335,8 @@ def test_checkout_creates_order_decrements_stock_and_keeps_cart_until_paid(clien
     history = client.get("/api/v1/orders").json()
     assert history["total"] == 1 and history["page_size"] == 10
     assert history["items"][0]["item_count"] == 2
+    # Danh sách đơn phải trả cả hai trạng thái: đơn "Chờ xác nhận" ≠ chưa trả tiền.
+    assert history["items"][0]["payment"] == {"method": "PAYPAL", "status": "paid"}
 
 
 def test_paid_payment_keeps_quantities_added_after_checkout(client, database):

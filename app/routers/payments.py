@@ -45,6 +45,7 @@ def _details(db: DbSession, order: Order, payment: Payment) -> PaymentDetailsOut
     return PaymentDetailsOut(
         code=order.code,
         total=order.total,
+        order_status=order.status,
         vat=order.vat,
         method=payment.method,
         status=payment.status,
@@ -82,6 +83,22 @@ def create_payment_session(code: str, request: Request, user: CurrentUser, db: D
     order, payment = _owned_payment(code, user.id, db)
     session = payment_service.create_session(db, order, payment, _client_ip(request))
     return PaymentSessionOut(**session)
+
+
+@router.post("/orders/{code}/sync", response_model=PaymentDetailsOut)
+def sync_payment(code: str, user: CurrentUser, db: DbSession):
+    """Đồng bộ trạng thái với PayPal: thử capture rồi đọc lại đơn phía cổng.
+
+    Dùng khi khách đã trả tiền ở cổng nhưng trang vẫn hiện "Chờ thanh toán"
+    (mất liên kết quay về, capture lỗi mạng...).
+    """
+    order, payment = _owned_payment(code, user.id, db)
+    if payment.method != "PAYPAL" or payment.provider != "paypal":
+        raise HTTPException(409, "Chỉ hỗ trợ đồng bộ cho thanh toán PayPal")
+    payment_service.capture_paypal(db, code, None, sync=True)
+    db.refresh(order)
+    db.refresh(payment)
+    return _details(db, order, payment)
 
 
 @router.post("/orders/{code}/simulate", response_model=PaymentDetailsOut)

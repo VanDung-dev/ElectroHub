@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.schemas.cart import OrderPayment
+from app.schemas.cart import OrderPayment, OrderStatus
 from app.schemas.refund import RefundInfo
 
 
@@ -15,6 +15,9 @@ class PaymentSessionOut(BaseModel):
 class PaymentDetailsOut(OrderPayment):
     code: str
     total: int
+    # Trạng thái đơn hàng để trang thanh toán phân biệt rõ "đã trả tiền" với
+    # "chờ shop xác nhận đơn".
+    order_status: OrderStatus
     vat: int = 0
     provider: str
     currency: str

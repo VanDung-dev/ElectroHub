@@ -202,7 +202,9 @@ def apply_vnpay_callback(db: Session, params: dict[str, str]) -> tuple[str, Orde
     return result, order
 
 
-def capture_paypal(db: Session, code: str, paypal_order_id: str | None) -> tuple[str, Order]:
+def capture_paypal(
+    db: Session, code: str, paypal_order_id: str | None, *, sync: bool = False
+) -> tuple[str, Order]:
     settings = get_settings()
     order = db.scalar(select(Order).where(Order.code == code.strip().upper()).with_for_update())
     if order is None or order.payment is None:
@@ -224,7 +226,15 @@ def capture_paypal(db: Session, code: str, paypal_order_id: str | None) -> tuple
     try:
         outcome = paypal.capture_order(settings, paypal_order_id, txn_ref=payment.txn_ref or code)
     except PaymentGatewayError as exc:
-        raise HTTPException(502, str(exc)) from exc
+        # Capture can fail *after* the money moved: the return URL was lost, or the
+        # gateway captured twice. The order resource stays authoritative, so read it
+        # instead of leaving a paid order stuck at "pending".
+        if not sync:
+            raise HTTPException(502, str(exc)) from exc
+        try:
+            outcome = paypal.read_outcome(settings, paypal_order_id)
+        except PaymentGatewayError:
+            raise HTTPException(502, str(exc)) from exc
     result = apply_result(db, payment.id, outcome, order_id=order.id)
     db.refresh(order)
     return result, order
