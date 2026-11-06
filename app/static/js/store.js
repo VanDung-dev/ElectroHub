@@ -1,6 +1,21 @@
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
 const money = (value) => `${Number(value).toLocaleString("vi-VN")} ₫`;
+// Refund amounts are stored in minor units: VND*100, or PayPal USD cents.
+const moneyMinor = (value, currency) => currency === "USD"
+  ? (Number(value) / 100).toLocaleString("en-US", {style:"currency", currency:"USD"})
+  : `${(Number(value) / 100).toLocaleString("vi-VN")} ₫`;
 const message = (text) => { const node = document.querySelector("[data-message]"); if (node) node.textContent = text; };
+// Gateways (VNPAY QR included) must not replace the current page: they open in a
+// new tab instead. The tab is created during the click gesture, otherwise
+// browsers treat the later redirect as a blocked popup.
+function popPaymentTab() {
+  const tab = window.open("about:blank", "_blank");
+  if (tab) { try { tab.opener = null; } catch (error) { /* older browsers */ } }
+  return tab;
+}
+function signalPaymentUpdate() {
+  try { localStorage.setItem("electrohub-payment", String(Date.now())); } catch (error) { /* private mode */ }
+}
 
 async function request(path, options = {}) {
   const headers = { ...(options.body ? {"Content-Type":"application/json"} : {}), ...options.headers };
@@ -28,13 +43,41 @@ function productCard(product) {
   return `<article class="product-card"><a class="product-image" href="/products/${encodeURIComponent(product.slug)}"><img src="${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}" width="560" height="420" loading="lazy">${onSale ? `<span class="sale-label">Giảm ${discountPercent(product)}%</span>` : ''}</a><p class="product-sku">${escapeHtml(product.sku)}</p><a class="product-name" href="/products/${encodeURIComponent(product.slug)}"><h2>${escapeHtml(product.name)}</h2></a><div class="card-price"><span class="price">${money(product.sale_price ?? product.price)}</span>${onSale ? `<del>${money(product.price)}</del>` : ''}</div><p class="stock-status">${product.stock > 0 ? `Còn hàng · ${product.stock}` : 'Tạm hết hàng'}</p><div class="product-actions"><button class="button-light" data-add-to-cart="${product.id}" ${product.stock < 1 ? "disabled" : ""}>Thêm vào giỏ</button><button data-buy-now="${product.id}" ${product.stock < 1 ? "disabled" : ""}>Mua ngay</button></div></article>`;
 }
 
+// Đơn hàng và thanh toán là hai trạng thái độc lập: đơn "Chờ xác nhận" nghĩa là
+// shop chưa xác nhận xử lý, không đồng nghĩa với việc khách chưa trả tiền.
 const statusNames = {pending:"Chờ xác nhận",confirmed:"Đã xác nhận",shipping:"Đang giao",done:"Hoàn tất",cancelled:"Đã hủy"};
+const paymentStatusNames = {pending:"Chờ thanh toán",paid:"Đã thanh toán",failed:"Thanh toán chưa thành công",refund_pending:"Đã hủy, chờ shop xác nhận hoàn tiền",refunded:"Đã hoàn tiền"};
+const paymentTones = {pending:"is-waiting",paid:"is-paid",failed:"is-failed",refund_pending:"is-refund",refunded:"is-refund"};
+const providerNames = {PAYPAL:"PayPal",paypal:"PayPal",VNPAY:"VNPAY",vnpay:"VNPAY"};
+
+function orderTag(status) {
+  return `<span class="status-tag order-tag">Đơn hàng: ${escapeHtml(statusNames[status] || status)}</span>`;
+}
+
+function paymentTag(payment) {
+  if (!payment) return `<span class="status-tag payment-tag is-unknown">Thanh toán: chưa có thông tin</span>`;
+  const provider = providerNames[payment.method] ? ` · ${providerNames[payment.method]}` : "";
+  const label = `${paymentStatusNames[payment.status] || payment.status}${provider}`;
+  return `<span class="status-tag payment-tag ${paymentTones[payment.status] || "is-unknown"}">Thanh toán: ${escapeHtml(label)}</span>`;
+}
+
+// Lý do cổng thanh toán quay về mà không xác nhận được giao dịch. Hiển thị rõ để
+// khách biết tiền đã vào hệ thống chưa, thay vì im lặng hiện "Chờ thanh toán".
+const paymentReturnNotes = {
+  opened: "Đã mở cổng thanh toán ở một tab mới. Trạng thái tại đây sẽ cập nhật sau khi bạn hoàn tất thanh toán.",
+  cancelled: "Bạn đã hủy thanh toán tại cổng. Đơn hàng vẫn chờ thanh toán.",
+  error: "Cổng thanh toán chưa xác nhận được giao dịch này. Nếu bạn đã bấm thanh toán thành công, hãy bấm “Kiểm tra lại thanh toán” hoặc liên hệ cửa hàng kèm mã đơn.",
+  invalid: "Chữ ký xác thực từ cổng thanh toán không hợp lệ nên giao dịch chưa được ghi nhận. Bấm “Kiểm tra lại thanh toán” để thử lại.",
+  amount: "Số tiền giao dịch không khớp đơn hàng nên hệ thống chưa ghi nhận. Liên hệ cửa hàng kèm mã đơn để được đối soát.",
+  notfound: "Không tìm thấy giao dịch thanh toán cho đơn này. Bấm “Kiểm tra lại thanh toán” hoặc chọn thanh toán lại.",
+};
 
 async function loadUserNav() {
   const nav = document.querySelector("[data-user-nav]");
   if (!nav) return;
   try {
     const user = await request("/api/v1/auth/me");
+    window.currentUser = user;
     const roleLinks = user.role === "admin"
       ? `<a href="/manager">Quản lý</a>`
       : user.role === "staff" ? `<a href="/staff/orders">Xử lý đơn</a>` : `<a href="/account/orders">Đơn hàng của tôi</a>`;
@@ -101,7 +144,7 @@ async function loadAccountOrders() {
   if (!list) return;
   try {
     const data = await request("/api/v1/orders");
-    list.innerHTML = data.items.map((order) => `<article class="account-order"><header><h2>Đơn ${escapeHtml(order.code)}</h2><span class="status-tag">${escapeHtml(statusNames[order.status] || order.status)}</span></header><p>${new Date(order.created_at).toLocaleDateString("vi-VN")} · ${money(order.total)} · ${order.item_count} sản phẩm</p><a href="/cart/tracking?code=${encodeURIComponent(order.code)}">Tra cứu đơn</a></article>`).join("") || "<p>Bạn chưa có đơn hàng nào. <a href=\"/collections/all\">Xem sản phẩm</a></p>";
+    list.innerHTML = data.items.map((order) => `<article class="account-order"><header><h2>Đơn ${escapeHtml(order.code)}</h2><span class="tag-row">${orderTag(order.status)}${paymentTag(order.payment)}</span></header><p>${new Date(order.created_at).toLocaleDateString("vi-VN")} · ${money(order.total)} · ${order.item_count} sản phẩm</p><a href="/cart/tracking?code=${encodeURIComponent(order.code)}">Tra cứu đơn</a></article>`).join("") || "<p>Bạn chưa có đơn hàng nào. <a href=\"/collections/all\">Xem sản phẩm</a></p>";
   } catch (error) { list.innerHTML = `<p>${escapeHtml(error.message)} · <a href="/account/login">Đăng nhập</a></p>`; }
 }
 
@@ -111,8 +154,29 @@ async function loadStaffOrders(status = "") {
   try {
     const query = status ? `?status=${encodeURIComponent(status)}&page_size=50` : "?page_size=50";
     const data = await request(`/api/v1/admin/orders${query}`);
-    list.innerHTML = data.items.map((order) => `<article class="order-card" data-order-card="${escapeHtml(order.code)}"><div><h2>Đơn ${escapeHtml(order.code)} · ${money(order.total)}</h2><p>${escapeHtml(statusNames[order.status] || order.status)} · ${order.item_count} sản phẩm</p><p>${new Date(order.created_at).toLocaleString("vi-VN")}</p><button type="button" class="button-light" data-order-detail="${escapeHtml(order.code)}">Xem chi tiết</button></div><label>Trạng thái<select data-order-status="${escapeHtml(order.code)}">${Object.entries(statusNames).map(([key, label]) => `<option value="${key}" ${key === order.status ? "selected" : ""}>${label}</option>`).join("")}</select></label></article>`).join("") || "<p>Không có đơn hàng phù hợp.</p>";
+    list.innerHTML = data.items.map((order) => `<article class="order-card" data-order-card="${escapeHtml(order.code)}"><div><h2>Đơn ${escapeHtml(order.code)} · ${money(order.total)}</h2><p class="tag-row">${orderTag(order.status)}${paymentTag(order.payment)}</p><p>${order.item_count} sản phẩm · ${new Date(order.created_at).toLocaleString("vi-VN")}</p><button type="button" class="button-light" data-order-detail="${escapeHtml(order.code)}">Xem chi tiết</button></div><label>Trạng thái đơn<select data-order-status="${escapeHtml(order.code)}">${Object.entries(statusNames).map(([key, label]) => `<option value="${key}" ${key === order.status ? "selected" : ""}>${label}</option>`).join("")}</select></label></article>`).join("") || "<p>Không có đơn hàng phù hợp.</p>";
   } catch (error) { list.innerHTML = `<p>${escapeHtml(error.message)} · <a href="/account/login">Đăng nhập</a></p>`; }
+}
+
+let checkoutTotal = 0;
+let checkoutVatPercent = 0;
+
+function renderPaymentConversion(total, vatPercent) {
+  checkoutTotal = Number(total) || 0;
+  checkoutVatPercent = Number(vatPercent) || 0;
+  const form = document.querySelector("[data-checkout]");
+  const note = document.querySelector("[data-payment-conversion]");
+  if (!form || !note) return;
+  const method = form.querySelector('input[name="payment_method"]:checked')?.value;
+  if (!checkoutTotal || !method) { note.textContent = ""; return; }
+  if (method === "PAYPAL") {
+    const rate = Number(form.dataset.usdRate) || 25000;
+    const usdCents = Math.round((checkoutTotal / rate) * 100);
+    const usd = (usdCents / 100).toLocaleString("en-US", {style:"currency", currency:"USD"});
+    note.innerHTML = `PayPal thu <strong>${usd}</strong> · tỷ giá 1 USD = ${rate.toLocaleString("vi-VN")} ₫ · đã gồm VAT ${checkoutVatPercent}%`;
+  } else {
+    note.innerHTML = `VNPAY thu <strong>${money(checkoutTotal)}</strong> · thanh toán bằng VND · đã gồm VAT ${checkoutVatPercent}%`;
+  }
 }
 
 async function loadCart() {
@@ -124,7 +188,8 @@ async function loadCart() {
   try {
     const cart = await request("/api/v1/cart");
     if (target) target.innerHTML = cart.items.map((item) => `<div class="cart-row"><div><a href="/products/${encodeURIComponent(item.slug)}">${escapeHtml(item.name)}</a><small>${money(item.unit_price)} / sản phẩm</small></div><label>Số lượng <input type="number" min="1" max="${Math.min(item.stock,99)}" value="${item.qty}" data-qty="${item.id}"></label><strong>${money(item.line_total)}</strong><button class="remove-item" data-delete="${item.id}">Xóa</button></div>`).join("") || '<div class="empty-state"><h2>Giỏ hàng đang trống</h2><p>Chọn sản phẩm để bắt đầu mua sắm.</p><a class="button" href="/collections/all">Xem sản phẩm</a></div>';
-    if (summary) summary.innerHTML = `${summary.hasAttribute("data-checkout-summary") ? cart.items.map((item) => `<p class="summary-line"><span>${escapeHtml(item.name)} × ${item.qty}</span><strong>${money(item.line_total)}</strong></p>`).join("") : ""}<dl><div><dt>Tạm tính</dt><dd>${money(cart.subtotal)}</dd></div><div><dt>Giảm giá</dt><dd>−${money(cart.discount)}</dd></div><div><dt>Phí giao hàng</dt><dd>${money(cart.shipping_fee)}</dd></div><div class="summary-total"><dt>Tổng thanh toán</dt><dd>${money(cart.total)}</dd></div></dl>${!cart.items.length ? '<p>Chưa có sản phẩm để đặt hàng.</p>' : ''}`;
+    if (summary) summary.innerHTML = `${summary.hasAttribute("data-checkout-summary") ? cart.items.map((item) => `<p class="summary-line"><span>${escapeHtml(item.name)} × ${item.qty}</span><strong>${money(item.line_total)}</strong></p>`).join("") : ""}<dl><div><dt>Tạm tính</dt><dd>${money(cart.subtotal)}</dd></div><div><dt>Giảm giá</dt><dd>−${money(cart.discount)}</dd></div><div><dt>VAT (${cart.vat_percent}%)</dt><dd>${money(cart.vat)}</dd></div><div><dt>Phí giao hàng</dt><dd>${money(cart.shipping_fee)}</dd></div><div class="summary-total"><dt>Tổng thanh toán</dt><dd>${money(cart.total)}</dd></div></dl>${!cart.items.length ? '<p>Chưa có sản phẩm để đặt hàng.</p>' : ''}`;
+    renderPaymentConversion(cart.total, cart.vat_percent);
     if (checkout) checkout.hidden = !cart.items.length;
     if (submit) submit.disabled = !cart.items.length;
     refreshCartCount();
@@ -241,23 +306,51 @@ document.querySelector("[data-register]")?.addEventListener("submit", async (eve
 });
 if (document.querySelector("[data-login]") && new URLSearchParams(location.search).get("registered") === "1") message("Tạo tài khoản thành công. Vui lòng đăng nhập để mua hàng.");
 
+document.querySelector("[data-checkout]")?.addEventListener("change", (event) => {
+  if (event.target.name === "payment_method") renderPaymentConversion(checkoutTotal, checkoutVatPercent);
+});
+
 document.querySelector("[data-checkout]")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
   const submit = form.querySelector("[data-place-order]");
   submit.disabled = true;
+  const tab = popPaymentTab();
   let order;
   try { order = await request("/api/v1/orders", {method:"POST", body:JSON.stringify(Object.fromEntries(new FormData(form)))}); }
-  catch (error) { message(error.message); submit.disabled = false; return; }
+  catch (error) { tab?.close(); message(error.message); submit.disabled = false; return; }
   const tracking = `/cart/tracking?code=${encodeURIComponent(order.code)}`;
   try {
     const payment = await request(`/api/v1/payments/orders/${encodeURIComponent(order.code)}/session`, {method:"POST", body:"{}"});
-    location.assign(payment.url);
+    // The gateway (VNPAY QR included) must never replace the current page.
+    if (tab && !tab.closed) {
+      tab.location.assign(payment.url);
+      location.assign(`${tracking}&payment=opened`);
+      return;
+    }
+    // Popup was blocked: offer an explicit link (anchors are never blocked).
+    submit.disabled = false;
+    message(`Đơn ${order.code} đã tạo. Trình duyệt đã chặn tab mới — dùng liên kết bên dưới để hoàn tất thanh toán.`);
+    offerNewTabLink(payment.url, "Mở cổng thanh toán (tab mới) →", form);
+    offerNewTabLink(tracking, "Xem trạng thái đơn hàng →", form);
   } catch (error) {
+    tab?.close();
     message(`Đơn ${order.code} đã tạo. ${error.message}. Vui lòng lưu mã đơn và liên hệ cửa hàng để hoàn tất thanh toán.`);
-    const link = document.createElement("a"); link.href = tracking; link.textContent = "Xem đơn hàng vừa tạo →"; form.append(link);
+    offerNewTabLink(tracking, "Xem đơn hàng vừa tạo →", form);
   }
 });
+
+// Anchor links with target="_blank" always work, even when window.open popups
+// are blocked by the browser.
+function offerNewTabLink(url, text, appendTo) {
+  const link = document.createElement("a");
+  link.href = url;
+  link.target = "_blank";
+  link.rel = "noopener";
+  link.textContent = text;
+  link.className = "button-light";
+  appendTo.append(link);
+}
 
 async function trackOrder(form) {
   const data = new FormData(form);
@@ -265,13 +358,45 @@ async function trackOrder(form) {
   try {
     const phone = data.get("phone");
     const order = await request(`/api/v1/orders/${encodeURIComponent(data.get("code"))}${phone ? `?phone=${encodeURIComponent(phone)}` : ""}`);
-    const paymentNames = {pending:"Chờ thanh toán",paid:"Đã thanh toán",failed:"Thanh toán chưa thành công",refunded:"Đã hoàn tiền"};
-    result.innerHTML = `<article class="order-summary"><h2>Đơn hàng ${escapeHtml(order.code)}</h2><p class="status-tag">${escapeHtml(statusNames[order.status])}</p><p>Thanh toán: ${escapeHtml(paymentNames[order.payment?.status] || "Chờ thanh toán")} · ${escapeHtml(order.payment?.method || "")}</p><p>${escapeHtml(order.address.name)} · ${escapeHtml(order.address.phone)}</p><p>${escapeHtml(order.address.address)}</p>${order.items.map((item) => `<p class="summary-line"><span>${escapeHtml(item.name)} × ${item.qty}</span><strong>${money(item.line_total)}</strong></p>`).join("")}<hr><p>Tổng thanh toán: <strong>${money(order.total)}</strong></p>${["pending", "failed"].includes(order.payment?.status) && order.status !== "cancelled" ? `<a class="button" href="/payments/${encodeURIComponent(order.code)}">Tiếp tục thanh toán mô phỏng</a>` : ""}<a href="/collections/all">Tiếp tục mua sắm →</a></article>`;
+    const refundNames = {scheduled:"Chờ đủ thời hạn giữ tiền",processing:"Đang xử lý hoàn tiền",succeeded:"Đã hoàn tiền",failed:"Hoàn tiền lỗi, shop sẽ thử lại",rejected:"Shop từ chối hoàn tiền"};
+    const refund = order.refund ? `<p class="refund-note">Hoàn tiền ${moneyMinor(order.refund.amount, order.refund.currency)}: ${escapeHtml(refundNames[order.refund.status] || order.refund.status)} · đủ điều kiện ${new Date(order.refund.due_at).toLocaleString("vi-VN")}</p>` : "";
+    const payable = ["pending", "failed"].includes(order.payment?.status) && order.status !== "cancelled";
+    const cancellable = ["pending", "confirmed"].includes(order.status);
+    const paymentNote = paymentReturnNotes[new URLSearchParams(location.search).get("payment")];
+    if (new URLSearchParams(location.search).get("payment") === "opened") message("Đã mở cổng thanh toán ở một tab mới. Trạng thái tại đây sẽ cập nhật sau khi bạn hoàn tất thanh toán.");
+    else if (paymentNote) message(paymentNote);
+    result.innerHTML = `<article class="order-summary"><h2>Đơn hàng ${escapeHtml(order.code)}</h2><p class="tag-row">${orderTag(order.status)}${paymentTag(order.payment)}</p><p>${escapeHtml(order.address.name)} · ${escapeHtml(order.address.phone)}</p><p>${escapeHtml(order.address.address)}</p>${order.items.map((item) => `<p class="summary-line"><span>${escapeHtml(item.name)} × ${item.qty}</span><strong>${money(item.line_total)}</strong></p>`).join("")}<hr>${order.vat ? `<p class="summary-line"><span>VAT</span><span>${money(order.vat)}</span></p>` : ""}<p>Tổng thanh toán: <strong>${money(order.total)}</strong></p>${refund}${payable ? `<a class="button" href="/payments/${encodeURIComponent(order.code)}">Tiếp tục thanh toán</a>` : ""}${cancellable ? `<button class="button-light" data-cancel-order="${escapeHtml(order.code)}">Hủy đơn</button>` : ""}<a href="/collections/all">Tiếp tục mua sắm →</a></article>`;
   } catch (error) { result.textContent = error.message; }
 }
 const trackingForm = document.querySelector("[data-track]");
 trackingForm?.addEventListener("submit", (event) => { event.preventDefault(); trackOrder(event.currentTarget); });
 if (trackingForm?.elements.code.value) trackOrder(trackingForm);
+
+// A settled payment in another tab (or a focused return to this one) refreshes
+// the order status and cart without reloading the page.
+window.addEventListener("storage", (event) => {
+  if (event.key !== "electrohub-payment") return;
+  const form = document.querySelector("[data-track]");
+  if (form?.elements.code.value) trackOrder(form);
+  if (document.querySelector("[data-payment-summary]")) loadPaymentDemo();
+});
+window.addEventListener("focus", () => {
+  const form = document.querySelector("[data-track]");
+  if (form?.elements.code.value) trackOrder(form);
+  if (document.querySelector("[data-payment-summary]")) loadPaymentDemo();
+});
+
+document.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-cancel-order]");
+  if (!button || !confirm("Hủy đơn hàng này? Nếu đã thanh toán, shop sẽ xác nhận hoàn tiền sau thời hạn giữ tiền.")) return;
+  button.disabled = true;
+  try {
+    await request(`/api/v1/orders/${encodeURIComponent(button.dataset.cancelOrder)}/cancel`, {method:"POST", body:JSON.stringify({reason:"Khách hủy đơn"})});
+    message("Đã hủy đơn hàng.");
+    const form = document.querySelector("[data-track]");
+    if (form) await trackOrder(form);
+  } catch (error) { message(error.message); button.disabled = false; }
+});
 
 document.querySelector("[data-campaign]")?.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -335,6 +460,40 @@ document.querySelector("[data-reset-product]")?.addEventListener("click", () => 
   form.elements.image_url.value = "/static/img/product-placeholder.svg";
 });
 
+async function currentRole() {
+  if (window.currentUser) return window.currentUser.role;
+  try { window.currentUser = await request("/api/v1/auth/me"); return window.currentUser.role; } catch { return null; }
+}
+
+async function loadAdminRefunds() {
+  const list = document.querySelector("[data-admin-refunds]");
+  if (!list) return;
+  try {
+    const [data, role] = await Promise.all([request("/api/v1/admin/refunds"), currentRole()]);
+    const isAdmin = role === "admin";
+    list.innerHTML = data.items.map((refund) => {
+      const actionable = isAdmin && ["scheduled", "failed"].includes(refund.status);
+      return `<article class="order-card" data-refund-card="${refund.id}"><div><h2>Đơn ${escapeHtml(refund.order_code)} · ${moneyMinor(refund.amount, refund.currency)}</h2><p>${escapeHtml(refund.method)} · ${escapeHtml(refund.provider)} · thanh toán ${escapeHtml(paymentStatusNames[refund.payment_status] || refund.payment_status)}</p><p>Yêu cầu ${new Date(refund.requested_at).toLocaleString("vi-VN")} · đủ điều kiện ${new Date(refund.due_at).toLocaleString("vi-VN")} · ${escapeHtml(refundStatusNames[refund.status] || refund.status)}</p>${refund.reason ? `<p>Lý do: ${escapeHtml(refund.reason)}</p>` : ""}${actionable ? `<p><button type="button" data-confirm-refund="${refund.id}" ${refund.due ? "" : "disabled"}>${refund.due ? "Xác nhận hoàn tiền" : "Chưa đủ hạn"}</button> <button type="button" class="button-light" data-reject-refund="${refund.id}">Từ chối</button></p>` : ""}</div></article>`;
+    }).join("") || "<p>Không có yêu cầu hoàn tiền.</p>";
+  } catch (error) { list.innerHTML = `<p>${escapeHtml(error.message)}</p>`; }
+}
+
+document.querySelector("[data-admin-refunds]")?.addEventListener("click", async (event) => {
+  const confirmButton = event.target.closest("[data-confirm-refund]");
+  const rejectButton = event.target.closest("[data-reject-refund]");
+  if (!confirmButton && !rejectButton) return;
+  if (confirmButton && !confirm("Gọi cổng thanh toán để hoàn tiền cho đơn này?")) return;
+  const id = confirmButton ? confirmButton.dataset.confirmRefund : rejectButton.dataset.rejectRefund;
+  const reason = rejectButton ? prompt("Lý do từ chối hoàn tiền:", "Chưa nhận lại hàng") : null;
+  if (rejectButton && reason === null) return;
+  (confirmButton || rejectButton).disabled = true;
+  try {
+    await request(`/api/v1/admin/refunds/${id}/${confirmButton ? "confirm" : "reject"}`, {method:"POST", body:JSON.stringify(confirmButton ? {} : {reason:reason || ""})});
+    message(confirmButton ? "Đã hoàn tiền thành công." : "Đã từ chối yêu cầu hoàn tiền.");
+    await loadAdminRefunds();
+  } catch (error) { message(error.message); (confirmButton || rejectButton).disabled = false; }
+});
+
 loadProducts();
 loadCart();
 loadAdminProducts();
@@ -342,6 +501,20 @@ loadUserNav();
 loadManagerStats();
 loadAccountOrders();
 loadStaffOrders();
+loadAdminRefunds();
+
+const refundStatusNames = {scheduled:"Chờ đủ thời hạn giữ tiền",processing:"Đang xử lý hoàn tiền",succeeded:"Đã hoàn tiền",failed:"Hoàn tiền lỗi, shop sẽ thử lại",rejected:"Shop từ chối hoàn tiền"};
+
+function paymentAmount(payment) {
+  const page = document.querySelector(".payment-page");
+  const rate = Number(page?.dataset.usdRate) || 25000;
+  if (payment.currency === "USD" && payment.amount_minor !== null && payment.amount_minor !== undefined) {
+    const usd = (payment.amount_minor / 100).toLocaleString("en-US", {style:"currency", currency:"USD"});
+    return `<strong class="price">${escapeHtml(usd)}</strong><small>≈ ${money(payment.total)} · tỷ giá 1 USD = ${rate.toLocaleString("vi-VN")} ₫</small>`;
+  }
+  if (payment.simulation) return `<strong class="price">${money(payment.total)}</strong>`;
+  return `<strong class="price">${money(payment.total)}</strong><small>VNPAY thu VND, không quy đổi</small>`;
+}
 
 async function loadPaymentDemo() {
   const summary = document.querySelector("[data-payment-summary]");
@@ -349,20 +522,71 @@ async function loadPaymentDemo() {
   const code = decodeURIComponent(location.pathname.split("/").pop());
   try {
     const payment = await request(`/api/v1/payments/orders/${encodeURIComponent(code)}`);
-    document.querySelector("[data-payment-provider]").textContent = `${payment.method === "PAYPAL" ? "PayPal" : "VNPAY"} · Mô phỏng`;
-    summary.innerHTML = `<p>Đơn hàng <strong>${escapeHtml(payment.code)}</strong></p><p>Tổng thanh toán</p><strong class="price">${money(payment.total)}</strong><p>${escapeHtml({pending:"Chờ thanh toán",paid:"Đã thanh toán (mô phỏng)",failed:"Thanh toán thất bại; bạn có thể thử lại",refunded:"Đã hoàn tiền (mô phỏng)"}[payment.status])}</p>`;
-    document.querySelector("[data-payment-actions]").hidden = !["pending", "failed"].includes(payment.status);
+    const label = payment.method === "PAYPAL" ? "PayPal" : "VNPAY";
+    document.querySelector("[data-payment-provider]").textContent = `${label} · ${payment.simulation ? "Mô phỏng" : "Sandbox"}`;
+    const refund = payment.refund ? `<p class="refund-note">Hoàn tiền ${moneyMinor(payment.refund.amount, payment.refund.currency)}: ${escapeHtml(refundStatusNames[payment.refund.status] || payment.refund.status)} · đủ điều kiện ${new Date(payment.refund.due_at).toLocaleString("vi-VN")}</p>` : "";
+    const vatPercent = Number(document.querySelector(".payment-page")?.dataset.vatPercent) || 0;
+    const vatLine = payment.vat
+      ? `<p class="summary-line"><span>Đã bao gồm VAT (${vatPercent}%)</span><strong>${money(payment.vat)}</strong></p>`
+      : "";
+    summary.innerHTML = `<p>Đơn hàng <strong>${escapeHtml(payment.code)}</strong></p><p>Tổng thanh toán</p>${paymentAmount(payment)}${vatLine}<p class="tag-row">${orderTag(payment.order_status)}${paymentTag(payment)}</p>${refund}`;
+    const settled = ["paid", "refund_pending", "refunded"].includes(payment.status);
+    if (settled) { signalPaymentUpdate(); refreshCartCount(); }
+    const actions = document.querySelector("[data-payment-actions]");
+    actions.hidden = settled;
+    document.querySelectorAll("[data-simulate]").forEach((node) => node.hidden = !payment.simulation);
+    const retry = document.querySelector("[data-payment-retry]");
+    retry.hidden = payment.simulation;
+    retry.textContent = (payment.attempt || 1) > 1 ? "Thanh toán lại" : "Thanh toán ngay";
+    // Chỉ PayPal có endpoint đồng bộ; mock/VNPAY không cần nút này.
+    const refresh = document.querySelector("[data-payment-refresh]");
+    if (refresh) refresh.hidden = payment.simulation || payment.provider !== "paypal";
+    const note = paymentReturnNotes[new URLSearchParams(location.search).get("payment")];
+    if (note) message(note);
   } catch (error) { summary.textContent = error.message; }
 }
+
+// Đối soát lại với PayPal: khách đã trả tiền ở cổng nhưng trang vẫn hiện
+// "Chờ thanh toán" (mất liên kết quay về, capture lỗi mạng...).
+document.querySelector("[data-payment-refresh]")?.addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  const code = decodeURIComponent(location.pathname.split("/").pop());
+  button.disabled = true;
+  message("Đang kiểm tra lại giao dịch với PayPal…");
+  try {
+    await request(`/api/v1/payments/orders/${encodeURIComponent(code)}/sync`, {method:"POST", body:"{}"});
+    await loadPaymentDemo();
+    message("Đã đối soát với PayPal. Xem trạng thái thanh toán ở trên.");
+  } catch (error) { message(error.message); }
+  finally { button.disabled = false; }
+});
+
 document.querySelector("[data-payment-actions]")?.addEventListener("click", async (event) => {
+  const code = decodeURIComponent(location.pathname.split("/").pop());
+  const retry = event.target.closest("[data-payment-retry]");
+  if (retry) {
+    retry.disabled = true;
+    const tab = popPaymentTab();
+    try {
+      const session = await request(`/api/v1/payments/orders/${encodeURIComponent(code)}/session`, {method:"POST", body:"{}"});
+      if (tab && !tab.closed) {
+        tab.location.assign(session.url);
+        message("Đã mở cổng thanh toán trong tab mới. Trang này sẽ tự cập nhật sau khi bạn hoàn tất thanh toán.");
+      } else {
+        message("Trình duyệt đã chặn tab mới — bấm liên kết bên dưới để mở cổng thanh toán.");
+        offerNewTabLink(session.url, "Mở cổng thanh toán (tab mới) →", document.querySelector("[data-payment-actions]"));
+      }
+    } catch (error) { tab?.close(); message(error.message); }
+    finally { retry.disabled = false; }
+    return;
+  }
   const button = event.target.closest("[data-simulate]");
   if (!button) return;
   const buttons = document.querySelectorAll("[data-simulate]");
   buttons.forEach((node) => node.disabled = true);
-  const code = decodeURIComponent(location.pathname.split("/").pop());
   try {
     await request(`/api/v1/payments/orders/${encodeURIComponent(code)}/simulate`, {method:"POST", body:JSON.stringify({result:button.dataset.simulate})});
-    if (button.dataset.simulate === "paid") location.assign(`/cart/tracking?code=${encodeURIComponent(code)}`);
+    if (button.dataset.simulate === "paid") { signalPaymentUpdate(); location.assign(`/cart/tracking?code=${encodeURIComponent(code)}`); }
     else { message("Đã mô phỏng thanh toán thất bại. Bạn có thể thử lại trên cùng đơn hàng."); await loadPaymentDemo(); }
   } catch (error) { message(error.message); }
   finally { buttons.forEach((node) => node.disabled = false); }

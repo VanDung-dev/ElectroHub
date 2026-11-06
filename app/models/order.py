@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.mssql import DATETIME2
@@ -6,6 +7,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.models.payment import Payment
+
+if TYPE_CHECKING:
+    from app.models.refund import Refund
 
 
 class Order(Base):
@@ -16,7 +20,7 @@ class Order(Base):
             name="status",
         ),
         CheckConstraint(
-            "subtotal >= 0 AND discount >= 0 AND shipping_fee >= 0 AND total >= 0",
+            "subtotal >= 0 AND discount >= 0 AND vat >= 0 AND shipping_fee >= 0 AND total >= 0",
             name="amounts",
         ),
     )
@@ -27,6 +31,7 @@ class Order(Base):
     status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
     subtotal: Mapped[int] = mapped_column(Integer)
     discount: Mapped[int] = mapped_column(Integer, default=0)
+    vat: Mapped[int] = mapped_column(Integer, default=0)
     shipping_fee: Mapped[int] = mapped_column(Integer)
     total: Mapped[int] = mapped_column(Integer)
     # ERD has no column for the applied code; it is kept for audit and to return a voucher
@@ -42,6 +47,9 @@ class Order(Base):
         back_populates="order", order_by="OrderItem.id", lazy="selectin"
     )
     payment: Mapped[Payment | None] = relationship(lazy="selectin", uselist=False)
+    refund: Mapped["Refund | None"] = relationship(
+        back_populates="order", lazy="selectin", uselist=False
+    )
 
 
 class OrderItem(Base):

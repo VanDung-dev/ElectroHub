@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 
-from app.core.deps import DbSession, require_staff
+from app.core.deps import CurrentUser, DbSession, require_staff
 from app.schemas.auth import DetailResponse
 from app.schemas.cart import AdminOrderUpdate, OrderListResponse, OrderResponse
 from app.services import order_service
@@ -31,6 +31,6 @@ def list_orders(
 
 
 @router.patch("/{code}", response_model=OrderResponse)
-def update_status(code: str, data: AdminOrderUpdate, db: DbSession):
-    """Đổi trạng thái đơn; hủy đơn sẽ hoàn kho và hoàn lượt voucher."""
-    return order_service.update_order_status(db, code, data)
+def update_status(code: str, data: AdminOrderUpdate, db: DbSession, user: CurrentUser):
+    """Đổi trạng thái đơn; hủy đơn sẽ hoàn kho, hoàn voucher và mở yêu cầu hoàn tiền."""
+    return order_service.update_order_status(db, code, data, user)

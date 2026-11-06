@@ -16,10 +16,12 @@ from app.core.deps import DbSession, require_csrf
 from app.core.pages import router as pages_router
 from app.models.product import Product
 from app.routers.admin_orders import router as admin_orders_router
+from app.routers.admin_refunds import router as admin_refunds_router
 from app.routers.auth import router as auth_router
 from app.routers.cart import router as cart_router
 from app.routers.newsletter import router as newsletter_router
 from app.routers.orders import router as orders_router
+from app.routers.payment_returns import router as payment_returns_router
 from app.routers.payments import router as payments_router
 from app.routers.products import admin_router as admin_products_router
 from app.routers.products import router as products_router
@@ -76,10 +78,12 @@ def create_app() -> FastAPI:
     app.include_router(cart_router)
     app.include_router(orders_router)
     app.include_router(admin_orders_router)
+    app.include_router(admin_refunds_router)
     app.include_router(products_router)
     app.include_router(admin_products_router)
     app.include_router(newsletter_router)
     app.include_router(payments_router)
+    app.include_router(payment_returns_router)
     app.include_router(pages_router)
 
     @app.get("/sitemap.xml", include_in_schema=False)

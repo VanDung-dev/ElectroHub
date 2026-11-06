@@ -18,6 +18,21 @@ x-app-environment: &app-environment
   FACEBOOK_PAGE_URL: ${FACEBOOK_PAGE_URL:-}
   ZALO_PAGE_URL: ${ZALO_PAGE_URL:-}
   SUBIZ_EMBED_CODE: ${SUBIZ_EMBED_CODE:-}
+  # Payments: the app container needs these explicitly; .env alone is not injected.
+  PAYMENT_MODE: ${PAYMENT_MODE:-mock}
+  REFUND_HOLD_HOURS: ${REFUND_HOLD_HOURS:-72}
+  VAT_PERCENT: ${VAT_PERCENT:-10}
+  VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
+  VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
+  VNPAY_PAY_URL: ${VNPAY_PAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+  VNPAY_API_URL: ${VNPAY_API_URL:-https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
+  VNPAY_EXPIRE_MINUTES: ${VNPAY_EXPIRE_MINUTES:-15}
+  PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:-}
+  PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET:-}
+  PAYPAL_API_BASE: ${PAYPAL_API_BASE:-https://api-m.sandbox.paypal.com}
+  PAYPAL_WEBHOOK_ID: ${PAYPAL_WEBHOOK_ID:-}
+  PAYPAL_CURRENCY: ${PAYPAL_CURRENCY:-USD}
+  PAYPAL_VND_PER_USD: ${PAYPAL_VND_PER_USD:-25000}
 
 services:
   sqlserver:
