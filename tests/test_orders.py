@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.order import Order, OrderItem
 from app.models.payment import Payment
 from app.models.product import Product
+from app.models.refund import Refund
 from app.models.user import User
 from app.models.voucher import Voucher
 from tests.conftest import csrf_headers, login, register
@@ -89,6 +90,8 @@ def test_cart_requires_login_and_csrf(client, database):
         "items": [],
         "subtotal": 0,
         "discount": 0,
+        "vat": 0,
+        "vat_percent": 10,
         "shipping_fee": 0,
         "total": 0,
         "voucher": None,
@@ -114,13 +117,19 @@ def test_cart_add_update_delete_uses_sale_price_and_integer_money(client, databa
             "stock": 10,
         }
     ]
-    assert (cart["subtotal"], cart["shipping_fee"], cart["total"]) == (330_000, 30_000, 360_000)
+    # VAT applies to the goods value; shipping is untaxed.
+    assert (cart["subtotal"], cart["vat"], cart["shipping_fee"], cart["total"]) == (
+        330_000,
+        33_000,
+        30_000,
+        393_000,
+    )
 
     # Adding the same product accumulates instead of creating a second line.
     cart = add_to_cart(client, product_id, 1, headers).json()
     assert len(cart["items"]) == 1
     assert cart["items"][0]["qty"] == 3
-    assert cart["total"] == 3 * 165_000 + 30_000
+    assert cart["total"] == 3 * 165_000 + 49_500 + 30_000
 
     item_id = cart["items"][0]["id"]
     cart = client.put(f"/api/v1/cart/items/{item_id}", json={"qty": 4}, headers=headers).json()
@@ -128,6 +137,7 @@ def test_cart_add_update_delete_uses_sale_price_and_integer_money(client, databa
 
     cart = client.delete(f"/api/v1/cart/items/{item_id}", headers=headers).json()
     assert cart["items"] == []
+    assert cart["vat"] == 0
     assert cart["total"] == 0 and cart["shipping_fee"] == 0
 
 
@@ -201,7 +211,12 @@ def test_cart_voucher_preview_discount_is_capped_and_not_consumed(client, databa
         "max_discount": 40_000,
         "discount": 40_000,
     }
-    assert (cart["subtotal"], cart["discount"], cart["total"]) == (500_000, 40_000, 490_000)
+    assert (cart["subtotal"], cart["discount"], cart["vat"], cart["total"]) == (
+        500_000,
+        40_000,
+        46_000,
+        536_000,
+    )
 
     with Session(database) as db:
         assert db.get(Voucher, 1).qty_left == 5  # preview only
@@ -265,7 +280,7 @@ def make_admin(client, database, email="admin@example.com"):
     return csrf_headers(client)
 
 
-def test_checkout_creates_order_decrements_stock_and_clears_cart(client, database):
+def test_checkout_creates_order_decrements_stock_and_keeps_cart_until_paid(client, database):
     product_id = make_product(database, price=100_000, sale_price=90_000, stock=5)
     make_voucher(database, percent=10, max_discount=100_000)
     headers = signed_in(client)
@@ -276,12 +291,13 @@ def test_checkout_creates_order_decrements_stock_and_clears_cart(client, databas
     order = response.json()
     assert order["code"].startswith("EH-") and len(order["code"]) == 7
     assert order["status"] == "pending"
-    assert (order["subtotal"], order["discount"], order["shipping_fee"]) == (
+    assert (order["subtotal"], order["discount"], order["vat"], order["shipping_fee"]) == (
         180_000,
         18_000,
+        16_200,
         30_000,
     )
-    assert order["total"] == 192_000
+    assert order["total"] == 208_200
     assert order["voucher_code"] == "WELCOME10"
     assert order["address"]["phone"] == "0901234567"
     assert order["payment"] == {"method": "PAYPAL", "status": "pending"}
@@ -300,15 +316,50 @@ def test_checkout_creates_order_decrements_stock_and_clears_cart(client, databas
         assert db.get(Product, product_id).stock == 3
         assert db.get(Voucher, 1).qty_left == 4
         saved = db.scalar(select(Order))
-        assert saved.code == order["code"] and saved.total == 192_000
+        assert saved.code == order["code"] and saved.total == 208_200
+        assert saved.vat == 16_200
         assert saved.address["name"] == "Khách hàng"
         assert db.scalar(select(OrderItem)).price == 90_000
         assert db.scalar(select(Payment)).method == "PAYPAL"
 
+    # The cart keeps the goods until the gateway confirms the payment.
+    cart = client.get("/api/v1/cart").json()
+    assert [(item["product_id"], item["qty"]) for item in cart["items"]] == [(product_id, 2)]
+
+    code = order["code"]
+    paid = client.post(
+        f"/api/v1/payments/orders/{code}/simulate", json={"result": "paid"}, headers=headers
+    )
+    assert paid.status_code == 200 and paid.json()["status"] == "paid"
     assert client.get("/api/v1/cart").json()["items"] == []
     history = client.get("/api/v1/orders").json()
     assert history["total"] == 1 and history["page_size"] == 10
     assert history["items"][0]["item_count"] == 2
+    # Danh sách đơn phải trả cả hai trạng thái: đơn "Chờ xác nhận" ≠ chưa trả tiền.
+    assert history["items"][0]["payment"] == {"method": "PAYPAL", "status": "paid"}
+
+
+def test_paid_payment_keeps_quantities_added_after_checkout(client, database):
+    bought = make_product(database, stock=10)
+    other = make_product(database, slug="stm32", sku="EH-002", name="STM32", stock=10)
+    headers = signed_in(client)
+    assert add_to_cart(client, bought, 2, headers).status_code == 200
+    code = checkout(client, headers).json()["code"]
+
+    # Shopping continues while the gateway step is open.
+    assert add_to_cart(client, bought, 1, headers).status_code == 200
+    assert add_to_cart(client, other, 1, headers).status_code == 200
+
+    paid = client.post(
+        f"/api/v1/payments/orders/{code}/simulate", json={"result": "paid"}, headers=headers
+    )
+    assert paid.status_code == 200 and paid.json()["status"] == "paid"
+
+    cart = client.get("/api/v1/cart").json()
+    assert sorted((item["product_id"], item["qty"]) for item in cart["items"]) == [
+        (bought, 1),
+        (other, 1),
+    ]
 
 
 def test_checkout_rejects_empty_cart_and_invalid_payload(client, database):
@@ -377,9 +428,9 @@ def test_simulated_payment_failure_retry_and_idempotence(client, database, metho
     assert 'value="PAYPAL"' in page and 'value="VNPAY"' in page
     assert 'value="COD"' not in page
     assert "Không có giao dịch thật" in client.get(f"/payments/{code}").text
-    assert client.post(base + "/session", json={}, headers=headers).json() == {
-        "url": f"/payments/{code}"
-    }
+    session = client.post(base + "/session", json={}, headers=headers).json()
+    assert session["url"] == f"/payments/{code}"
+    assert session["provider"] == "mock" and session["simulation"] is True
     assert client.post(base + "/simulate", json={"result": "paid"}).status_code == 403
     failed = client.post(base + "/simulate", json={"result": "failed"}, headers=headers)
     assert failed.json()["status"] == "failed"
@@ -525,10 +576,28 @@ def test_admin_order_status_transitions_and_cancel_restores_stock_and_voucher(cl
     )
     assert response.status_code == 200
     assert response.json()["status"] == "cancelled"
-    assert response.json()["payment"]["status"] == "refunded"
+    assert response.json()["payment"]["status"] == "refund_pending"
+    assert response.json()["refund"]["status"] == "scheduled"
     with Session(database) as db:
         assert db.get(Product, product_id).stock == 3
         assert db.get(Voucher, 1).qty_left == 4
+        cancelled = db.scalar(select(Order).where(Order.code == cancel_code))
+        assert db.scalar(select(Payment).where(Payment.order_id == cancelled.id)).status == (
+            "refund_pending"
+        )
+
+    # The shop cannot confirm before the hold window, then can refund with one click.
+    refund_id = response.json()["refund"]["id"]
+    early = client.post(f"/api/v1/admin/refunds/{refund_id}/confirm", json={}, headers=admin)
+    assert early.status_code == 409
+    with Session(database) as db:
+        refund = db.get(Refund, refund_id)
+        refund.due_at = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=1)
+        db.commit()
+    confirmed = client.post(f"/api/v1/admin/refunds/{refund_id}/confirm", json={}, headers=admin)
+    assert confirmed.status_code == 200
+    assert confirmed.json()["status"] == "succeeded"
+    with Session(database) as db:
         cancelled = db.scalar(select(Order).where(Order.code == cancel_code))
         assert db.scalar(select(Payment).where(Payment.order_id == cancelled.id)).status == (
             "refunded"
@@ -552,3 +621,35 @@ def test_sales_mutations_require_csrf(client, database):
     add_to_cart(client, product_id, 1)
     headers = csrf_headers(client)
     assert client.post("/api/v1/orders", json={}, headers=headers).status_code == 422
+
+
+def test_rejected_refund_returns_payment_to_paid(client, database):
+    product_id = make_product(database, stock=5)
+    headers = signed_in(client)
+    add_to_cart(client, product_id, 1, headers)
+    code = checkout(client, headers, payment_method="VNPAY").json()["code"]
+    client.post(
+        f"/api/v1/payments/orders/{code}/simulate", json={"result": "paid"}, headers=headers
+    )
+
+    cancelled = client.post(
+        f"/api/v1/orders/{code}/cancel", json={"reason": "Đổi ý"}, headers=headers
+    )
+    assert cancelled.status_code == 200
+    refund_id = cancelled.json()["refund"]["id"]
+    assert cancelled.json()["payment"]["status"] == "refund_pending"
+
+    admin = make_admin(client, database)
+    rejected = client.post(
+        f"/api/v1/admin/refunds/{refund_id}/reject",
+        json={"reason": "Hàng đã giao đúng"},
+        headers=admin,
+    )
+    assert rejected.status_code == 200
+    assert rejected.json()["status"] == "rejected"
+
+    with Session(database) as db:
+        order = db.scalar(select(Order).where(Order.code == code))
+        payment = db.scalar(select(Payment).where(Payment.order_id == order.id))
+        assert payment.status == "paid"
+        assert db.get(Refund, refund_id).reason == "Hàng đã giao đúng"

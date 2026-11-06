@@ -11,6 +11,9 @@ from alembic import command
 os.environ["DATABASE_URL"] = "sqlite://"
 os.environ["SECRET_KEY"] = secrets.token_urlsafe(48)
 os.environ["COOKIE_SECURE"] = "false"
+# Keep the deterministic simulated flow even if the developer's .env enables sandbox.
+os.environ["PAYMENT_MODE"] = "mock"
+os.environ["REFUND_HOLD_HOURS"] = "72"
 
 from app.core.config import ROOT, get_settings  # noqa: E402
 from app.core.database import get_engine  # noqa: E402

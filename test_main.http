@@ -85,9 +85,16 @@ GET {{base}}/api/v1/orders/EH-XXXX?phone=0901234567
 ### Simulate online payment (PAYPAL or VNPAY selected at checkout)
 POST {{base}}/api/v1/payments/orders/EH-XXXX/simulate
 Content-Type: application/json
-X-CSRF-Token: {{csrf}}
+X-CSRF-Token: {{csrf_token}}
 
 {"result": "paid"}
+
+### Re-check a PayPal payment with the gateway (paid there, still pending here)
+POST {{base}}/api/v1/payments/orders/EH-XXXX/sync
+Content-Type: application/json
+X-CSRF-Token: {{csrf_token}}
+
+{}
 
 ### Admin: list orders (sign in as an admin first)
 GET {{base}}/api/v1/admin/orders?status=pending&page=1&page_size=20

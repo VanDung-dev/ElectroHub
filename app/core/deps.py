@@ -6,12 +6,17 @@ from fastapi import Depends, Header, HTTPException, Request, Security
 from fastapi.security import APIKeyCookie
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.security import ACCESS_COOKIE, CSRF_COOKIE, decode_access_token, valid_csrf
 from app.models.user import User
 
 DbSession = Annotated[Session, Depends(get_db)]
 access_cookie = APIKeyCookie(name=ACCESS_COOKIE, auto_error=False)
+
+# PayPal posts without a browser CSRF token. Exempt only this exact path; VNPAY IPN
+# is a GET and is already covered by the method check below.
+PUBLIC_CALLBACK_PATHS = {"/api/v1/payments/paypal/webhook"}
 
 
 async def require_csrf(
@@ -26,8 +31,11 @@ async def require_csrf(
 ) -> None:
     if request.method in {"GET", "HEAD", "OPTIONS"}:
         return
+    if request.url.path in PUBLIC_CALLBACK_PATHS:
+        return
     origin = request.headers.get("origin")
-    if origin and origin != str(request.base_url).rstrip("/"):
+    allowed_origins = {str(request.base_url).rstrip("/"), get_settings().base_url}
+    if origin and origin.rstrip("/") not in allowed_origins:
         raise HTTPException(403, "Origin không hợp lệ")
     token = csrf_header or ""
     if not token and request.headers.get("content-type", "").split(";")[0] in {

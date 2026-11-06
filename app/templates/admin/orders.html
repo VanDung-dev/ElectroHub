@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="workspace-heading"><div><p class="eyebrow">VẬN HÀNH CỬA HÀNG</p><h1>Quản lý đơn hàng</h1><p>Kiểm tra đơn mới và cập nhật tiến độ xử lý.</p></div><span class="role-pill">Nhân viên & quản lý</span></section>
-<section class="order-toolbar"><label for="order-status-filter">Trạng thái</label><select id="order-status-filter" data-order-filter><option value="">Tất cả đơn hàng</option><option value="pending">Chờ xác nhận</option><option value="confirmed">Đã xác nhận</option><option value="shipping">Đang giao</option><option value="done">Hoàn tất</option><option value="cancelled">Đã hủy</option></select></section>
+<section class="order-toolbar"><label for="order-status-filter">Trạng thái đơn (không phải trạng thái thanh toán)</label><select id="order-status-filter" data-order-filter><option value="">Tất cả đơn hàng</option><option value="pending">Chờ xác nhận</option><option value="confirmed">Đã xác nhận</option><option value="shipping">Đang giao</option><option value="done">Hoàn tất</option><option value="cancelled">Đã hủy</option></select></section>
 <div class="staff-orders" data-staff-orders aria-live="polite"><p>Đang tải đơn hàng…</p></div>
+<section class="workspace-heading refund-heading"><div><p class="eyebrow">HOÀN TIỀN</p><h2>Yêu cầu hoàn tiền</h2><p>Đơn đã hủy được giữ tiền theo thời hạn cấu hình; quản lý xác nhận sau khi đủ hạn để gọi cổng hoàn tiền.</p></div></section>
+<div class="staff-orders" data-admin-refunds aria-live="polite"><p>Đang tải yêu cầu hoàn tiền…</p></div>
 <p data-message role="status" aria-live="polite"></p>
 {% endblock %}

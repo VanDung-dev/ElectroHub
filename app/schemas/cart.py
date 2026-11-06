@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.schemas.refund import RefundInfo
+
 
 class CartItemAdd(BaseModel):
     model_config = ConfigDict(
@@ -58,6 +60,8 @@ class CartResponse(BaseModel):
     items: list[CartLine]
     subtotal: int
     discount: int
+    vat: int
+    vat_percent: int
     shipping_fee: int
     total: int
     voucher: CartVoucher | None = None
@@ -123,7 +127,7 @@ class OrderLine(BaseModel):
 
 class OrderPayment(BaseModel):
     method: PaymentMethod
-    status: Literal["pending", "paid", "failed", "refunded"]
+    status: Literal["pending", "paid", "failed", "refund_pending", "refunded"]
 
 
 class OrderResponse(BaseModel):
@@ -131,6 +135,7 @@ class OrderResponse(BaseModel):
     status: OrderStatus
     subtotal: int
     discount: int
+    vat: int
     shipping_fee: int
     total: int
     voucher_code: str | None
@@ -138,6 +143,7 @@ class OrderResponse(BaseModel):
     created_at: datetime
     items: list[OrderLine]
     payment: OrderPayment | None = None
+    refund: RefundInfo | None = None
 
 
 class OrderSummary(BaseModel):
@@ -146,6 +152,9 @@ class OrderSummary(BaseModel):
     total: int
     item_count: int
     created_at: datetime
+    # Trạng thái đơn (chờ xác nhận) và trạng thái thanh toán là hai khái niệm
+    # riêng; danh sách đơn phải trả cả hai để người dùng biết tiền đã vào chưa.
+    payment: OrderPayment | None = None
 
 
 class OrderListResponse(BaseModel):
@@ -161,3 +170,9 @@ class AdminOrderUpdate(BaseModel):
     )
 
     status: OrderStatus
+
+
+class CancelOrderRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", json_schema_extra={"examples": [{"reason": "Đổi ý"}]})
+
+    reason: str | None = Field(default=None, max_length=255)
