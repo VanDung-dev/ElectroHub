@@ -193,5 +193,6 @@ và phần còn chờ nhóm nằm ở [checklist P1](guideline/P1-HANDOFF.md#ver
   hoặc đường dẫn dưới `/static/img/`. Trang sản phẩm dùng tên, mô tả và ảnh này cho Open Graph.
 - **Chat:** đặt `FACEBOOK_PAGE_URL` và `ZALO_PAGE_URL` cho các nút liên hệ. Để nhúng
   live chat Subiz, dán nguyên embed snippet do tài khoản Subiz cấp vào `SUBIZ_EMBED_CODE`.
+  Để nhúng live chat Tawk.to, cấu hình `PROPERTY_ID` và `WIDGET_ID` (lấy từ Dashboard Tawk.to > Administration > Chat Widget) vào `.env`.
 - **SEO/chia sẻ:** đặt `SITE_URL` thành địa chỉ HTTPS công khai của website trước khi
   phát hành để canonical, Open Graph, sitemap và URL callback dùng đúng domain.
