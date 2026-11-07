@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="ElectroHub">
+  <rect width="64" height="64" rx="14" fill="#0b1220"/>
+  <path d="M20 44V20h24v6H27v4h14v6H27v4h17v4H20z" fill="#f8fafc"/>
+  <rect x="20" y="49" width="24" height="3" rx="1.5" fill="#22d3ee"/>
+</svg>

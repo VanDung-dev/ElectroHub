@@ -1,9 +1,11 @@
 import logging
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
+from xml.sax.saxutils import escape
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -13,6 +15,7 @@ from starlette.exceptions import HTTPException
 from app.core.config import ROOT, get_settings
 from app.core.database import get_engine
 from app.core.deps import DbSession, require_csrf
+from app.core.pages import not_found_response
 from app.core.pages import router as pages_router
 from app.models.product import Product
 from app.routers.admin_orders import router as admin_orders_router
@@ -50,9 +53,32 @@ def create_app() -> FastAPI:
         responses={422: {"model": DetailResponse}},
     )
 
+    @app.middleware("http")
+    async def redirect_trailing_slash(request: Request, call_next):
+        """Send one canonical URL per page (301) instead of Starlette's temporary 307."""
+        path = request.url.path
+        if (
+            request.method in {"GET", "HEAD"}
+            and len(path) > 1
+            and path.endswith("/")
+            and not path.startswith(("/api/", "/static/", "/docs", "/openapi"))
+        ):
+            target = path.rstrip("/")
+            if request.url.query:
+                target = f"{target}?{request.url.query}"
+            return RedirectResponse(target, status_code=301)
+        return await call_next(request)
+
     @app.exception_handler(HTTPException)
     async def http_error(request: Request, exc: HTTPException):
         detail = exc.detail if isinstance(exc.detail, str) else "Yêu cầu không hợp lệ"
+        wants_html = "text/html" in request.headers.get(
+            "accept", ""
+        ) or request.url.path.startswith("/products/")
+        if exc.status_code == 404 and not request.url.path.startswith("/api/") and wants_html:
+            response = not_found_response(request)
+            response.status_code = 404
+            return response
         return JSONResponse({"detail": detail}, status_code=exc.status_code, headers=exc.headers)
 
     @app.exception_handler(RequestValidationError)
@@ -88,20 +114,38 @@ def create_app() -> FastAPI:
 
     @app.get("/sitemap.xml", include_in_schema=False)
     def sitemap():
+        today = datetime.now(UTC).date().isoformat()
         with Session(get_engine()) as db:
-            pages = ["/", "/collections/all"]
-            pages.extend(f"/products/{slug}" for slug in db.scalars(select(Product.slug)).all())
+            products = db.execute(select(Product.slug, Product.created_at)).all()
         base = get_settings().site_url.rstrip("/")
-        urls = "".join(f"<url><loc>{base}{path}</loc></url>" for path in pages)
+
+        def url_entry(path: str, lastmod: str) -> str:
+            return (
+                f"<url><loc>{escape(f'{base}{path}')}</loc>"
+                f"<lastmod>{lastmod}</lastmod><changefreq>weekly</changefreq></url>"
+            )
+
+        urls = [url_entry("/", today), url_entry("/collections/all", today)]
+        urls.extend(
+            url_entry(
+                f"/products/{slug}",
+                created.date().isoformat() if created is not None else today,
+            )
+            for slug, created in products
+        )
         return Response(
-            f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>',
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+            f"{''.join(urls)}</urlset>",
             media_type="application/xml",
         )
 
     @app.get("/robots.txt", include_in_schema=False)
     def robots():
         return Response(
-            "User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /manager\nDisallow: /staff/\n"
+            "User-agent: *\nAllow: /\n"
+            "Disallow: /api/\n"
+            "Disallow: /admin/\nDisallow: /manager\nDisallow: /staff/\n"
             f"Sitemap: {get_settings().site_url.rstrip('/')}/sitemap.xml\n",
             media_type="text/plain",
         )
