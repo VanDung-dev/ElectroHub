@@ -47,7 +47,7 @@ services:
       MSSQL_PID: Developer
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set a strong MSSQL_SA_PASSWORD in .env}
     ports:
-      - "127.0.0.1:${SQLSERVER_PORT:-1433}:1433"
+      - "0.0.0.0:${SQLSERVER_PORT:-1433}:1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
     healthcheck:
@@ -71,6 +71,43 @@ services:
       - ./docker/init.sql:/init.sql:ro
     entrypoint: ["/opt/mssql-tools18/bin/sqlcmd"]
     command: ["-S", "sqlserver", "-U", "sa", "-C", "-b", "-i", "/init.sql"]
+    restart: "no"
+
+  sqlserver-test:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    container_name: electrohub-sqlserver-test
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set a strong MSSQL_SA_PASSWORD in .env}
+    ports:
+      - "0.0.0.0:${SQLSERVER_TEST_PORT:-1434}:1433"
+    volumes:
+      - sqlserver_test_data:/var/opt/mssql
+      - ./sql:/sql:ro
+    healthcheck:
+      test: >-
+        SQLCMDPASSWORD="$${MSSQL_SA_PASSWORD}" /opt/mssql-tools18/bin/sqlcmd
+        -S localhost -U sa -C -b -Q "SELECT 1" -o /dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+
+  sqlserver-test-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    container_name: electrohub-sqlserver-test-init
+    depends_on:
+      sqlserver-test:
+        condition: service_healthy
+    environment:
+      SQLCMDPASSWORD: ${MSSQL_SA_PASSWORD:?Set a strong MSSQL_SA_PASSWORD in .env}
+    volumes:
+      - ./sql:/sql:ro
+      - ./docker/init-test.sh:/init-test.sh:ro
+    entrypoint: ["/bin/sh", "/init-test.sh"]
     restart: "no"
 
   migrate:
@@ -129,3 +166,4 @@ services:
 
 volumes:
   sqlserver_data:
+  sqlserver_test_data:
