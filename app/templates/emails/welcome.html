@@ -1,0 +1,24 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+<h1 style="font-size: 22px; color: #12372a; margin-top: 0; margin-bottom: 16px;">Chào mừng bạn đến với ElectroHub! 🎉</h1>
+<p style="font-size: 15px; color: #333333; margin-bottom: 16px;">Cảm ơn bạn đã đăng ký nhận bản tin từ ElectroHub. Chúng tôi sẽ gửi tới bạn những thông tin cập nhật mới nhất về sản phẩm công nghệ, linh kiện điện tử và các ưu đãi đặc quyền.</p>
+
+<div class="voucher-card">
+  <p style="margin: 0; font-size: 14px; color: #627264; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Ưu đãi dành riêng cho bạn</p>
+  <div class="voucher-code">{{ voucher_code | default('WELCOME10') }}</div>
+  <p style="margin: 4px 0 0 0; font-size: 14px; color: #12372a; font-weight: 500;">Giảm 10% cho đơn hàng đầu tiên của bạn tại ElectroHub</p>
+</div>
+
+<p style="font-size: 15px; color: #333333;">Tại ElectroHub, bạn có thể dễ dàng tìm thấy:</p>
+<ul style="font-size: 14px; color: #436850; padding-left: 20px; line-height: 1.8;">
+  <li><strong>Vi điều khiển &amp; Phát triển:</strong> ESP32, Arduino, STM32, Raspberry Pi.</li>
+  <li><strong>Cảm biến &amp; Module:</strong> Nhiệt độ, độ ẩm, khoảng cách, chuyển động, relay.</li>
+  <li><strong>Nguồn &amp; Phụ kiện:</strong> Mạch sạc pin, hạ áp buck, module tăng áp boost.</li>
+  <li><strong>Linh kiện thụ động:</strong> Điện trở, tụ điện, diode, transistor chính hãng.</li>
+</ul>
+
+<div style="text-align: center; margin-top: 28px;">
+  <a href="{{ site_url }}/collections/all" class="email-btn">Khám phá sản phẩm ngay →</a>
+</div>
+{% endblock %}

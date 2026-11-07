@@ -30,6 +30,11 @@ def test_health_swagger_html_and_static(client):
         "/api/v1/newsletter/send",
         "/api/v1/newsletter/subscribe",
         "/api/v1/newsletter/unsubscribe",
+        "/api/v1/admin/newsletter/subscribers",
+        "/api/v1/admin/newsletter/subscribers/{subscriber_id}",
+        "/api/v1/admin/newsletter/campaigns",
+        "/api/v1/admin/newsletter/preview",
+        "/api/v1/admin/newsletter/templates",
         "/api/v1/payments/orders/{code}",
         "/api/v1/payments/orders/{code}/session",
         "/api/v1/payments/orders/{code}/simulate",
@@ -165,3 +170,28 @@ def test_create_admin_is_repeatable_and_does_not_promote_customer(database, monk
     with Session(database) as db:
         user = db.get(User, 1)
         assert user.role == "customer" and user.password_hash == original_hash
+
+
+def test_tawkto_settings_and_embed_render(client, monkeypatch):
+    s = Settings(
+        _env_file=None,
+        secret_key="s" * 48,
+        database_url="sqlite://",
+        tawkto_property_id="https://tawk.to/chat/123456789012345678901234/1i0example",
+    )
+    assert s.tawkto_property_id == "123456789012345678901234"
+    assert s.tawkto_widget_id == "1i0example"
+
+    monkeypatch.setattr(
+        "app.core.pages.get_settings",
+        lambda: Settings(
+            _env_file=None,
+            secret_key="s" * 48,
+            database_url="sqlite://",
+            tawkto_property_id="123456789012345678901234",
+            tawkto_widget_id="1i0example",
+        ),
+    )
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "https://embed.tawk.to/123456789012345678901234/1i0example" in resp.text

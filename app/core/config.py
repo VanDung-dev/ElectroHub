@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import AliasChoices, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
 
@@ -35,6 +35,18 @@ class Settings(BaseSettings):
     facebook_page_url: str | None = None
     zalo_page_url: str | None = None
     subiz_embed_code: str | None = None
+    tawkto_embed_code: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("tawkto_embed_code", "tawk_to_embed_code"),
+    )
+    tawkto_property_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("tawkto_property_id", "property_id"),
+    )
+    tawkto_widget_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("tawkto_widget_id", "widget_id"),
+    )
 
     # Payments. ``mock`` keeps the original simulated flow; ``sandbox`` and ``live``
     # call the real gateways and therefore require provider credentials.
@@ -71,10 +83,30 @@ class Settings(BaseSettings):
             "vnpay_tmn_code",
             "paypal_client_id",
             "paypal_webhook_id",
+            "tawkto_property_id",
+            "tawkto_widget_id",
+            "tawkto_embed_code",
+            "subiz_embed_code",
         ):
             value = getattr(self, name)
             if isinstance(value, str) and not value.strip():
                 setattr(self, name, None)
+        if self.tawkto_property_id and ("/" in self.tawkto_property_id or "tawk.to" in self.tawkto_property_id):
+            import re
+            m = re.search(r"([a-f0-9]{24})(?:/([a-zA-Z0-9]+))?", self.tawkto_property_id)
+            if m:
+                self.tawkto_property_id = m.group(1)
+                if m.group(2) and not self.tawkto_widget_id:
+                    self.tawkto_widget_id = m.group(2)
+        if self.tawkto_widget_id and ("/" in self.tawkto_widget_id or "tawk.to" in self.tawkto_widget_id):
+            import re
+            m = re.search(r"([a-f0-9]{24})/([a-zA-Z0-9]+)", self.tawkto_widget_id)
+            if m:
+                if not self.tawkto_property_id:
+                    self.tawkto_property_id = m.group(1)
+                self.tawkto_widget_id = m.group(2)
+            else:
+                self.tawkto_widget_id = self.tawkto_widget_id.strip("/").split("/")[-1]
         self._validate_payment_configuration()
         return self
 
