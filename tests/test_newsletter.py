@@ -253,3 +253,16 @@ def test_admin_campaign_history_and_preview(client, database):
     assert page_res.status_code == 200
     assert "Quản lý Email Marketing" in page_res.text
     assert "data-tab-target" in page_res.text
+
+    # 4. Get templates
+    tpl_res = client.get("/api/v1/admin/newsletter/templates", headers=admin_headers)
+    assert tpl_res.status_code == 200
+    templates = tpl_res.json()["items"]
+    assert len(templates) >= 4
+    assert any(t["id"] == "flash_sale" for t in templates)
+
+    # 5. Verify single linebreaks are preserved as <br>
+    multiline_body = "Dòng 1\nDòng 2\n\nĐoạn mới"
+    _, html = email_service.render_campaign_email("test@example.com", "Tiêu đề", multiline_body)
+    assert "Dòng 1<br>" in html
+    assert "Dòng 2" in html

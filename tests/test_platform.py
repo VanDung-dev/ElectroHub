@@ -34,6 +34,7 @@ def test_health_swagger_html_and_static(client):
         "/api/v1/admin/newsletter/subscribers/{subscriber_id}",
         "/api/v1/admin/newsletter/campaigns",
         "/api/v1/admin/newsletter/preview",
+        "/api/v1/admin/newsletter/templates",
         "/api/v1/payments/orders/{code}",
         "/api/v1/payments/orders/{code}/session",
         "/api/v1/payments/orders/{code}/simulate",

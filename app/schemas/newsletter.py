@@ -66,3 +66,14 @@ class PreviewEmailRequest(BaseModel):
 class PreviewEmailResponse(BaseModel):
     subject: str
     html: str
+
+
+class TemplateItem(BaseModel):
+    id: str
+    name: str
+    subject: str
+    body: str
+
+
+class TemplateListResponse(BaseModel):
+    items: list[TemplateItem]

@@ -7,6 +7,7 @@ from email.message import EmailMessage
 from urllib.parse import urlencode
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markupsafe import Markup, escape
 from sqlalchemy.orm import Session
 
 from app.core.config import ROOT, get_settings
@@ -76,21 +77,27 @@ def render_campaign_email(email: str, subject: str, body: str) -> tuple[str, str
     site_url = settings.site_url.rstrip("/")
     unsub_url = get_unsubscribe_url(email)
 
-    paragraphs = [p.strip() for p in body.strip().split("\n\n") if p.strip()]
-    if not paragraphs:
-        paragraphs = [body.strip()]
+    normalized_body = body.replace("\r\n", "\n").replace("\r", "\n").strip()
+    raw_paragraphs = [p.strip() for p in normalized_body.split("\n\n") if p.strip()]
+    if not raw_paragraphs:
+        raw_paragraphs = [normalized_body]
+
+    formatted_paragraphs = []
+    for p in raw_paragraphs:
+        safe_lines = [str(escape(line)) for line in p.split("\n")]
+        formatted_paragraphs.append(Markup("<br>\n".join(safe_lines)))
 
     template = _jinja_env.get_template("emails/campaign.html")
     html_content = template.render(
         site_url=site_url,
         unsubscribe_url=unsub_url,
         subject=subject.strip(),
-        paragraphs=paragraphs,
+        paragraphs=formatted_paragraphs,
     )
 
     text_content = (
         f"{subject.strip()}\n\n"
-        f"{body.strip()}\n\n"
+        f"{normalized_body}\n\n"
         f"Khám phá ngay tại: {site_url}/collections/all\n"
         f"Hủy nhận tin: {unsub_url}"
     )
