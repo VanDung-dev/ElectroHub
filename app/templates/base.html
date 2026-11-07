@@ -28,7 +28,7 @@
   <meta name="twitter:image:alt" content="{{ page_image_alt | default('ElectroHub') }}">
   {% if site_json_ld %}<script type="application/ld+json">{{ site_json_ld | safe }}</script>{% endif %}
   <link rel="stylesheet" href="/static/css/base.css">
-  <script defer src="/static/js/store.js?v=4"></script>
+  <script defer src="/static/js/store.js?v=6"></script>
 </head>
 <body>
   <div class="store-topbar"><span>ElectroHub · Linh kiện điện tử & thiết bị</span><a href="/cart/tracking">Tra cứu đơn hàng</a></div>
@@ -50,6 +50,23 @@
     {% if facebook_page_url %}<a href="{{ facebook_page_url }}" target="_blank" rel="noopener noreferrer">Nhắn Facebook</a>{% endif %}
     {% if zalo_page_url %}<a href="{{ zalo_page_url }}" target="_blank" rel="noopener noreferrer">Chat Zalo</a>{% endif %}
   </aside>
+  {% if tawkto_embed_code %}
+  {{ tawkto_embed_code | safe }}
+  {% elif tawkto_property_id and tawkto_widget_id %}
+  <!--Start of Tawk.to Script-->
+  <script type="text/javascript">
+  var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+  (function(){
+  var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+  s1.async=true;
+  s1.src='https://embed.tawk.to/{{ tawkto_property_id }}/{{ tawkto_widget_id }}';
+  s1.charset='UTF-8';
+  s1.setAttribute('crossorigin','*');
+  s0.parentNode.insertBefore(s1,s0);
+  })();
+  </script>
+  <!--End of Tawk.to Script-->
+  {% endif %}
   {% if subiz_embed_code %}{{ subiz_embed_code | safe }}{% endif %}
 </body>
 </html>

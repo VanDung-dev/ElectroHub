@@ -10,14 +10,17 @@ x-app-environment: &app-environment
   COOKIE_SECURE: ${COOKIE_SECURE:-false}
   ACCESS_TOKEN_MINUTES: ${ACCESS_TOKEN_MINUTES:-60}
   SITE_URL: ${SITE_URL:-http://localhost:8000}
-  SMTP_HOST: ${SMTP_HOST:-}
-  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_HOST: mailpit
+  SMTP_PORT: "1025"
   SMTP_USERNAME: ${SMTP_USERNAME:-}
   SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-  MAIL_FROM: ${MAIL_FROM:-}
+  MAIL_FROM: ${MAIL_FROM:-ElectroHub <noreply@electrohub.vn>}
   FACEBOOK_PAGE_URL: ${FACEBOOK_PAGE_URL:-}
   ZALO_PAGE_URL: ${ZALO_PAGE_URL:-}
   SUBIZ_EMBED_CODE: ${SUBIZ_EMBED_CODE:-}
+  PROPERTY_ID: ${PROPERTY_ID:-${TAWKTO_PROPERTY_ID:-}}
+  WIDGET_ID: ${WIDGET_ID:-${TAWKTO_WIDGET_ID:-}}
+  TAWKTO_EMBED_CODE: ${TAWKTO_EMBED_CODE:-}
   # Payments: the app container needs these explicitly; .env alone is not injected.
   PAYMENT_MODE: ${PAYMENT_MODE:-mock}
   REFUND_HOLD_HOURS: ${REFUND_HOLD_HOURS:-72}
@@ -87,6 +90,8 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      mailpit:
+        condition: service_started
     ports:
       - "127.0.0.1:${APP_PORT:-8000}:8000"
     healthcheck:
@@ -113,6 +118,14 @@ services:
     depends_on:
       app:
         condition: service_healthy
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: electrohub-mailpit
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+    restart: unless-stopped
 
 volumes:
   sqlserver_data:
