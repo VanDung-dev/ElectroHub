@@ -1,13 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
 <nav class="breadcrumb" aria-label="Đường dẫn"><a href="/">Trang chủ</a><span>/</span><a href="/collections/all">Sản phẩm</a><span>/</span><span>{{ product.name }}</span></nav>
-<article class="product-detail" itemscope itemtype="https://schema.org/Product">
-  <img src="{{ product.image_url }}" alt="{{ product.name }}" width="560" height="420" itemprop="image">
-  <div><p class="eyebrow">SKU: {{ product.sku }}</p><h1 itemprop="name">{{ product.name }}</h1><p class="stock-status">{% if product.stock > 0 %}Còn hàng · {{ product.stock }} sản phẩm{% else %}Tạm hết hàng{% endif %}</p>
-    <div class="detail-price"><strong class="price">{{ "{:,.0f}".format(product.sale_price if product.sale_price is not none else product.price) }} ₫</strong>{% if product.sale_price is not none and product.sale_price < product.price %}<del>{{ "{:,.0f}".format(product.price) }} ₫</del><span class="detail-discount">Giảm {{ "{:g}".format(((product.price - product.sale_price) / product.price * 100) | round(1)) | replace(".", ",") }}%</span>{% endif %}</div>
-    <p itemprop="description">{{ product.description }}</p>
+<article class="product-detail">
+  <img src="{{ product.image_url }}" alt="{{ product.name }}" width="560" height="420" fetchpriority="high">
+  <div><p class="eyebrow">SKU: {{ product.sku }}</p><h1>{{ product.name }}</h1><p class="stock-status">{% if product.stock > 0 %}Còn hàng · {{ product.stock }} sản phẩm{% else %}Tạm hết hàng{% endif %}</p>
+    <div class="detail-price"><strong class="price">{{ (product.sale_price if product.sale_price is not none else product.price) | vnd }} ₫</strong>{% if product.sale_price is not none and product.sale_price < product.price %}<del>{{ product.price | vnd }} ₫</del><span class="detail-discount">Giảm {{ "{:g}".format(((product.price - product.sale_price) / product.price * 100) | round(1)) | replace(".", ",") }}%</span>{% endif %}</div>
+    <p>{{ product.description }}</p>
     <div class="purchase-controls"><label>Số lượng<input type="number" value="1" min="1" max="{{ [product.stock, 99] | min }}" data-purchase-qty {% if product.stock < 1 %}disabled{% endif %}></label><button class="button-light" data-add-to-cart="{{ product.id }}" {% if product.stock < 1 %}disabled{% endif %}>{% if product.stock > 0 %}Thêm vào giỏ hàng{% else %}Tạm hết hàng{% endif %}</button><button data-buy-now="{{ product.id }}" {% if product.stock < 1 %}disabled{% endif %}>Mua ngay</button></div>
-    <p data-message role="status" aria-live="polite"></p><a href="/cart">Xem giỏ hàng →</a><hr><p class="purchase-note">Phí giao hàng và tổng thanh toán được hiển thị trong giỏ hàng trước khi đặt mua.</p><a class="share-link" href="https://www.facebook.com/sharer/sharer.php?u={{ canonical_url | urlencode }}" target="_blank" rel="noopener noreferrer">Chia sẻ Facebook</a>
+    <p data-message role="status" aria-live="polite"></p><a href="/cart">Xem giỏ hàng →</a><hr><p class="purchase-note">Phí giao hàng và tổng thanh toán được hiển thị trong giỏ hàng trước khi đặt mua.</p><a class="share-link" href="https://www.facebook.com/sharer/sharer.php?u={{ canonical_url | urlencode }}" target="_blank" rel="noopener noreferrer nofollow">Chia sẻ Facebook</a>
   </div>
 </article>
+<section class="product-info">
+  <h2>Thông tin sản phẩm {{ product.name }}</h2>
+  <p>{{ product.name }} có mã SKU <strong>{{ product.sku }}</strong>{% if product.stock > 0 %}, hiện còn {{ product.stock }} sản phẩm trong kho{% else %}, hiện đang tạm hết hàng{% endif %}. Giá bán{{ " khuyến mãi" if product.sale_price is not none and product.sale_price < product.price else "" }} là <strong>{{ (product.sale_price if product.sale_price is not none else product.price) | vnd }} ₫</strong>, đã bao gồm thông tin hiển thị rõ ràng trước khi đặt mua.</p>
+  <p>Đây là linh kiện điện tử thuộc nhóm bo mạch, cảm biến và module dành cho học tập, thử nghiệm và các dự án điện tử thực tế. Nếu bạn chưa chắc sản phẩm phù hợp, hãy kiểm tra lại thông số trong phần mô tả phía trên hoặc liên hệ ElectroHub để được tư vấn trước khi đặt hàng.</p>
+  <h2>Vì sao mua tại ElectroHub</h2>
+  <p>ElectroHub cập nhật giá và tình trạng kho trực tiếp trên từng trang sản phẩm, để bạn biết rõ món hàng mình chọn còn hay hết trước khi thanh toán. Đơn hàng được xác nhận qua email và có thể tra cứu lại bằng mã đơn, kể cả khi bạn không đăng nhập.</p>
+  <h2>Vận chuyển và thanh toán</h2>
+  <p>Bạn có thể kiểm tra lại số lượng, phí giao hàng, VAT và tổng thanh toán trong giỏ hàng trước khi đặt mua. Đơn hàng chỉ được tạo sau khi bạn xác nhận toàn bộ thông tin giao hàng và phương thức thanh toán.</p>
+</section>
+{% if product_json_ld %}<script type="application/ld+json">{{ product_json_ld | safe }}</script>{% endif %}
 {% endblock %}

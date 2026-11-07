@@ -96,5 +96,23 @@ services:
       retries: 5
       start_period: 5s
 
+  # localtunnel: expose app to the public web via HTTPS tunnel (https://<subdomain>.loca.lt)
+  localtunnel:
+    image: node:22-alpine
+    restart: unless-stopped
+    command:
+      - "npx"
+      - "-y"
+      - "localtunnel"
+      - "--port"
+      - "8000"
+      - "--local-host"
+      - "app"
+      - "--subdomain"
+      - "${LOCALTUNNEL_SUBDOMAIN:-electrohub}"
+    depends_on:
+      app:
+        condition: service_healthy
+
 volumes:
   sqlserver_data:
