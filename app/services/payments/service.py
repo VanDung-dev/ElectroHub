@@ -114,19 +114,22 @@ def create_session(db: Session, order: Order, payment: Payment, ip_addr: str) ->
 
 def clear_purchased_items(db: Session, order: Order) -> None:
     """Remove only the bought quantities; items added after checkout stay in the cart."""
-    for item in order.items:
-        cart_item = db.scalar(
-            select(CartItem).where(
-                CartItem.user_id == order.user_id,
-                CartItem.product_id == item.product_id,
-            )
+    if not order.items:
+        return
+    # ponytail: batch-fetch cart items in 1 query instead of N queries in a loop
+    bought_map = {item.product_id: item.qty for item in order.items}
+    cart_items = db.scalars(
+        select(CartItem).where(
+            CartItem.user_id == order.user_id,
+            CartItem.product_id.in_(list(bought_map.keys())),
         )
-        if cart_item is None:
-            continue
-        if cart_item.qty <= item.qty:
+    ).all()
+    for cart_item in cart_items:
+        bought_qty = bought_map.get(cart_item.product_id, 0)
+        if cart_item.qty <= bought_qty:
             db.delete(cart_item)
         else:
-            cart_item.qty -= item.qty
+            cart_item.qty -= bought_qty
 
 
 def apply_result(

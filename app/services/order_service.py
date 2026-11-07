@@ -234,40 +234,19 @@ def _order_response(db: Session, order: Order) -> OrderResponse:
         created_at=order.created_at,
         items=lines,
         payment=(OrderPayment(method=payment.method, status=payment.status) if payment else None),
-        refund=(
-            RefundInfo(
-                id=refund.id,
-                status=refund.status,
-                amount=refund.amount,
-                currency=refund.currency,
-                reason=refund.reason,
-                requested_at=refund.requested_at,
-                due_at=refund.due_at,
-                confirmed_at=refund.confirmed_at,
-                provider_refund_id=refund.provider_refund_id,
-            )
-            if refund is not None
-            else None
-        ),
+        # ponytail: use pydantic from_attributes to avoid manual field mapping
+        refund=RefundInfo.model_validate(refund) if refund is not None else None,
     )
 
 
 def _summary_rows(db: Session, orders: list[Order]) -> list[OrderSummary]:
-    counts: dict[int, int] = {}
-    if orders:
-        counts = dict(
-            db.execute(
-                select(OrderItem.order_id, func.sum(OrderItem.qty))
-                .where(OrderItem.order_id.in_([order.id for order in orders]))
-                .group_by(OrderItem.order_id)
-            ).all()
-        )
+    # ponytail: order.items is already loaded via lazy='selectin'; sum in memory
     return [
         OrderSummary(
             code=order.code,
             status=order.status,
             total=order.total,
-            item_count=counts.get(order.id, 0),
+            item_count=sum(item.qty for item in order.items),
             created_at=order.created_at,
             payment=(
                 OrderPayment(method=order.payment.method, status=order.payment.status)

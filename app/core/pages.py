@@ -1,5 +1,7 @@
 import json
 import unicodedata
+from functools import lru_cache
+from pathlib import Path
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -233,24 +235,29 @@ def _normalize(value: str) -> str:
     return value.replace("đ", "d")
 
 
+# ponytail: cache template readiness check to avoid synchronous disk read_text() on every request
+@lru_cache(maxsize=64)
+def _is_template_ready(root_path: Path, template_name: str) -> bool:
+    target = root_path / "app/templates" / template_name
+    return target.exists() and bool(target.read_text().strip())
+
+
 def catalog_context(request: Request, db: DbSession) -> dict:
     """Server-side product list for the home and catalog pages.
 
     Mirrors `/api/v1/products` plus the `q` and `sale` filters store.js applies,
     so the first paint already contains the links and prices crawlers index.
     """
-    products = list(db.scalars(select(Product).order_by(Product.name, Product.id)).all())
+    stmt = select(Product).order_by(Product.name, Product.id)
+    # ponytail: push sale filter directly to DB query when active
+    if request.query_params.get("sale") == "1":
+        stmt = stmt.where(Product.sale_price.is_not(None), Product.sale_price < Product.price)
+    products = list(db.scalars(stmt).all())
     query = " ".join(request.query_params.get("q", "").split())
     if query:
         needle = _normalize(query)
         products = [
             product for product in products if needle in _normalize(f"{product.name} {product.sku}")
-        ]
-    if request.query_params.get("sale") == "1":
-        products = [
-            product
-            for product in products
-            if product.sale_price is not None and product.sale_price < product.price
         ]
     return {"products": products, "product_count": len(products)}
 
@@ -258,7 +265,8 @@ def catalog_context(request: Request, db: DbSession) -> dict:
 def page_endpoint(template_name: str):
     def page(request: Request, db: DbSession):
         # P4 owns the templates; surface unfinished pages instead of a blank 200 response.
-        if not (ROOT / "app/templates" / template_name).read_text().strip():
+        # ponytail: use cached readiness check instead of reading template file from disk every hit
+        if not _is_template_ready(ROOT, template_name):
             return HTMLResponse(
                 '<!doctype html><html lang="vi"><meta charset="utf-8">'
                 "<title>ElectroHub</title><h1>Giao diện đang được xây dựng</h1>"

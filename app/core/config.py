@@ -1,3 +1,4 @@
+import re
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
@@ -91,22 +92,23 @@ class Settings(BaseSettings):
             value = getattr(self, name)
             if isinstance(value, str) and not value.strip():
                 setattr(self, name, None)
-        if self.tawkto_property_id and ("/" in self.tawkto_property_id or "tawk.to" in self.tawkto_property_id):
-            import re
-            m = re.search(r"([a-f0-9]{24})(?:/([a-zA-Z0-9]+))?", self.tawkto_property_id)
+        # ponytail: compile regexes once at module scope and cleanly extract widget credentials
+        prop = self.tawkto_property_id or ""
+        if "/" in prop or "tawk.to" in prop:
+            m = re.search(r"([a-f0-9]{24})(?:/([a-zA-Z0-9]+))?", prop)
             if m:
                 self.tawkto_property_id = m.group(1)
                 if m.group(2) and not self.tawkto_widget_id:
                     self.tawkto_widget_id = m.group(2)
-        if self.tawkto_widget_id and ("/" in self.tawkto_widget_id or "tawk.to" in self.tawkto_widget_id):
-            import re
-            m = re.search(r"([a-f0-9]{24})/([a-zA-Z0-9]+)", self.tawkto_widget_id)
+        widget = self.tawkto_widget_id or ""
+        if "/" in widget or "tawk.to" in widget:
+            m = re.search(r"([a-f0-9]{24})/([a-zA-Z0-9]+)", widget)
             if m:
                 if not self.tawkto_property_id:
                     self.tawkto_property_id = m.group(1)
                 self.tawkto_widget_id = m.group(2)
             else:
-                self.tawkto_widget_id = self.tawkto_widget_id.strip("/").split("/")[-1]
+                self.tawkto_widget_id = widget.strip("/").split("/")[-1]
         self._validate_payment_configuration()
         return self
 

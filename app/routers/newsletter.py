@@ -14,15 +14,17 @@ from app.schemas.newsletter import (
     CampaignRequest,
     PreviewEmailRequest,
     PreviewEmailResponse,
+    SubscribeRequest,
     SubscriberItem,
     SubscriberListResponse,
-    SubscribeRequest,
     TemplateItem,
     TemplateListResponse,
 )
 from app.services import email_service
 
 router = APIRouter(prefix="/api/v1/newsletter", tags=["newsletter"])
+# ponytail: alias to email_service instead of maintaining a wrapper function
+_unsubscribe_token = email_service.unsubscribe_token
 admin_router = APIRouter(
     prefix="/api/v1/admin/newsletter",
     tags=["admin_newsletter"],
@@ -33,10 +35,6 @@ admin_router = APIRouter(
         404: {"model": DetailResponse},
     },
 )
-
-
-def _unsubscribe_token(email: str) -> str:
-    return email_service.unsubscribe_token(email)
 
 
 @router.post("/subscribe", response_model=DetailResponse, status_code=201)
@@ -57,7 +55,8 @@ def unsubscribe(db: DbSession, token: str = Form()):
         email, signature = token.rsplit("|", 1)
     except ValueError:
         raise HTTPException(400, "Liên kết hủy đăng ký không hợp lệ") from None
-    expected = _unsubscribe_token(email).rsplit("|", 1)[1]
+    # ponytail: call email_service directly without single-line wrapper function
+    expected = email_service.unsubscribe_token(email).rsplit("|", 1)[1]
     if not hmac.compare_digest(signature, expected):
         raise HTTPException(400, "Liên kết hủy đăng ký không hợp lệ")
     subscriber = db.scalar(select(NewsletterSubscriber).where(NewsletterSubscriber.email == email))
