@@ -242,13 +242,16 @@ import hmac
 import hashlib
 from urllib.parse import quote_plus
 
+
 def _hash_data(params: dict[str, str]) -> str:
     items = sorted((k, v) for k, v in params.items() if v not in (None, ""))
     return "&".join(f"{quote_plus(k)}={quote_plus(str(v))}" for k, v in items)
 
+
 def sign(params: dict[str, str], secret: str) -> str:
     data = _hash_data(params)
     return hmac.new(secret.encode(), data.encode(), hashlib.sha512).hexdigest()
+
 
 def build_url(base: str, params: dict[str, str], secret: str) -> str:
     data = _hash_data(params)
@@ -642,9 +645,7 @@ Quy tắc apply kết quả:
 ```python
 def apply_result(db, payment, *, status, provider_txn_id, amount_minor, raw):
     with db.begin():
-        locked = db.scalar(
-            select(Payment).where(Payment.id == payment.id).with_for_update()
-        )
+        locked = db.scalar(select(Payment).where(Payment.id == payment.id).with_for_update())
         if locked.status == status and locked.provider_txn_id == provider_txn_id:
             return "duplicate"
         if locked.status in {"paid", "refunded"} and status == "paid":
