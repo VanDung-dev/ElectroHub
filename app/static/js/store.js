@@ -406,8 +406,204 @@ document.addEventListener("click", async (event) => {
 document.querySelector("[data-campaign]")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!confirm("Gửi email marketing tới tất cả người đã đăng ký?")) return;
-  try { const result = await request("/api/v1/newsletter/send", {method:"POST", body:JSON.stringify(Object.fromEntries(new FormData(event.currentTarget)))}); message(result.detail); }
+  try {
+    const result = await request("/api/v1/newsletter/send", {method:"POST", body:JSON.stringify(Object.fromEntries(new FormData(event.currentTarget)))});
+    message(result.detail);
+    if (typeof loadNewsletterAdmin === "function") await loadNewsletterAdmin();
+  }
   catch (error) { message(error.message); }
+});
+
+async function loadNewsletterAdmin() {
+  const container = document.querySelector("[data-marketing-stats]");
+  if (!container) return;
+
+  try {
+    const [subs, camps] = await Promise.all([
+      request("/api/v1/admin/newsletter/subscribers?page_size=1"),
+      request("/api/v1/admin/newsletter/campaigns?page_size=1"),
+    ]);
+    const statSubs = document.querySelector("[data-stat-subscribers]");
+    const statCamps = document.querySelector("[data-stat-campaigns]");
+    const badgeSubs = document.querySelector("[data-subscribers-badge]");
+    const badgeCamps = document.querySelector("[data-campaigns-badge]");
+
+    if (statSubs) statSubs.textContent = subs.total;
+    if (badgeSubs) badgeSubs.textContent = subs.total;
+    if (statCamps) statCamps.textContent = camps.total;
+    if (badgeCamps) badgeCamps.textContent = camps.total;
+  } catch (err) {
+    console.error("Failed to load newsletter stats:", err);
+  }
+
+  await loadAdminSubscribers();
+  await loadAdminCampaigns();
+}
+
+async function loadAdminSubscribers(query = "") {
+  const tableContainer = document.querySelector("[data-subscribers-table-container]");
+  if (!tableContainer) return;
+
+  try {
+    const url = `/api/v1/admin/newsletter/subscribers${query ? `?q=${encodeURIComponent(query)}` : ""}`;
+    const result = await request(url);
+    if (!result.items.length) {
+      tableContainer.innerHTML = `<div class="empty-state"><h2>Chưa có người đăng ký nhận tin</h2><p>${query ? "Không tìm thấy email khớp với từ khóa tìm kiếm." : "Khi khách hàng nhập email ở chân trang web, danh sách sẽ hiển thị tại đây."}</p></div>`;
+      return;
+    }
+
+    tableContainer.innerHTML = `
+      <table class="newsletter-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Email</th>
+            <th>Ngày đăng ký</th>
+            <th style="text-align: right;">Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${result.items.map((sub) => `
+            <tr>
+              <td>#${sub.id}</td>
+              <td><strong>${escapeHtml(sub.email)}</strong></td>
+              <td>${new Date(sub.created_at).toLocaleString("vi-VN")}</td>
+              <td style="text-align: right;">
+                <button type="button" class="remove-item" data-delete-sub="${sub.id}" title="Xóa người đăng ký">Xóa</button>
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+  } catch (error) {
+    tableContainer.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
+  }
+}
+
+async function loadAdminCampaigns() {
+  const tableContainer = document.querySelector("[data-campaigns-table-container]");
+  if (!tableContainer) return;
+
+  try {
+    const result = await request("/api/v1/admin/newsletter/campaigns");
+    if (!result.items.length) {
+      tableContainer.innerHTML = `<div class="empty-state"><h2>Chưa có chiến dịch nào</h2><p>Các chiến dịch đã gửi qua email sẽ được lưu lại lịch sử tại đây.</p></div>`;
+      return;
+    }
+
+    const statusBadge = (st) => {
+      if (st === "sent") return `<span class="badge badge-sent">Đã gửi</span>`;
+      if (st === "sending") return `<span class="badge badge-sending">Đang gửi</span>`;
+      return `<span class="badge badge-failed">Thất bại</span>`;
+    };
+
+    tableContainer.innerHTML = `
+      <table class="newsletter-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tiêu đề chiến dịch</th>
+            <th>Số người nhận</th>
+            <th>Thời gian gửi</th>
+            <th>Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${result.items.map((camp) => `
+            <tr>
+              <td>#${camp.id}</td>
+              <td><strong>${escapeHtml(camp.subject)}</strong></td>
+              <td>${camp.recipient_count} người</td>
+              <td>${new Date(camp.sent_at).toLocaleString("vi-VN")}</td>
+              <td>${statusBadge(camp.status)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+  } catch (error) {
+    tableContainer.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
+  }
+}
+
+document.querySelectorAll("[data-tab-target]").forEach((tabBtn) => {
+  tabBtn.addEventListener("click", () => {
+    const target = tabBtn.dataset.tabTarget;
+    document.querySelectorAll("[data-tab-target]").forEach((btn) => btn.classList.remove("is-active"));
+    tabBtn.classList.add("is-active");
+
+    document.querySelectorAll("[data-tab-pane]").forEach((pane) => {
+      pane.hidden = pane.dataset.tabPane !== target;
+    });
+
+    if (target === "subscribers") loadAdminSubscribers();
+    if (target === "history") loadAdminCampaigns();
+  });
+});
+
+document.querySelector("[data-preview-btn]")?.addEventListener("click", async () => {
+  const form = document.querySelector("[data-campaign]");
+  const container = document.querySelector("[data-preview-container]");
+  if (!form || !container) return;
+
+  const subject = form.querySelector('[name="subject"]')?.value?.trim();
+  const body = form.querySelector('[name="body"]')?.value?.trim();
+
+  if (!subject || !body) {
+    message("Vui lòng nhập cả Tiêu đề và Nội dung để xem trước.");
+    return;
+  }
+
+  container.innerHTML = `<p style="text-align: center; color: var(--muted); padding-top: 60px;">Đang tạo bản xem trước…</p>`;
+  try {
+    const res = await request("/api/v1/admin/newsletter/preview", {
+      method: "POST",
+      body: JSON.stringify({ subject, body }),
+    });
+    const iframe = document.createElement("iframe");
+    iframe.style.width = "100%";
+    iframe.style.height = "480px";
+    iframe.style.border = "none";
+    iframe.srcdoc = res.html;
+    container.innerHTML = "";
+    container.appendChild(iframe);
+  } catch (error) {
+    container.innerHTML = `<p style="color: #b54c28;">Lỗi xem trước: ${escapeHtml(error.message)}</p>`;
+  }
+});
+
+document.querySelector("[data-sub-search]")?.addEventListener("input", (e) => {
+  clearTimeout(window._subSearchTimer);
+  window._subSearchTimer = setTimeout(() => {
+    loadAdminSubscribers(e.target.value.trim());
+  }, 300);
+});
+
+document.querySelector("[data-sub-refresh]")?.addEventListener("click", () => {
+  const searchInput = document.querySelector("[data-sub-search]");
+  loadAdminSubscribers(searchInput?.value.trim() || "");
+});
+
+document.querySelector("[data-campaigns-refresh]")?.addEventListener("click", () => {
+  loadAdminCampaigns();
+});
+
+document.querySelector("[data-subscribers-table-container]")?.addEventListener("click", async (e) => {
+  const delBtn = e.target.closest("[data-delete-sub]");
+  if (!delBtn) return;
+  const id = delBtn.dataset.deleteSub;
+  if (!confirm("Bạn có chắc chắn muốn xóa người đăng ký này?")) return;
+
+  delBtn.disabled = true;
+  try {
+    await request(`/api/v1/admin/newsletter/subscribers/${id}`, { method: "DELETE" });
+    message("Đã xóa người đăng ký.");
+    await loadNewsletterAdmin();
+  } catch (error) {
+    message(error.message);
+    delBtn.disabled = false;
+  }
 });
 
 document.querySelector("[data-unsubscribe]")?.addEventListener("submit", async (event) => {
@@ -507,6 +703,7 @@ loadManagerStats();
 loadAccountOrders();
 loadStaffOrders();
 loadAdminRefunds();
+loadNewsletterAdmin();
 
 const refundStatusNames = {scheduled:"Chờ đủ thời hạn giữ tiền",processing:"Đang xử lý hoàn tiền",succeeded:"Đã hoàn tiền",failed:"Hoàn tiền lỗi, shop sẽ thử lại",rejected:"Shop từ chối hoàn tiền"};
 

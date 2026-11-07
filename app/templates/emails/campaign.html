@@ -1,0 +1,15 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+<h1 style="font-size: 22px; color: #12372a; margin-top: 0; margin-bottom: 20px;">{{ subject }}</h1>
+
+<div style="font-size: 15px; color: #333333; line-height: 1.7;">
+  {% for paragraph in paragraphs %}
+    <p style="margin: 0 0 16px 0;">{{ paragraph }}</p>
+  {% endfor %}
+</div>
+
+<div style="text-align: center; margin-top: 32px;">
+  <a href="{{ site_url }}/collections/all" class="email-btn">Xem sản phẩm tại ElectroHub →</a>
+</div>
+{% endblock %}
