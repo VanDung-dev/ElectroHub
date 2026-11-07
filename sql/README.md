@@ -25,26 +25,25 @@ sql/
 
 ---
 
-## 🚀 Hướng Dẫn Thực Thi
+## 🚀 Hướng Dẫn Thực Thi & Kết Nối
 
-### Cách 1: Chạy trên SQL Server Management Studio (SSMS) / Azure Data Studio
-Mở kết nối tới SQL Server và mở từng file chạy theo thứ tự:
-`01` ➔ `02` ➔ `03` ➔ `04` ➔ `05` ➔ `06` ➔ `07` ➔ `08`.
+### Cách 1: Khởi chạy tự động qua Docker Compose (Khuyến nghị)
+Khi chạy `docker compose up -d`, dịch vụ `sqlserver-test` (cổng **1434**) sẽ tự động được khởi tạo và nạp toàn bộ 8 file SQL qua container `sqlserver-test-init`. Bạn không cần chạy lệnh thủ công.
 
-### Cách 2: Chạy trực tiếp qua Docker Container `sqlcmd` trong repo
-Nếu bạn đang dùng macOS/Linux và chạy SQL Server qua Docker Compose (`compose.yaml`):
+- **Kết nối từ macOS / Linux**: `localhost,1434`, user `sa`, pass `ElectroHub@123`.
+- **Kết nối từ SSMS (Windows Parallels)**: `<IP của máy tính>,1434`, user `sa`, pass `ElectroHub@123` *(Nhớ tích chọn `Trust Server Certificate`)*.
+
+### Cách 2: Chạy kiểm thử tự động toàn bộ (`test_all.sql`)
+Để chạy kiểm thử tự động 100% các thành phần T-SQL trong container test:
 
 ```bash
-# 1. Chạy container SQL Server
-docker compose up -d sqlserver
-
-# 2. Thực thi lần lượt các file SQL vào container
-for file in sql/*.sql; do
-    echo "Đang chạy $file..."
-    docker compose exec -T sqlserver /opt/mssql-tools18/bin/sqlcmd \
-        -S localhost -U sa -P 'YourStrongPassword!' -C -b -i "/work/$file"
-done
+docker compose exec -T sqlserver-test /opt/mssql-tools18/bin/sqlcmd \
+    -S localhost -U sa -P "ElectroHub@123" -C -i /sql/test_all.sql
 ```
+
+### Cách 3: Chạy thủ công trên SSMS / Azure Data Studio
+Mở kết nối tới SQL Server và mở từng file chạy theo thứ tự:
+`01` ➔ `02` ➔ `03` ➔ `04` ➔ `05` ➔ `06` ➔ `07` ➔ `08`.
 
 ---
 

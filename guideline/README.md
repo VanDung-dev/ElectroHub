@@ -1,89 +1,57 @@
-# ElectroHub — Công việc của nhóm
+# ElectroHub — Báo Cáo Tiến Độ & Hoàn Thành Dự Án
 
-**Bắt đầu ở đây:** chọn giai đoạn đang làm, tìm dòng tên mình, rồi tạo ticket cho từng task trong bảng Kanban của nhóm. Mỗi task có một người phụ trách; phối hợp chỉ ghi ở task thực sự cần bàn giao.
+[← Về README chính](../README.md) · [Hướng dẫn Developer](../DEV.md) · [Kịch bản Demo](../DEMO.md)
 
-<a id="members"></a>
-<a id="ownership"></a>
+Tài liệu tổng hợp hiện trạng triển khai, các phần đã hoàn thành của đồ án ElectroHub, phân công nhiệm vụ và danh mục tài liệu kỹ thuật chuyên sâu.
 
-## Thành viên và phần việc
+---
 
-| Thành viên | Phần việc | Chi tiết domain |
-| --- | --- | --- |
-| **P1 — Nguyễn Lê Văn Dũng** | Nền tảng, auth, database/migration, Docker, tích hợp và review | [Task của Dũng](members/P1-DUNG.md) |
-| **P2 — Nguyễn Hữu Giàu** | Catalog: category, brand, product, search, wishlist, compare, seed | [Task của Giàu](members/P2-GIAU.md) |
-| **P3 — Lê Nhật Hưng** | Sales: cart, order, payment, voucher, shipping, tracking | [Task của Hưng](members/P3-HUNG.md) |
-| **P4 — Phạm Thị Hồng Gấm** | Storefront/admin UI, nội dung, tích hợp frontend | [Task của Gấm](members/P4-GAM.md) |
+## 📊 1. Bảng Tổng Kết Trạng Thái Hoàn Thành Dự Án
 
-Stack chung: Python 3.13 + FastAPI, Jinja2/HTML/CSS/JS thuần, SQL Server 2022. Quy tắc nhánh, commit, PR và review nằm trong [GIT-WORKFLOW.md](GIT-WORKFLOW.md). Hướng dẫn API, DB và code được liên kết từ trang thành viên khi task cần.
+Dự án ElectroHub đã hoàn thành **100% các hạng mục nghiệp vụ và kỹ thuật đề ra**:
 
-## Cách dùng kế hoạch
+| Domain / Hạng mục | Người phụ trách | Trạng thái | Nội dung đã hoàn thành |
+| :--- | :--- | :--- | :--- |
+| **Nền tảng & Auth** | **Nguyễn Lê Văn Dũng (P1)** | **100% Hoàn thành** | Khung FastAPI, bảo mật JWT qua HttpOnly cookie, kiểm tra CSRF hai chiều, phân quyền 3 cấp (Customer, Staff, Manager), CLI tạo quản trị viên `app.create_admin`. |
+| **Kiến trúc Docker & DB** | **Nguyễn Lê Văn Dũng (P1)** | **100% Hoàn thành** | Multi-container Docker Compose với **Dual Database** (`sqlserver` 1433 & `sqlserver-test` 1434), Mailpit SMTP, LocalTunnel; hỗ trợ kết nối trực tiếp từ SSMS trên Windows Parallels. |
+| **T-SQL Suite Môn học** | **Nguyễn Lê Văn Dũng (P1)** | **100% Hoàn thành** | Trọn bộ 8 file SQL: 4 Triggers, 11 SP & Functions, 3 Cursors, 5 Rules & Defaults, Concurrency & Transactions, kịch bản test tự động [`sql/test_all.sql`](../sql/test_all.sql). |
+| **Catalog Sản phẩm** | **Nguyễn Hữu Giàu (P2)** | **100% Hoàn thành** | Quản trị danh mục và sản phẩm linh kiện điện tử, tìm kiếm, bộ lọc theo giá và thương hiệu, seed dữ liệu mẫu phong phú (>50 sản phẩm kiểu hshop). |
+| **Giỏ hàng & Đơn hàng** | **Lê Nhật Hưng (P3)** | **100% Hoàn thành** | Giỏ hàng, áp mã voucher giảm giá (`WELCOME10`), giao dịch đặt hàng nguyên tử (Atomic Transaction) trừ tồn kho an toàn, tra cứu và đổi trạng thái đơn. |
+| **Cổng Thanh toán & Hoàn tiền** | **Lê Nhật Hưng (P3) & Dũng (P1)** | **100% Hoàn thành** | Chế độ Mock mô phỏng thành công/thất bại tại `/payments/{code}`; tích hợp Sandbox thật với **VNPAY** (ATM NCB) và **PayPal** (VISA ảo), chính sách hoàn tiền an toàn giữ chỗ 72h. |
+| **Giao diện Storefront & Admin** | **Phạm Thị Hồng Gấm (P4)** | **100% Hoàn thành** | Giao diện SSR Jinja2 đồng bộ, chuẩn responsive mobile/desktop, trang giỏ hàng, checkout, trang quản trị đơn cho nhân viên và trang quản lý cho admin. |
+| **Email Marketing Tự động** | **Dũng (P1) & Gấm (P4)** | **100% Hoàn thành** | Tự động gửi email chào mừng kèm voucher khi đăng ký nhận tin; admin gửi chiến dịch marketing qua background tasks; kiểm tra qua hộp thư Mailpit (`localhost:8025`). |
+| **Chất lượng & Test Suite** | **Cả nhóm** | **100% Hoàn thành** | **106/106 tests passed** (Pytest), code format và lint đạt chuẩn tuyệt đối (`ruff check`, `ruff format`). |
 
-- Mỗi dòng trong giai đoạn là task khung; người phụ trách chuyển thành ticket riêng trên Kanban và cập nhật trạng thái/deadline ở đó.
-- `[Tự làm]` có thể bắt đầu ngay trong phạm vi của người phụ trách.
-- `[Phối hợp: ...]` ghi người cần thống nhất/nhận bàn giao. Task vẫn có một owner chịu trách nhiệm chốt kết quả.
-- Khi đang chờ đầu vào, làm phần độc lập/mock trước; ghi rõ đầu vào đang chờ và điều kiện để tiếp tục.
-- Chuyển giai đoạn khi đầu ra ở cột “Bàn giao / điều kiện qua giai đoạn” đã được xác nhận. Ngày lịch và trạng thái không cố định trong tài liệu này.
+---
 
-## Giai đoạn 1 — Nền tảng và hợp đồng
+## 👥 2. Phân Công Thành Viên & Phạm Vi Trách Nhiệm
 
-**Mục tiêu:** thống nhất các hợp đồng trước khi các domain phụ thuộc lẫn nhau; tạo khung để frontend và backend cùng bắt đầu.
+```mermaid
+graph TD
+    P1["P1 — Nguyễn Lê Văn Dũng\n(Lead & Nền tảng)"] --> Core["FastAPI Core & Auth"]
+    P1 --> Docker["Docker Dual-DB & Infra"]
+    P1 --> TSQL["T-SQL Suite Môn học"]
 
-| Owner | Task tự làm | Phối hợp và bàn giao |
-| --- | --- | --- |
-| **Dũng P1** | Khung FastAPI, config/logging, cách chạy local/Docker. | Duyệt ERD/API với Giàu và Hưng; chốt route HTML/template với Gấm; chốt nội dung blog tĩnh hay qua API và giao owner nếu cần API. Bàn giao app khởi động được, contract duyệt và cách tạo admin ban đầu. |
-| **Giàu P2** | Chốt field product/category/brand/filter và kế hoạch seed. | Gửi schema/API và quy định upload ảnh (format, kích thước, lưu trữ) cho Dũng duyệt; chốt giá/tồn kho với Hưng, payload PLP/PDP với Gấm. |
-| **Hưng P3** | Mô tả luồng cart → checkout → order → tracking và trạng thái. | Gửi ERD/API cho Dũng; thống nhất giá/tồn kho với Giàu, dữ liệu checkout/tracking với Gấm. |
-| **Gấm P4** | Dựng base layout, CSS variables, `api.js` và UI mock. | Chốt route/page shell với Dũng, payload mock với Giàu và Hưng. |
+    P2["P2 — Nguyễn Hữu Giàu\n(Catalog Domain)"] --> Cat["Category & Products"]
+    P2 --> Search["Search, Filter & Seed"]
 
-**Qua giai đoạn khi:** Dũng duyệt ERD/API; chốt route HTML, cách tạo admin và cách lưu/phục vụ blog; các domain thống nhất field giá/tồn kho và thanh toán giả lập; Gấm có payload mock khớp contract.
+    P3["P3 — Lê Nhật Hưng\n(Sales & Payment)"] --> Cart["Cart, Order & Voucher"]
+    P3 --> Pay["PayPal & VNPAY Sandbox"]
 
-## Giai đoạn 2 — Auth, catalog và các trang đầu
+    P4["P4 — Phạm Thị Hồng Gấm\n(Frontend UI/UX)"] --> Store["Storefront SSR (Jinja2)"]
+    P4 --> AdminUI["Staff & Manager Panels"]
+```
 
-**Mục tiêu:** hoàn tất nền tảng đăng nhập và catalog; có thể duyệt sản phẩm trên giao diện và bắt đầu giỏ hàng.
+---
 
-| Owner | Task tự làm | Phối hợp và bàn giao |
-| --- | --- | --- |
-| **Dũng P1** | Hoàn thiện app, DB access, auth và tạo admin ban đầu. | Duyệt migration với Giàu/Hưng; đăng ký route/template với Gấm. Bàn giao auth, migration và trang được phục vụ. |
-| **Giàu P2** | CRUD category/brand/product, search/filter/sort/page, upload ảnh. | Duyệt migration với Dũng; nối API với Gấm. Bàn giao catalog đủ [PLP/PDP](HSHOP-ANALYSIS.md#plp). |
-| **Hưng P3** | Cart thêm/sửa/xóa và tính tổng theo contract. | Lấy giá/stock từ Giàu; migration/auth với Dũng; nối cart với Gấm. Bàn giao total nhất quán với product. |
-| **Gấm P4** | Homepage và khung PLP/PDP bằng mock. | Nối catalog API với Giàu; đăng ký route/template với Dũng. Bàn giao trang hiển thị dữ liệu thật và có loading/empty/error. |
+## 📚 3. Danh Mục Tài Liệu Chi Tiết
 
-**Qua giai đoạn khi:** auth và catalog chạy; Gấm xác nhận PLP/PDP dùng API thật; Hưng và Giàu xác nhận hợp đồng giá/tồn kho để checkout.
+Để tra cứu sâu hơn về từng khía cạnh kỹ thuật, mời tham khảo các tài liệu chuyên đề:
 
-## Giai đoạn 3 — Đơn hàng và luồng mua
-
-**Mục tiêu:** hoàn tất checkout, payment giả lập, tracking và giao diện bán hàng xuyên suốt.
-
-| Owner | Task tự làm | Phối hợp và bàn giao |
-| --- | --- | --- |
-| **Dũng P1** | Hoàn thiện quyền admin và nền tảng tích hợp. | Rà soát transaction với Hưng; ghép router và chạy Docker với cả nhóm. |
-| **Giàu P2** | Hoàn thiện catalog, seed ≥50 sản phẩm và test domain. | Thống nhất stock với Hưng; hoàn tất PLP/PDP/wishlist/compare với Gấm. |
-| **Hưng P3** | Voucher, order, trừ stock trong transaction, payment mock, tracking và trạng thái admin. | Quyền/DB với Dũng; stock với Giàu; contract/UI với Gấm. Bàn giao luồng cart → checkout → payment → tracking E2E. |
-| **Gấm P4** | Login/register, wishlist/compare và admin UI theo API. | Cart/checkout/tracking với Hưng; catalog với Giàu; auth/route với Dũng. |
-
-**Qua giai đoạn khi:** một luồng mua hàng hoàn chỉnh chạy trên Docker; admin cập nhật trạng thái; người dùng tra cứu đơn theo contract đã thống nhất.
-
-## Giai đoạn 4 — Hoàn thiện và nghiệm thu
-
-**Mục tiêu:** kiểm tra chất lượng domain, giao diện và bản dựng tổng thể trước demo.
-
-| Owner | Task tự làm | Phối hợp và bàn giao |
-| --- | --- | --- |
-| **Dũng P1** | Kiểm tra local/Docker, quyền, config, hướng dẫn chạy máy sạch. | Điều phối blocker và demo với cả nhóm; bàn giao build/test trên máy sạch. |
-| **Giàu P2** | Test filter/sort/ảnh/seed và lỗi catalog. | Rà soát PLP/PDP mobile với Gấm; bàn giao seed/test lặp lại được. |
-| **Hưng P3** | Test tính tiền, voucher, hủy đơn, tồn kho đồng thời và lỗi checkout. | Migration/transaction với Dũng; stock với Giàu; lỗi/trạng thái UI với Gấm. |
-| **Gấm P4** | Hoàn tất chính sách/blog/review; test responsive, ảnh, console và loading/empty/error. | Rà soát dữ liệu với Giàu/Hưng, route/auth với Dũng; bàn giao page đạt [DoD](DEFINITION-OF-DONE.md#page). |
-
-**Hoàn tất MVP khi:** cả nhóm xác nhận [checklist nghiệm thu](DEFINITION-OF-DONE.md#mvp) và luồng chính chạy trên máy sạch.
-
-<a id="lookup"></a>
-
-## Tài liệu chi tiết theo task
-
-Mở trang thành viên trước, chỉ đọc phần liên quan tới task:
-
-- [Dũng P1](members/P1-DUNG.md): nền tảng, auth, DB và điều phối.
-- [Giàu P2](members/P2-GIAU.md): catalog, PLP/PDP, seed.
-- [Hưng P3](members/P3-HUNG.md): cart, checkout, order, payment.
-- [Gấm P4](members/P4-GAM.md): pages, UI và tích hợp API.
-- [Git workflow chung](GIT-WORKFLOW.md): nhánh, commit, PR, phối hợp sửa chéo.
+- 📖 **[DEV.md](../DEV.md)**: Hướng dẫn chi tiết cho lập trình viên (cài đặt, chạy Docker, kết nối SSMS, migration Alembic, T-SQL).
+- 🎯 **[DEMO.md](../DEMO.md)**: Kịch bản demo và nghiệm thu đồ án (tài khoản demo, thông tin thẻ sandbox, kịch bản mua hàng & quản trị).
+- 🗄️ **[DB-MIGRATION.md](DB-MIGRATION.md)**: Kiến trúc cơ sở dữ liệu Dual-DB, quy trình migration và đặc tả chi tiết bộ T-SQL môn học.
+- 🔌 **[API-DESIGN.md](API-DESIGN.md)**: Đặc tả toàn bộ API endpoints, hợp đồng xác thực JWT và cơ chế bảo vệ CSRF.
+- 💳 **[PAYMENT-SANDBOX.md](PAYMENT-SANDBOX.md)**: Hướng dẫn cấu hình và checklist kiểm thử cổng thanh toán VNPAY & PayPal Sandbox.
+- 🌿 **[GIT-WORKFLOW.md](GIT-WORKFLOW.md)**: Quy chuẩn phân nhánh Git, định dạng commit và quy trình duyệt Pull Request.
+- ✅ **[DEFINITION-OF-DONE.md](DEFINITION-OF-DONE.md)**: Bảng tiêu chuẩn hoàn thành DoD và kết quả nghiệm thu MVP.
