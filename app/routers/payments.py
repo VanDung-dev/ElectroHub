@@ -54,21 +54,8 @@ def _details(db: DbSession, order: Order, payment: Payment) -> PaymentDetailsOut
         amount_minor=payment.amount_minor,
         attempt=payment.attempt,
         simulation=bool((payment.payload or {}).get("simulation")),
-        refund=(
-            RefundInfo(
-                id=refund.id,
-                status=refund.status,
-                amount=refund.amount,
-                currency=refund.currency,
-                reason=refund.reason,
-                requested_at=refund.requested_at,
-                due_at=refund.due_at,
-                confirmed_at=refund.confirmed_at,
-                provider_refund_id=refund.provider_refund_id,
-            )
-            if refund is not None
-            else None
-        ),
+        # ponytail: use pydantic from_attributes to avoid manual field mapping
+        refund=RefundInfo.model_validate(refund) if refund is not None else None,
     )
 
 
