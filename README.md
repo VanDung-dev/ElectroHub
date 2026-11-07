@@ -128,6 +128,7 @@ App mặc định dùng cổng 8000; muốn đổi cổng local, thêm `--port 8
 - Sitemap: `/sitemap.xml`; robots: `/robots.txt`.
 - [Swagger / thử API](http://localhost:8000/docs).
 - [Kiểm tra kết nối DB](http://localhost:8000/api/v1/health).
+- [Hộp thư thử nghiệm Mailpit (Docker)](http://localhost:8025): xem email chào mừng và chiến dịch marketing gửi nội bộ.
 
 Đổi 8000 trong URL nếu đã cấu hình cổng khác. Tạo admin bằng lệnh ứng với cách chạy,
 thay email/tên của bạn và nhập mật khẩu khi được hỏi:
@@ -187,8 +188,7 @@ và phần còn chờ nhóm nằm ở [checklist P1](guideline/P1-HANDOFF.md#ver
 ## Bật các tích hợp tùy chọn
 
 - **Thanh toán mô phỏng:** chọn PayPal hoặc VNPAY khi đặt hàng. Trang `/payments/{code}` cho chủ đơn mô phỏng thành công hoặc thất bại; có thể thử lại trên cùng đơn. Không kết nối dịch vụ bên ngoài, không cần API key, không thu tiền thật. Đơn chỉ được chuyển sang xác nhận/giao hàng sau khi thanh toán thành công. Hủy đơn đã trả tiền sẽ ghi nhận hoàn tiền mô phỏng.
-- **Email marketing:** cấu hình SMTP và `MAIL_FROM`; khách đăng ký ở chân trang,
-  admin gửi chiến dịch tại `/admin/newsletter`. Email có liên kết hủy đăng ký.
+- **Email marketing & Mailpit:** hệ thống tự động gửi email chào mừng (kèm mã `WELCOME10`) khi khách đăng ký ở chân trang; admin quản lý danh sách người nhận, xem trước HTML và gửi chiến dịch qua background tasks tại `/admin/newsletter`. Khi chạy Docker, toàn bộ email được gom vào hộp thư ảo Mailpit tại [http://localhost:8025](http://localhost:8025) (cổng SMTP `1025`). Để gửi email thật ra ngoài Internet, cấu hình thông tin SMTP (như Gmail hoặc Brevo) và `MAIL_FROM` trong `.env`. Email gửi đi luôn kèm liên kết hủy đăng ký bảo mật HMAC.
 - **Sản phẩm và ảnh chia sẻ:** admin quản lý tại `/admin/products`; nhập URL ảnh HTTPS
   hoặc đường dẫn dưới `/static/img/`. Trang sản phẩm dùng tên, mô tả và ảnh này cho Open Graph.
 - **Chat:** đặt `FACEBOOK_PAGE_URL` và `ZALO_PAGE_URL` cho các nút liên hệ. Để nhúng

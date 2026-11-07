@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import logging
 import smtplib
+import socket
 from email.message import EmailMessage
 from urllib.parse import urlencode
 
@@ -18,6 +19,16 @@ _jinja_env = Environment(
     loader=FileSystemLoader(str(ROOT / "app/templates")),
     autoescape=select_autoescape(["html", "xml"]),
 )
+
+
+def _resolve_smtp_host(host: str) -> str:
+    """Fallback 'mailpit' to 'localhost' if running on host machine outside docker network."""
+    if host == "mailpit":
+        try:
+            socket.gethostbyname("mailpit")
+        except socket.gaierror:
+            return "localhost"
+    return host
 
 
 def unsubscribe_token(email: str) -> str:
@@ -106,8 +117,13 @@ def send_smtp_message(
     if html_content:
         message.add_alternative(html_content, subtype="html")
 
-    with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as smtp:
-        smtp.starttls()
+    host = _resolve_smtp_host(settings.smtp_host)
+    with smtplib.SMTP(host, settings.smtp_port, timeout=15) as smtp:
+        if hasattr(smtp, "has_extn") and smtp.has_extn("starttls"):
+            try:
+                smtp.starttls()
+            except Exception:
+                pass
         if settings.smtp_username and settings.smtp_password:
             smtp.login(settings.smtp_username, settings.smtp_password.get_secret_value())
         smtp.send_message(message)
@@ -142,8 +158,13 @@ def send_campaign_background(
             logger.warning("SMTP not configured for campaign %s", campaign_id)
             return
 
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=30) as smtp:
-            smtp.starttls()
+        host = _resolve_smtp_host(settings.smtp_host)
+        with smtplib.SMTP(host, settings.smtp_port, timeout=30) as smtp:
+            if hasattr(smtp, "has_extn") and smtp.has_extn("starttls"):
+                try:
+                    smtp.starttls()
+                except Exception:
+                    pass
             if settings.smtp_username and settings.smtp_password:
                 smtp.login(settings.smtp_username, settings.smtp_password.get_secret_value())
 
