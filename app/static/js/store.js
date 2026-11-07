@@ -527,6 +527,91 @@ async function loadAdminCampaigns() {
   }
 }
 
+const campaignPresets = {
+  flash_sale: {
+    subject: "⚡ [ElectroHub] FLASH SALE CUỐI TUẦN: Giảm tới 30% linh kiện & thiết bị điện tử!",
+    body: `Kính gửi quý khách hàng,
+
+Cuối tuần này, ElectroHub mang đến chương trình FLASH SALE bùng nổ với hàng loạt ưu đãi hấp dẫn dành riêng cho cộng đồng kỹ thuật & DIY:
+
+🔥 GIẢM TỚI 30% các dòng vi điều khiển: ESP32-WROOM, Arduino Uno R3, STM32 Blue Pill.
+🔥 ĐỒNG GIÁ linh kiện cảm biến: Cảm biến nhiệt ẩm DHT11, cảm biến khoảng cách HC-SR04, module Relay 5V.
+🔥 MIỄN PHÍ VẬN CHUYỂN cho tất cả đơn hàng từ 300.000₫.
+
+⏰ Thời gian áp dụng: Từ Thứ Sáu đến hết Chủ Nhật tuần này.
+Số lượng linh kiện khuyến mãi có hạn, hãy nhanh tay đặt hàng ngay hôm nay để nhận ưu đãi!
+
+ElectroHub rất hân hạnh được đồng hành cùng những dự án sáng tạo của bạn.`
+  },
+  new_arrival: {
+    subject: "🚀 [ElectroHub] HÀNG MỚI VỀ: Khám phá các dòng module vi điều khiển & cảm biến thế hệ mới!",
+    body: `Chào bạn,
+
+ElectroHub xin thông báo kho hàng vừa cập bến các sản phẩm và linh kiện điện tử mới nhất phục vụ cho các dự án IoT, Robotics và tự động hóa:
+
+✨ Module ESP32-S3 Dual-Core hiệu năng cao, tích hợp AI & kết nối không dây mạnh mẽ.
+✨ Mạch sạc nhanh Type-C và module hạ áp Buck đa năng thế hệ mới.
+✨ Cảm biến môi trường độ chính xác cao BME280 và module đo dòng INA219.
+
+Tất cả sản phẩm đều được kiểm tra chất lượng kỹ lưỡng và có sẵn số lượng lớn tại kho.
+
+👉 Xem ngay danh mục sản phẩm mới để không bỏ lỡ linh kiện cho dự án của bạn!`
+  },
+  voucher_gift: {
+    subject: "🎁 [ElectroHub] TẶNG BẠN VOUCHER ĐẶC QUYỀN: Giảm ngay 15% cho đơn hàng tiếp theo!",
+    body: `Kính gửi quý khách hàng thân thiết,
+
+Để cảm ơn sự tin tưởng và đồng hành của bạn cùng ElectroHub trong suốt thời gian qua, chúng tôi xin gửi tặng bạn món quà tri ân đặc biệt:
+
+🎟 Mã giảm giá: TRIAN2026
+💰 Ưu đãi: Giảm 15% trên tổng giá trị đơn hàng (tối đa 100.000₫).
+📅 Hạn sử dụng: Đến hết ngày 30 của tháng này.
+
+Mã ưu đãi áp dụng cho tất cả sản phẩm đang có tại website ElectroHub: từ bo mạch phát triển, cảm biến, linh kiện thụ động đến phụ kiện nguồn.
+
+Hãy nhập mã TRIAN2026 tại bước giỏ hàng hoặc thanh toán để nhận ưu đãi nhé!`
+  },
+  store_notice: {
+    subject: "📢 [ElectroHub] THÔNG BÁO: Cập nhật chính sách giao hàng và bảo hành linh kiện",
+    body: `Kính gửi quý khách hàng,
+
+Nhằm nâng cao chất lượng dịch vụ và mang lại trải nghiệm mua sắm tốt nhất, ElectroHub xin trân trọng thông báo một số cập nhật mới:
+
+📦 Thời gian giao hàng: Giao hàng hỏa tốc trong 2-4 giờ tại nội thành và 1-3 ngày trên toàn quốc.
+🛡 Chính sách bảo hành: Hỗ trợ 1 đổi 1 trong vòng 7 ngày đối với các bo mạch, module phát hiện lỗi từ nhà sản xuất.
+💬 Kênh hỗ trợ trực tuyến: Đội ngũ kỹ thuật hỗ trợ tư vấn linh kiện và sơ đồ đấu nối 24/7.
+
+Mọi thắc mắc cần hỗ trợ, quý khách vui lòng liên hệ qua fanpage hoặc hotline của ElectroHub.
+
+Trân trọng cảm ơn sự đồng hành của quý khách!`
+  }
+};
+
+function applyCampaignTemplate(templateId) {
+  const form = document.querySelector("[data-campaign]");
+  if (!form || !templateId || !campaignPresets[templateId]) return;
+
+  const tpl = campaignPresets[templateId];
+  const subjectInput = form.querySelector('[name="subject"]');
+  const bodyInput = form.querySelector('[name="body"]');
+
+  if (subjectInput) subjectInput.value = tpl.subject;
+  if (bodyInput) bodyInput.value = tpl.body;
+
+  // Auto trigger preview
+  document.querySelector("[data-preview-btn]")?.click();
+}
+
+document.querySelector("[data-template-select]")?.addEventListener("change", (e) => {
+  if (e.target.value) applyCampaignTemplate(e.target.value);
+});
+
+document.querySelector("[data-apply-template]")?.addEventListener("click", () => {
+  const select = document.querySelector("[data-template-select]");
+  if (select && select.value) applyCampaignTemplate(select.value);
+  else message("Vui lòng chọn một mẫu email từ danh sách.");
+});
+
 document.querySelectorAll("[data-tab-target]").forEach((tabBtn) => {
   tabBtn.addEventListener("click", () => {
     const target = tabBtn.dataset.tabTarget;
