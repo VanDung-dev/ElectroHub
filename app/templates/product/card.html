@@ -1,0 +1,9 @@
+{% set on_sale = product.sale_price is not none and product.sale_price < product.price %}
+<article class="product-card">
+  <a class="product-image" href="/products/{{ product.slug }}"><img src="{{ product.image_url }}" alt="{{ product.name }}" width="560" height="420" loading="{{ 'eager' if loop is defined and loop.first else 'lazy' }}"{% if loop is defined and loop.first %} fetchpriority="high"{% endif %}>{% if on_sale %}<span class="sale-label">Giảm {{ "{:g}".format(((product.price - product.sale_price) / product.price * 100) | round(1)) | replace(".", ",") }}%</span>{% endif %}</a>
+  <p class="product-sku">{{ product.sku }}</p>
+  <a class="product-name" href="/products/{{ product.slug }}"><h2>{{ product.name }}</h2></a>
+  <div class="card-price"><span class="price">{{ (product.sale_price if product.sale_price is not none else product.price) | vnd }} ₫</span>{% if on_sale %}<del>{{ product.price | vnd }} ₫</del>{% endif %}</div>
+  <p class="stock-status">{% if product.stock > 0 %}Còn hàng · {{ product.stock }}{% else %}Tạm hết hàng{% endif %}</p>
+  <div class="product-actions"><button class="button-light" data-add-to-cart="{{ product.id }}" {% if product.stock < 1 %}disabled{% endif %}>Thêm vào giỏ</button><button data-buy-now="{{ product.id }}" {% if product.stock < 1 %}disabled{% endif %}>Mua ngay</button></div>
+</article>

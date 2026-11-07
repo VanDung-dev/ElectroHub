@@ -101,7 +101,12 @@ async function loadProducts() {
     const data = await request("/api/v1/products");
     catalogProducts = data.items;
     applyProductSearch();
-  } catch (error) { document.querySelector("[data-products]").textContent = error.message; }
+  } catch (error) {
+    // The list is already rendered by the server; never wipe it on a failed fetch.
+    const list = document.querySelector("[data-products]");
+    if (list && !list.children.length) list.textContent = error.message;
+    else message(error.message);
+  }
 }
 
 function applyProductSearch() {
