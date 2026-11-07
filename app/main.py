@@ -22,6 +22,7 @@ from app.routers.admin_orders import router as admin_orders_router
 from app.routers.admin_refunds import router as admin_refunds_router
 from app.routers.auth import router as auth_router
 from app.routers.cart import router as cart_router
+from app.routers.newsletter import admin_router as admin_newsletter_router
 from app.routers.newsletter import router as newsletter_router
 from app.routers.orders import router as orders_router
 from app.routers.payment_returns import router as payment_returns_router
@@ -108,6 +109,7 @@ def create_app() -> FastAPI:
     app.include_router(products_router)
     app.include_router(admin_products_router)
     app.include_router(newsletter_router)
+    app.include_router(admin_newsletter_router)
     app.include_router(payments_router)
     app.include_router(payment_returns_router)
     app.include_router(pages_router)

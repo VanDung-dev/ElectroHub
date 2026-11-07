@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ subject | default('ElectroHub') }}</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #f4f6f5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1a2421; line-height: 1.6; }
+    table { border-collapse: collapse; }
+    .email-container { max-width: 600px; margin: 24px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #d8e2dc; }
+    .email-header { background-color: #12372a; padding: 28px 32px; text-align: center; }
+    .email-brand { color: #ffffff; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; text-decoration: none; display: inline-block; }
+    .email-brand span { display: block; font-size: 11px; font-weight: 600; color: #436850; letter-spacing: 0.15em; margin-top: 4px; }
+    .email-body { padding: 36px 32px; }
+    .email-footer { background-color: #fbfcfb; padding: 24px 32px; text-align: center; border-top: 1px solid #eaeaea; font-size: 13px; color: #627264; }
+    .email-footer a { color: #12372a; text-decoration: underline; }
+    .email-btn { display: inline-block; background-color: #12372a; color: #ffffff !important; font-weight: 600; font-size: 15px; padding: 12px 28px; border-radius: 6px; text-decoration: none; margin: 20px 0; }
+    .voucher-card { background: #fbfbfb; border: 2px dashed #12372a; border-radius: 8px; padding: 20px; text-align: center; margin: 24px 0; }
+    .voucher-code { display: inline-block; font-size: 22px; font-weight: 800; letter-spacing: 2px; color: #12372a; background: #e8f5e9; padding: 8px 18px; border-radius: 4px; margin: 8px 0; }
+  </style>
+</head>
+<body>
+  <div style="background-color: #f4f6f5; padding: 20px 10px;">
+    <div class="email-container">
+      <div class="email-header">
+        <a href="{{ site_url }}" class="email-brand">
+          ElectroHub
+          <span>LINH KIỆN &amp; THIẾT BỊ</span>
+        </a>
+      </div>
+      <div class="email-body">
+        {% block content %}{% endblock %}
+      </div>
+      <div class="email-footer">
+        <p style="margin: 0 0 10px 0;"><strong>ElectroHub</strong> — Thế giới thiết bị và linh kiện điện tử.</p>
+        <p style="margin: 0 0 10px 0;">Bạn nhận được thư này vì đã đăng ký nhận tin tại <a href="{{ site_url }}">{{ site_url }}</a>.</p>
+        {% if unsubscribe_url %}
+        <p style="margin: 0;"><a href="{{ unsubscribe_url }}">Hủy nhận email marketing</a> bất kỳ lúc nào.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>
