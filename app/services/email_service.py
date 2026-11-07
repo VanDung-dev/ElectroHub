@@ -78,10 +78,7 @@ def render_welcome_email(email: str) -> tuple[str, str]:
 def _format_campaign_paragraphs(body: str) -> tuple[str, list[Markup]]:
     normalized = body.replace("\r\n", "\n").replace("\r", "\n").strip()
     raw = [p.strip() for p in normalized.split("\n\n") if p.strip()] or [normalized]
-    formatted = [
-        Markup("<br>\n".join(str(escape(line)) for line in p.split("\n")))
-        for p in raw
-    ]
+    formatted = [Markup("<br>\n".join(str(escape(line)) for line in p.split("\n"))) for p in raw]
     return normalized, formatted
 
 

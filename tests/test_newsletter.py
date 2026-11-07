@@ -164,12 +164,16 @@ def test_admin_send_campaign_flow(client, database, monkeypatch):
             FakeSMTP.sent_messages.append(message)
 
     import smtplib
+
     monkeypatch.setattr(smtplib, "SMTP", FakeSMTP)
 
     # Send campaign
     res = client.post(
         "/api/v1/newsletter/send",
-        json={"subject": "Siêu sale cuối tuần", "body": "Giảm giá 30% cho tất cả module ESP32 và cảm biến.\n\nĐặt hàng ngay hôm nay!"},
+        json={
+            "subject": "Siêu sale cuối tuần",
+            "body": "Giảm giá 30% cho tất cả module ESP32 và cảm biến.\n\nĐặt hàng ngay hôm nay!",
+        },
         headers=admin_headers,
     )
     assert res.status_code == 200

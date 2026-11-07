@@ -118,9 +118,7 @@ def list_subscribers(
 
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     subscribers = db.scalars(
-        stmt.order_by(desc(NewsletterSubscriber.id))
-        .offset((page - 1) * page_size)
-        .limit(page_size)
+        stmt.order_by(desc(NewsletterSubscriber.id)).offset((page - 1) * page_size).limit(page_size)
     ).all()
 
     return SubscriberListResponse(
