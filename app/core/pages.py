@@ -361,7 +361,7 @@ for path, template_name in PAGE_TEMPLATES.items():
         else require_staff
         if path.startswith("/staff/")
         else get_current_user
-        if path == "/account/orders" or path.startswith("/payments/")
+        if path.startswith("/payments/")
         else None
     )
     router.add_api_route(

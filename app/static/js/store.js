@@ -275,8 +275,19 @@ document.addEventListener("change", async (event) => {
 document.querySelector("[data-newsletter]")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const output = document.querySelector("[data-newsletter-message]");
-  try { const form = new FormData(event.currentTarget); const data = await request("/api/v1/newsletter/subscribe", {method:"POST", body:JSON.stringify({email:form.get("email"),consent:form.has("consent")})}); output.textContent = data.detail; event.currentTarget.reset(); }
-  catch (error) { output.textContent = error.message; }
+  try {
+    const form = new FormData(event.currentTarget);
+    const data = await request("/api/v1/newsletter/subscribe", {
+      method:"POST",
+      body:JSON.stringify({email:form.get("email"),consent:form.has("consent")})
+    });
+    if (output) output.textContent = data.detail;
+    else alert(data.detail);
+    event.currentTarget.reset();
+  } catch (error) {
+    if (output) output.textContent = error.message;
+    else alert(error.message);
+  }
 });
 
 document.querySelector("[data-login]")?.addEventListener("submit", async (event) => {
@@ -292,6 +303,11 @@ document.querySelector("[data-login]")?.addEventListener("submit", async (event)
       if (!Number.isInteger(purchase.product_id) || purchase.product_id < 1 || !Number.isInteger(purchase.qty) || purchase.qty < 1 || purchase.qty > 99) throw new Error("Sản phẩm mua ngay không hợp lệ. Vui lòng chọn lại sản phẩm.");
       await request("/api/v1/cart/items", {method:"POST", body:JSON.stringify(purchase)});
       location.assign("/checkout");
+      return;
+    }
+    const nextUrl = new URLSearchParams(location.search).get("next");
+    if (nextUrl && nextUrl.startsWith("/") && !nextUrl.startsWith("//")) {
+      location.assign(nextUrl);
       return;
     }
     location.href = user.role === "admin" ? "/manager" : user.role === "staff" ? "/staff/orders" : "/";
@@ -943,3 +959,130 @@ function initProductGallery() {
   });
 }
 initProductGallery();
+
+async function ensureCatalogProducts() {
+  if (catalogProducts && catalogProducts.length > 0) return catalogProducts;
+  try {
+    const data = await request("/api/v1/products");
+    catalogProducts = data.items || [];
+    return catalogProducts;
+  } catch {
+    return [];
+  }
+}
+
+function initLiveSearch() {
+  const input = document.getElementById("store-search");
+  const dropdown = document.getElementById("search-dropdown");
+  if (!input || !dropdown) return;
+
+  const normalize = (value) =>
+    String(value || "")
+      .toLocaleLowerCase("vi")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d");
+
+  let debounceTimer = null;
+
+  const renderDropdown = async () => {
+    const rawVal = input.value.trim();
+    const query = normalize(rawVal);
+
+    // Đồng bộ với danh sách sản phẩm nếu đang ở trang catalog
+    const catalogSearch = document.querySelector("[data-product-search]");
+    if (catalogSearch && catalogSearch !== input) {
+      catalogSearch.value = rawVal;
+      applyProductSearch();
+    }
+
+    if (!query) {
+      dropdown.hidden = true;
+      dropdown.innerHTML = "";
+      return;
+    }
+
+    dropdown.hidden = false;
+    if (!dropdown.innerHTML.trim()) {
+      dropdown.innerHTML = `<div class="search-loading">Đang tìm kiếm…</div>`;
+    }
+
+    const products = await ensureCatalogProducts();
+    const matched = products.filter((p) =>
+      normalize(`${p.name} ${p.sku}`).includes(query)
+    );
+
+    if (!input.value.trim()) {
+      dropdown.hidden = true;
+      dropdown.innerHTML = "";
+      return;
+    }
+
+    if (matched.length === 0) {
+      dropdown.innerHTML = `
+        <div class="search-empty">
+          <p>Không tìm thấy sản phẩm cho <strong>${escapeHtml(rawVal)}</strong></p>
+          <a href="/collections/all">Xem tất cả sản phẩm →</a>
+        </div>
+      `;
+      dropdown.hidden = false;
+      return;
+    }
+
+    const top = matched.slice(0, 6);
+    const itemsHtml = top
+      .map((p) => {
+        const onSale = p.sale_price !== null && p.sale_price < p.price;
+        return `
+          <a class="search-item" href="/products/${encodeURIComponent(p.slug)}">
+            <img class="search-item-img" src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}" width="44" height="44" loading="lazy">
+            <div class="search-item-content">
+              <strong class="search-item-name">${escapeHtml(p.name)}</strong>
+              <div class="search-item-meta">
+                <span class="search-item-sku">SKU: ${escapeHtml(p.sku)}</span>
+                <span class="search-item-price">${money(p.sale_price ?? p.price)}</span>
+                ${onSale ? `<del class="search-item-del">${money(p.price)}</del>` : ""}
+              </div>
+            </div>
+            <span class="search-item-stock ${p.stock > 0 ? "is-in-stock" : "is-out-stock"}">
+              ${p.stock > 0 ? "Còn hàng" : "Hết hàng"}
+            </span>
+          </a>
+        `;
+      })
+      .join("");
+
+    const footerHtml = `
+      <a class="search-footer" href="/collections/all?q=${encodeURIComponent(rawVal)}">
+        Xem tất cả ${matched.length} sản phẩm cho "${escapeHtml(rawVal)}" →
+      </a>
+    `;
+
+    dropdown.innerHTML = `<div class="search-list">${itemsHtml}</div>${footerHtml}`;
+    dropdown.hidden = false;
+  };
+
+  input.addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(renderDropdown, 120);
+  });
+
+  input.addEventListener("focus", () => {
+    if (input.value.trim() && dropdown.innerHTML.trim()) {
+      dropdown.hidden = false;
+    }
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      dropdown.hidden = true;
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".header-search-wrapper")) {
+      dropdown.hidden = true;
+    }
+  });
+}
+initLiveSearch();

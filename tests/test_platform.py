@@ -195,3 +195,45 @@ def test_tawkto_settings_and_embed_render(client, monkeypatch):
     resp = client.get("/")
     assert resp.status_code == 200
     assert "https://embed.tawk.to/123456789012345678901234/1i0example" in resp.text
+
+
+def test_ui_improvements_and_orders_page_rendering(client):
+    # 1. /account/orders should render HTML web page instead of raw API JSON
+    res_orders = client.get("/account/orders", headers={"Accept": "text/html"})
+    assert res_orders.status_code == 200
+    assert "<!doctype html>" in res_orders.text.lower()
+    assert "Đơn hàng của tôi" in res_orders.text
+    assert '{"detail"' not in res_orders.text
+
+    # 2. Homepage layout & navigation improvements
+    res_home = client.get("/")
+    assert res_home.status_code == 200
+    html = res_home.text
+
+    # store-topbar removed
+    assert 'class="store-topbar"' not in html
+
+    # sticky-header wrapper present
+    assert 'class="sticky-header"' in html
+    assert 'class="site-header"' in html
+    assert 'class="shop-nav"' in html
+
+    # Live search dropdown present
+    assert 'id="store-search"' in html
+    assert 'id="search-dropdown"' in html
+
+    # Tracking link in shop-nav
+    shop_nav_part = html[html.find('class="shop-nav"') : html.find("</nav>", html.find('class="shop-nav"'))]
+    assert 'href="/cart/tracking"' in shop_nav_part
+    assert "Tra cứu đơn hàng" in shop_nav_part
+
+    # Cart icon in cart-link
+    assert 'class="cart-icon"' in html
+    assert 'class="cart-link"' in html
+    assert "data-cart-count" in html
+
+    # store-location defaulted inside footer
+    footer_part = html[html.find('class="site-footer"') :]
+    assert 'class="store-location"' in footer_part
+    assert 'class="footer-address"' in footer_part
+
