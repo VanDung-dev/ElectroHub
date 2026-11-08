@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="account-layout">
+  {% include "account/_sidebar.html" %}
+
+  <main class="account-main">
+    <section class="account-content-card">
+      <header class="account-content-header">
+        <h1>Thông tin tài khoản</h1>
+        <p>Xem và chỉnh sửa thông tin cá nhân, địa chỉ giao hàng và mật khẩu của bạn.</p>
+      </header>
+      <form data-profile-form class="profile-form">
+        <label>
+          <span>Họ và tên</span>
+          <input type="text" name="name" required maxlength="100" data-profile-name-input autocomplete="name">
+        </label>
+        <label>
+          <span>Email đăng nhập</span>
+          <input type="email" name="email" readonly disabled data-profile-email-input style="background:#f4f7f8;color:var(--muted);cursor:not-allowed">
+          <small>Email được dùng làm tài khoản đăng nhập (không thay đổi).</small>
+        </label>
+
+        <hr>
+        <h3>Địa chỉ giao hàng mặc định</h3>
+        <p style="font-size:0.86rem;color:var(--muted);margin:0 0 10px;">Thông tin này sẽ được tự động điền sẵn khi bạn tiến hành đặt hàng.</p>
+        <label>
+          <span>Số điện thoại nhận hàng</span>
+          <input type="tel" name="phone" pattern="0[0-9]{9}" maxlength="10" placeholder="VD: 0901234567" data-profile-phone-input autocomplete="tel">
+        </label>
+        <label>
+          <span>Địa chỉ giao hàng</span>
+          <textarea name="address" rows="2" maxlength="255" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố" data-profile-address-input autocomplete="street-address"></textarea>
+        </label>
+
+        <hr>
+        <h3>Đổi mật khẩu (tùy chọn)</h3>
+        <label>
+          <span>Mật khẩu hiện tại</span>
+          <div class="password-field">
+            <input type="password" name="current_password" autocomplete="current-password" placeholder="Nhập mật khẩu hiện tại nếu muốn đổi">
+            <button type="button" class="btn-toggle-password" aria-label="Hiện mật khẩu"><svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+          </div>
+        </label>
+        <label>
+          <span>Mật khẩu mới</span>
+          <div class="password-field">
+            <input type="password" name="new_password" minlength="8" autocomplete="new-password" placeholder="Mật khẩu mới tối thiểu 8 ký tự">
+            <button type="button" class="btn-toggle-password" aria-label="Hiện mật khẩu"><svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+          </div>
+        </label>
+        <label>
+          <span>Nhập lại mật khẩu mới</span>
+          <div class="password-field">
+            <input type="password" name="confirm_new_password" minlength="8" autocomplete="new-password" placeholder="Xác nhận lại mật khẩu mới">
+            <button type="button" class="btn-toggle-password" aria-label="Hiện mật khẩu"><svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+          </div>
+        </label>
+        <button type="submit" class="button">Lưu thông tin</button>
+        <p data-profile-message role="status" aria-live="polite"></p>
+      </form>
+    </section>
+  </main>
+</div>
+{% endblock %}

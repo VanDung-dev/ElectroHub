@@ -37,4 +37,6 @@ def authenticate(db: Session, data: LoginRequest) -> User:
     password_hash = user.password_hash if user else DUMMY_PASSWORD_HASH
     if not verify_password(data.password.get_secret_value(), password_hash) or user is None:
         raise HTTPException(401, "Email hoặc mật khẩu không đúng")
+    if user.is_blocked:
+        raise HTTPException(403, "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.")
     return user

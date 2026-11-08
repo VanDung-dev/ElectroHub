@@ -1,114 +1,122 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="workspace-heading">
-  <div>
-    <p class="eyebrow">VẬN HÀNH MARKETING</p>
-    <h1>Quản lý Email Marketing</h1>
-    <p>Soạn chiến dịch, gửi email ưu đãi, xem trước HTML và quản lý người đăng ký nhận tin.</p>
-  </div>
-  <span class="role-pill">Quản trị viên</span>
-</section>
+<div class="account-layout">
+  {% include "account/_sidebar.html" %}
 
-<section class="manager-stats" data-marketing-stats aria-live="polite">
-  <article>
-    <span>Người đăng ký nhận tin</span>
-    <strong data-stat-subscribers>—</strong>
-  </article>
-  <article>
-    <span>Chiến dịch đã gửi</span>
-    <strong data-stat-campaigns>—</strong>
-  </article>
-  <article>
-    <span>Gửi thư nền</span>
-    <strong style="font-size: 1.15rem; color: var(--green);">Background Tasks</strong>
-  </article>
-</section>
-
-<nav class="tab-nav" aria-label="Các mục quản lý email">
-  <button type="button" class="tab-btn is-active" data-tab-target="campaign">Soạn chiến dịch mới</button>
-  <button type="button" class="tab-btn" data-tab-target="subscribers">Danh sách người nhận (<span data-subscribers-badge>0</span>)</button>
-  <button type="button" class="tab-btn" data-tab-target="history">Lịch sử chiến dịch (<span data-campaigns-badge>0</span>)</button>
-</nav>
-
-<!-- Tab 1: Soạn chiến dịch -->
-<section data-tab-pane="campaign">
-  <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 480px); gap: 24px; align-items: start;">
-    <form data-campaign class="form-card" style="margin: 0;">
-      <h2 style="font-size: 1.15rem; margin-top: 0;">Soạn nội dung chiến dịch</h2>
-      <p style="font-size: 0.88rem; color: var(--muted); margin: 0 0 16px;">Email sẽ tự động được định dạng HTML chuẩn thương hiệu ElectroHub và gửi kèm link hủy đăng ký riêng biệt cho từng người nhận.</p>
-      
-      <div style="background: #f4f7f5; border: 1px solid #d8e2dc; border-radius: 6px; padding: 12px 14px; margin-bottom: 18px;">
-        <label for="template-select" style="font-weight: 600; font-size: 0.88rem; color: #12372a; margin-bottom: 6px; display: block;">
-          Chọn mẫu email có sẵn (Email Templates):
-        </label>
-        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <select id="template-select" data-template-select style="flex: 1; min-height: 40px; padding: 8px; border: 1px solid #b8c4c4; border-radius: 4px; font: inherit; background: #fff;">
-            <option value="">-- Chọn một mẫu có sẵn để điền nhanh --</option>
-            <option value="flash_sale">⚡ Khuyến mãi / Flash Sale cuối tuần</option>
-            <option value="new_arrival">🚀 Hàng mới về / Sản phẩm mới</option>
-            <option value="voucher_gift">🎁 Tặng mã giảm giá tri ân khách hàng</option>
-            <option value="store_notice">📢 Thông báo cửa hàng / Dịch vụ & Bảo hành</option>
-          </select>
-          <button type="button" data-apply-template class="button-light" style="padding: 8px 14px; font-size: 0.86rem;">Nạp mẫu</button>
+  <main class="account-main">
+    <section class="account-content-card">
+      <header class="account-content-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+        <div>
+          <p class="eyebrow">VẬN HÀNH MARKETING</p>
+          <h1>Quản lý Email Marketing</h1>
+          <p>Soạn chiến dịch, gửi email ưu đãi, xem trước HTML và quản lý người đăng ký nhận tin.</p>
         </div>
-        <p style="font-size: 0.8rem; color: var(--muted); margin: 6px 0 0 0;">Chọn mẫu để tự động điền tiêu đề &amp; nội dung, sau đó bạn chỉ cần chỉnh sửa số liệu là xong.</p>
-      </div>
+        <span class="role-pill role-admin">Quản trị viên</span>
+      </header>
 
-      <label>Tiêu đề email (Subject)
-        <input name="subject" required maxlength="160" placeholder="Ví dụ: Ưu đãi cuối tuần: Giảm 20% linh kiện vi điều khiển & cảm biến">
-      </label>
-      
-      <label>Nội dung thông điệp
-        <textarea name="body" required minlength="10" maxlength="5000" rows="10" placeholder="Nhập nội dung chiến dịch gửi tới khách hàng..."></textarea>
-      </label>
-      
-      <div style="display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap;">
-        <button type="submit">Gửi email marketing</button>
-        <button type="button" data-preview-btn class="button-light">Xem trước (Preview)</button>
-      </div>
-      <p data-message role="status" aria-live="polite"></p>
-    </form>
+      <section class="manager-stats" data-marketing-stats aria-live="polite">
+        <article>
+          <span>Người đăng ký nhận tin</span>
+          <strong data-stat-subscribers>—</strong>
+        </article>
+        <article>
+          <span>Chiến dịch đã gửi</span>
+          <strong data-stat-campaigns>—</strong>
+        </article>
+        <article>
+          <span>Gửi thư nền</span>
+          <strong style="font-size: 1.15rem; color: var(--green);">Background Tasks</strong>
+        </article>
+      </section>
 
-    <div style="background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 18px;">
-      <h3 style="margin-top: 0; font-size: 1rem;">Khung xem trước trực tiếp (Preview)</h3>
-      <p style="font-size: 0.82rem; color: var(--muted);">Bấm "Xem trước" để hiển thị mô phỏng email khách hàng nhận được.</p>
-      <div data-preview-container class="preview-pane">
-        <p style="color: var(--muted); text-align: center; margin-top: 80px; font-size: 0.88rem;">Chưa có bản xem trước.<br>Nhập tiêu đề, nội dung và nhấn "Xem trước".</p>
-      </div>
-    </div>
-  </div>
-</section>
+      <nav class="tab-nav" aria-label="Các mục quản lý email">
+        <button type="button" class="tab-btn is-active" data-tab-target="campaign">Soạn chiến dịch mới</button>
+        <button type="button" class="tab-btn" data-tab-target="subscribers">Danh sách người nhận (<span data-subscribers-badge>0</span>)</button>
+        <button type="button" class="tab-btn" data-tab-target="history">Lịch sử chiến dịch (<span data-campaigns-badge>0</span>)</button>
+      </nav>
 
-<!-- Tab 2: Danh sách người đăng ký -->
-<section data-tab-pane="subscribers" hidden>
-  <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
-    <div>
-      <h2 style="margin: 0; font-size: 1.15rem;">Danh sách người đăng ký nhận tin</h2>
-      <p style="margin: 4px 0 0; color: var(--muted); font-size: 0.88rem;">Khách hàng đã đồng ý nhận email marketing tại chân trang.</p>
-    </div>
-    <div style="display: flex; gap: 8px; align-items: center;">
-      <input type="search" data-sub-search placeholder="Tìm kiếm email..." style="min-height: 38px; padding: 6px 12px; border: 1px solid #b8c4c4; border-radius: 4px;">
-      <button type="button" data-sub-refresh class="button-light">Làm mới</button>
-    </div>
-  </div>
+      <!-- Tab 1: Soạn chiến dịch -->
+      <section data-tab-pane="campaign">
+        <div style="display: flex; flex-direction: column; gap: 24px; width: 100%;">
+          <form data-campaign class="form-card" style="margin: 0; max-width: 100%; width: 100%; box-sizing: border-box;">
+            <h2 style="font-size: 1.15rem; margin-top: 0;">Soạn nội dung chiến dịch</h2>
+            <p style="font-size: 0.88rem; color: var(--muted); margin: 0 0 16px;">Email sẽ tự động được định dạng HTML chuẩn thương hiệu ElectroHub và gửi kèm link hủy đăng ký riêng biệt cho từng người nhận.</p>
+            
+            <div style="background: #f4f7f5; border: 1px solid #d8e2dc; border-radius: 6px; padding: 12px 14px; margin-bottom: 18px;">
+              <label for="template-select" style="font-weight: 600; font-size: 0.88rem; color: #12372a; margin-bottom: 6px; display: block;">
+                Chọn mẫu email có sẵn (Email Templates):
+              </label>
+              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <select id="template-select" data-template-select style="flex: 1; min-height: 40px; padding: 8px; border: 1px solid #b8c4c4; border-radius: 4px; font: inherit; background: #fff;">
+                  <option value="">-- Chọn một mẫu có sẵn để điền nhanh --</option>
+                  <option value="flash_sale">⚡ Khuyến mãi / Flash Sale cuối tuần</option>
+                  <option value="new_arrival">🚀 Hàng mới về / Sản phẩm mới</option>
+                  <option value="voucher_gift">🎁 Tặng mã giảm giá tri ân khách hàng</option>
+                  <option value="store_notice">📢 Thông báo cửa hàng / Dịch vụ & Bảo hành</option>
+                </select>
+                <button type="button" data-apply-template class="button-light" style="padding: 8px 14px; font-size: 0.86rem;">Nạp mẫu</button>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--muted); margin: 6px 0 0 0;">Chọn mẫu để tự động điền tiêu đề &amp; nội dung, sau đó bạn chỉ cần chỉnh sửa số liệu là xong.</p>
+            </div>
 
-  <div data-subscribers-table-container>
-    <p>Đang tải danh sách người đăng ký…</p>
-  </div>
-</section>
+            <label>Tiêu đề email (Subject)
+              <input name="subject" required maxlength="160" placeholder="Ví dụ: Ưu đãi cuối tuần: Giảm 20% linh kiện vi điều khiển & cảm biến">
+            </label>
+            
+            <label>Nội dung thông điệp
+              <textarea name="body" required minlength="10" maxlength="5000" rows="10" placeholder="Nhập nội dung chiến dịch gửi tới khách hàng..."></textarea>
+            </label>
+            
+            <div style="display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap;">
+              <button type="submit">Gửi email marketing</button>
+              <button type="button" data-preview-btn class="button-light">Xem trước (Preview)</button>
+            </div>
+            <p data-message role="status" aria-live="polite"></p>
+          </form>
 
-<!-- Tab 3: Lịch sử chiến dịch -->
-<section data-tab-pane="history" hidden>
-  <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px;">
-    <div>
-      <h2 style="margin: 0; font-size: 1.15rem;">Lịch sử gửi email marketing</h2>
-      <p style="margin: 4px 0 0; color: var(--muted); font-size: 0.88rem;">Các đợt gửi email qua chế độ nền (Background Tasks).</p>
-    </div>
-    <button type="button" data-campaigns-refresh class="button-light">Làm mới</button>
-  </div>
+          <div class="form-card" style="margin: 0; max-width: 100%; width: 100%; box-sizing: border-box; background: #fff;">
+            <h3 style="margin-top: 0; font-size: 1.05rem;">Khung xem trước trực tiếp (Preview)</h3>
+            <p style="font-size: 0.84rem; color: var(--muted); margin-bottom: 12px;">Bấm "Xem trước" để hiển thị mô phỏng email khách hàng nhận được.</p>
+            <div data-preview-container class="preview-pane" style="width: 100%; box-sizing: border-box;">
+              <p style="color: var(--muted); text-align: center; margin-top: 60px; font-size: 0.88rem;">Chưa có bản xem trước.<br>Nhập tiêu đề, nội dung và nhấn "Xem trước".</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-  <div data-campaigns-table-container>
-    <p>Đang tải lịch sử chiến dịch…</p>
-  </div>
-</section>
+      <!-- Tab 2: Danh sách người đăng ký -->
+      <section data-tab-pane="subscribers" hidden>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
+          <div>
+            <h2 style="margin: 0; font-size: 1.15rem;">Danh sách người đăng ký nhận tin</h2>
+            <p style="margin: 4px 0 0; color: var(--muted); font-size: 0.88rem;">Khách hàng đã đồng ý nhận email marketing tại chân trang.</p>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="search" data-sub-search placeholder="Tìm kiếm email..." style="min-height: 38px; padding: 6px 12px; border: 1px solid #b8c4c4; border-radius: 4px;">
+            <button type="button" data-sub-refresh class="button-light">Làm mới</button>
+          </div>
+        </div>
+
+        <div data-subscribers-table-container>
+          <p>Đang tải danh sách người đăng ký…</p>
+        </div>
+      </section>
+
+      <!-- Tab 3: Lịch sử chiến dịch -->
+      <section data-tab-pane="history" hidden>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px;">
+          <div>
+            <h2 style="margin: 0; font-size: 1.15rem;">Lịch sử gửi email marketing</h2>
+            <p style="margin: 4px 0 0; color: var(--muted); font-size: 0.88rem;">Các đợt gửi email qua chế độ nền (Background Tasks).</p>
+          </div>
+          <button type="button" data-campaigns-refresh class="button-light">Làm mới</button>
+        </div>
+
+        <div data-campaigns-table-container>
+          <p>Đang tải lịch sử chiến dịch…</p>
+        </div>
+      </section>
+    </section>
+  </main>
+</div>
 {% endblock %}

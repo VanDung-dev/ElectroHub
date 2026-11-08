@@ -185,3 +185,171 @@ def test_each_role_can_login_and_open_its_workspace(client, database, role, land
         assert client.get("/api/v1/admin/products").status_code == 403
     if role == "customer":
         assert client.get("/staff/orders").status_code == 403
+
+
+def test_user_id_scoped_workspaces_and_permissions(client, database):
+    # 1. Password toggle buttons present on auth pages
+    res_login = client.get("/account/login")
+    assert "btn-toggle-password" in res_login.text
+    assert "password-field" in res_login.text
+
+    res_reg = client.get("/account/register")
+    assert "btn-toggle-password" in res_reg.text
+
+    # 2. Register customer 1
+    register(client, email="cust1@example.com", name="Khách 1")
+    login(client, email="cust1@example.com")
+
+    # Customer 1 can access account profile and orders pages
+    res_acc = client.get("/account")
+    assert res_acc.status_code == 200
+    assert "data-account-sidebar" in res_acc.text
+    assert "data-profile-form" in res_acc.text
+
+    res_orders = client.get("/account/orders")
+    assert res_orders.status_code == 200
+    assert "data-account-sidebar" in res_orders.text
+    assert "data-account-orders" in res_orders.text
+
+    # Customer CANNOT access manager or staff pages
+    assert client.get("/manager").status_code == 403
+    assert client.get("/staff/orders").status_code == 403
+
+    # 3. User can edit their own profile (name and password)
+    headers = csrf_headers(client)
+    res_update = client.put(
+        "/api/v1/auth/me",
+        json={
+            "name": "Khách 1 Đã Đổi Tên",
+            "current_password": "ExamplePassword123!",
+            "new_password": "NewSecretPassword456!",
+        },
+        headers=headers,
+    )
+    assert res_update.status_code == 200
+    assert res_update.json()["name"] == "Khách 1 Đã Đổi Tên"
+
+    # Verify new password works
+    client.post(
+        "/api/v1/auth/logout", headers={"Origin": "http://testserver", **csrf_headers(client)}
+    )
+    res_relogin = login(client, email="cust1@example.com", password="NewSecretPassword456!")
+    assert res_relogin.status_code == 200
+
+    # Wrong current password fails
+    res_fail = client.put(
+        "/api/v1/auth/me",
+        json={
+            "name": "Test",
+            "current_password": "WrongPassword!",
+            "new_password": "AnotherNewPass123!",
+        },
+        headers=csrf_headers(client),
+    )
+    assert res_fail.status_code == 400
+    assert res_fail.json()["detail"] == "Mật khẩu hiện tại không chính xác"
+
+
+def test_admin_permissions_blocking_and_revenue(client, database):
+    # 1. Register customer 1 & customer 2
+    register(client, email="user1@example.com", name="Khách 1")
+    register(client, email="user2@example.com", name="Khách 2")
+
+    # 2. Register admin user by promoting in db directly
+    register(client, email="admin@example.com", name="Quản lý chính")
+    with Session(database) as db:
+        admin_u = db.scalar(select(User).where(User.email == "admin@example.com"))
+        admin_u.role = "admin"
+        cust1_u = db.scalar(select(User).where(User.email == "user1@example.com"))
+        cust1_id = cust1_u.id
+        db.commit()
+
+    # 3. Customer 1 cannot access admin user list or revenue
+    login(client, email="user1@example.com")
+    assert client.get("/api/v1/auth/admin/users").status_code == 403
+    assert client.get("/api/v1/auth/admin/revenue").status_code == 403
+    assert client.get("/admin/users").status_code == 403
+
+    # 4. Login as admin
+    client.post(
+        "/api/v1/auth/logout", headers={"Origin": "http://testserver", **csrf_headers(client)}
+    )
+    login(client, email="admin@example.com")
+    headers = csrf_headers(client)
+
+    # Admin accesses users page and revenue API
+    assert client.get("/admin/users").status_code == 200
+    assert "data-admin-users" in client.get("/admin/users").text
+
+    res_users = client.get("/api/v1/auth/admin/users")
+    assert res_users.status_code == 200
+    users_data = res_users.json()
+    assert len(users_data) == 3
+    assert any(u["email"] == "user1@example.com" and not u["is_blocked"] for u in users_data)
+
+    res_rev = client.get("/api/v1/auth/admin/revenue")
+    assert res_rev.status_code == 200
+    assert "total_revenue" in res_rev.json()
+    assert "paypal_revenue" in res_rev.json()
+    assert "vnpay_revenue" in res_rev.json()
+
+    # 5. Admin promotes customer 1 to staff
+    res_promote = client.patch(
+        f"/api/v1/auth/admin/users/{cust1_id}/role",
+        json={"role": "staff"},
+        headers=headers,
+    )
+    assert res_promote.status_code == 200
+    assert res_promote.json()["role"] == "staff"
+
+    # Admin cannot change own role
+    me_admin = client.get("/api/v1/auth/me").json()
+    res_self_role = client.patch(
+        f"/api/v1/auth/admin/users/{me_admin['id']}/role",
+        json={"role": "customer"},
+        headers=headers,
+    )
+    assert res_self_role.status_code == 400
+
+    # 6. Admin blocks customer 1
+    res_block = client.patch(
+        f"/api/v1/auth/admin/users/{cust1_id}/block",
+        json={"is_blocked": True},
+        headers=headers,
+    )
+    assert res_block.status_code == 200
+    assert res_block.json()["is_blocked"] is True
+
+    # Admin cannot block self
+    res_self_block = client.patch(
+        f"/api/v1/auth/admin/users/{me_admin['id']}/block",
+        json={"is_blocked": True},
+        headers=headers,
+    )
+    assert res_self_block.status_code == 400
+
+    # 7. Customer 1 (now blocked) cannot login
+    client.post(
+        "/api/v1/auth/logout", headers={"Origin": "http://testserver", **csrf_headers(client)}
+    )
+    res_blocked_login = login(client, email="user1@example.com")
+    assert res_blocked_login.status_code == 403
+    assert "khóa" in res_blocked_login.json()["detail"].lower()
+
+    # 8. Admin unblocks customer 1
+    login(client, email="admin@example.com")
+    res_unblock = client.patch(
+        f"/api/v1/auth/admin/users/{cust1_id}/block",
+        json={"is_blocked": False},
+        headers=csrf_headers(client),
+    )
+    assert res_unblock.status_code == 200
+    assert res_unblock.json()["is_blocked"] is False
+
+    # Customer 1 can now login again and is staff
+    client.post(
+        "/api/v1/auth/logout", headers={"Origin": "http://testserver", **csrf_headers(client)}
+    )
+    res_relogin = login(client, email="user1@example.com")
+    assert res_relogin.status_code == 200
+    assert res_relogin.json()["role"] == "staff"
