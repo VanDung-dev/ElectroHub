@@ -247,7 +247,7 @@ body{background:#f7f8fa}
 @media(max-width:960px){.revenue-stats-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:540px){.revenue-stats-grid{grid-template-columns:1fr}}
 .revenue-stat-card{background:#f8fafb;border:1px solid #dce3e5;border-radius:6px;padding:16px 18px;display:flex;flex-direction:column;gap:4px}
-.revenue-stat-card span{font-size:.82rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.revenue-stat-card .stat-title,.revenue-stat-card>span:not(.trend-badge):not(.stat-pill){font-size:.82rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
 .revenue-stat-card strong{font-size:1.35rem;color:var(--ink);font-weight:750}
 .revenue-stat-card small{font-size:.76rem;color:var(--muted);margin-top:2px}
 
@@ -301,3 +301,185 @@ body{background:#f7f8fa}
 
 /* TinyMCE Editor Customization */
 .tox.tox-tinymce{border-radius:6px!important;border-color:#cbd5e0!important;font-family:inherit!important}
+
+/* ==========================================================================
+   Enhanced Revenue Analytics Dashboard (/manager)
+   ========================================================================== */
+.revenue-filter-bar{background:#f8fafb;border:1px solid #dce3e5;border-radius:8px;padding:14px 18px;margin-bottom:20px;display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+.period-selectors{display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%}
+.period-type-tabs{display:inline-flex;gap:4px;background:#eef2f5;padding:4px;border-radius:6px}
+.period-tab{border:0;background:transparent;padding:6px 14px;border-radius:5px;font:inherit;font-size:.85rem;font-weight:600;color:#526470;cursor:pointer;transition:all .15s}
+.period-tab:hover{color:var(--ink)}
+.period-tab.is-active{background:#fff;color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.08);font-weight:700}
+.admin-select{min-height:36px;padding:6px 12px;border:1px solid #bcc8cc;border-radius:5px;font:inherit;font-size:.88rem;background:#fff;color:var(--ink)}
+.period-current-badge{display:inline-flex;align-items:center;background:#fff3e0;color:#b54c28;font-weight:700;font-size:.82rem;padding:6px 12px;border-radius:16px;border:1px solid #fed7aa}
+
+/* Overview Layout (Left: Vertical Stat Cards, Right: Timeline Chart) */
+.revenue-overview-grid{display:grid;grid-template-columns:330px minmax(0,1fr);gap:20px;align-items:stretch}
+.revenue-stats-vertical{display:flex;flex-direction:column;gap:12px;justify-content:space-between}
+.revenue-stats-vertical .revenue-stat-card{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.03);padding:14px 18px;border-radius:8px;transition:border-color .15s,box-shadow .15s}
+.revenue-stats-vertical .revenue-stat-card:hover{border-color:#cbd5e1;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.chart-card-main{display:flex;flex-direction:column;justify-content:space-between;height:100%}
+
+/* Structure Grid (Left: Payment channels, Right: Donut chart) */
+.revenue-structure-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.payment-channels-list{display:flex;flex-direction:column;gap:10px}
+
+.stat-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px}
+.trend-badge{font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:12px;display:inline-flex;align-items:center;gap:3px;text-transform:none!important;letter-spacing:normal!important;white-space:nowrap}
+.trend-up{background:#e8f5e9;color:#2e7d32}
+.trend-down{background:#ffebee;color:#c62828}
+.trend-neutral{background:#f1f5f9;color:#64748b}
+
+.stat-pill{font-size:.74rem;font-weight:600;padding:2px 8px;border-radius:10px;text-transform:none!important;letter-spacing:normal!important;white-space:nowrap}
+.stat-pill-success{background:#e8f5e9;color:#2e7d32}
+.stat-pill-neutral{background:#edf2f7;color:#4a5568}
+
+.payment-channel-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.payment-channel-card .channel-pct{font-size:.8rem;font-weight:700;color:var(--accent);background:#fff0eb;padding:2px 8px;border-radius:10px}
+.payment-channel-card .channel-val{margin:6px 0 2px;font-size:1.25rem;font-weight:750;color:var(--ink)}
+
+.chart-card{background:#fff;border:1px solid #dce3e5;border-radius:8px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.03)}
+.chart-tooltip{position:absolute;pointer-events:none;background:rgba(26,38,48,.96);color:#fff;padding:8px 12px;border-radius:6px;font-size:.78rem;line-height:1.45;box-shadow:0 4px 14px rgba(0,0,0,.2);z-index:10;transition:opacity .1s}
+
+.rank-badge{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 6px;border-radius:14px;font-weight:750;font-size:.78rem}
+.rank-1{background:#fef3c7;color:#b45309;border:1px solid #fde68a}
+.rank-2{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1}
+.rank-3{background:#ffedd5;color:#c2410c;border:1px solid #fed7aa}
+.rank-other{background:#f8fafc;color:#64748b;border:1px solid #e2e8f0}
+.top-product-img{width:42px;height:42px;object-fit:contain;border-radius:4px;border:1px solid #edf2f4;background:#fafbfc}
+.mini-progress-bar{width:100%;height:6px;background:#edf2f7;border-radius:3px;overflow:hidden;margin-top:4px}
+.mini-progress-fill{height:100%;background:#b54c28;border-radius:3px}
+
+/* Orders Table in Period & Fixed-Height Scroll Container */
+.revenue-orders-table-wrap,
+.top-products-wrap{
+  max-height: 440px;
+  overflow-y: auto;
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid #dce3e5;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.03);
+  position: relative;
+}
+.revenue-orders-table-wrap::-webkit-scrollbar,
+.top-products-wrap::-webkit-scrollbar{width:6px;height:6px}
+.revenue-orders-table-wrap::-webkit-scrollbar-track,
+.top-products-wrap::-webkit-scrollbar-track{background:#f1f5f9;border-radius:4px}
+.revenue-orders-table-wrap::-webkit-scrollbar-thumb,
+.top-products-wrap::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+.revenue-orders-table-wrap::-webkit-scrollbar-thumb:hover,
+.top-products-wrap::-webkit-scrollbar-thumb:hover{background:#94a3b8}
+
+.revenue-orders-table,
+.top-products-table{
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: .88rem;
+  text-align: left;
+}
+.revenue-orders-table thead th,
+.top-products-table thead th{
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #f8fafc;
+  color: #526470;
+  font-size: .82rem;
+  font-weight: 600;
+  padding: 12px 14px;
+  border-bottom: 1px solid #dce3e5;
+  box-shadow: inset 0 -1px 0 #dce3e5;
+  white-space: nowrap;
+}
+.revenue-orders-table tbody td,
+.top-products-table tbody td{
+  padding: 12px 14px;
+  border-bottom: 1px solid #edf2f4;
+  vertical-align: middle;
+}
+.revenue-orders-table tbody tr:hover td,
+.top-products-table tbody tr:hover td{
+  background: #f8fafc;
+}
+.revenue-orders-table tbody tr:last-child td,
+.top-products-table tbody tr:last-child td{
+  border-bottom: none;
+}
+
+.order-code-link{
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px dashed #94a3b8;
+  transition: color .15s, border-color .15s;
+}
+.order-code-link:hover{
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.order-time-val{
+  font-weight: 500;
+  color: var(--ink);
+  font-size: .85rem;
+  line-height: 1.25;
+}
+.order-date-val{
+  font-size: .78rem;
+  color: var(--muted);
+  line-height: 1.25;
+  margin-top: 2px;
+}
+
+.order-channel-val{
+  font-weight: 600;
+  color: var(--ink);
+  font-size: .86rem;
+  line-height: 1.25;
+}
+.order-channel-sub{
+  font-size: .78rem;
+  color: var(--muted);
+  line-height: 1.25;
+  margin-top: 2px;
+}
+
+.status-pill{
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: .78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-align: center;
+}
+.status-pill.status-pending{background:#fef3c7;color:#92400e}
+.status-pill.status-confirmed{background:#e0f2fe;color:#0369a1}
+.status-pill.status-shipping{background:#ede9fe;color:#6d28d9}
+.status-pill.status-done{background:#dcfce7;color:#15803d}
+.status-pill.status-cancelled{background:#fee2e2;color:#b91c1c}
+
+.order-revenue-val{
+  text-align: right;
+  white-space: nowrap;
+  font-weight: 750;
+  color: #b54c28;
+  font-size: .95rem;
+}
+
+@media(max-width:1040px){
+  .revenue-overview-grid{grid-template-columns:1fr}
+  .revenue-structure-grid{grid-template-columns:1fr}
+}
+
+@media print{
+  .site-header,.shop-nav,.site-footer,.chat-links,.account-sidebar,.dashboard-actions,.revenue-filter-bar{display:none!important}
+  .account-layout{display:block!important;margin:0!important}
+  .account-content-card{border:0!important;box-shadow:none!important;padding:0!important}
+  .revenue-overview-grid{grid-template-columns:1fr 1fr!important}
+  body{background:#fff!important;color:#000!important}
+}
+

@@ -666,57 +666,57 @@ async function loadAdminCampaigns() {
 
 const campaignPresets = {
   flash_sale: {
-    subject: "⚡ [ElectroHub] FLASH SALE CUỐI TUẦN: Giảm tới 30% linh kiện & thiết bị điện tử!",
+    subject: "[ElectroHub] FLASH SALE CUỐI TUẦN: Giảm tới 30% linh kiện & thiết bị điện tử!",
     body: `Kính gửi quý khách hàng,
 
 Cuối tuần này, ElectroHub mang đến chương trình FLASH SALE bùng nổ với hàng loạt ưu đãi hấp dẫn dành riêng cho cộng đồng kỹ thuật & DIY:
 
-🔥 GIẢM TỚI 30% các dòng vi điều khiển: ESP32-WROOM, Arduino Uno R3, STM32 Blue Pill.
-🔥 ĐỒNG GIÁ linh kiện cảm biến: Cảm biến nhiệt ẩm DHT11, cảm biến khoảng cách HC-SR04, module Relay 5V.
-🔥 MIỄN PHÍ VẬN CHUYỂN cho tất cả đơn hàng từ 300.000₫.
+- GIẢM TỚI 30% các dòng vi điều khiển: ESP32-WROOM, Arduino Uno R3, STM32 Blue Pill.
+- ĐỒNG GIÁ linh kiện cảm biến: Cảm biến nhiệt ẩm DHT11, cảm biến khoảng cách HC-SR04, module Relay 5V.
+- MIỄN PHÍ VẬN CHUYỂN cho tất cả đơn hàng từ 300.000₫.
 
-⏰ Thời gian áp dụng: Từ Thứ Sáu đến hết Chủ Nhật tuần này.
+Thời gian áp dụng: Từ Thứ Sáu đến hết Chủ Nhật tuần này.
 Số lượng linh kiện khuyến mãi có hạn, hãy nhanh tay đặt hàng ngay hôm nay để nhận ưu đãi!
 
 ElectroHub rất hân hạnh được đồng hành cùng những dự án sáng tạo của bạn.`
   },
   new_arrival: {
-    subject: "🚀 [ElectroHub] HÀNG MỚI VỀ: Khám phá các dòng module vi điều khiển & cảm biến thế hệ mới!",
+    subject: "[ElectroHub] HÀNG MỚI VỀ: Khám phá các dòng module vi điều khiển & cảm biến thế hệ mới!",
     body: `Chào bạn,
 
 ElectroHub xin thông báo kho hàng vừa cập bến các sản phẩm và linh kiện điện tử mới nhất phục vụ cho các dự án IoT, Robotics và tự động hóa:
 
-✨ Module ESP32-S3 Dual-Core hiệu năng cao, tích hợp AI & kết nối không dây mạnh mẽ.
-✨ Mạch sạc nhanh Type-C và module hạ áp Buck đa năng thế hệ mới.
-✨ Cảm biến môi trường độ chính xác cao BME280 và module đo dòng INA219.
+- Module ESP32-S3 Dual-Core hiệu năng cao, tích hợp AI & kết nối không dây mạnh mẽ.
+- Mạch sạc nhanh Type-C và module hạ áp Buck đa năng thế hệ mới.
+- Cảm biến môi trường độ chính xác cao BME280 và module đo dòng INA219.
 
 Tất cả sản phẩm đều được kiểm tra chất lượng kỹ lưỡng và có sẵn số lượng lớn tại kho.
 
-👉 Xem ngay danh mục sản phẩm mới để không bỏ lỡ linh kiện cho dự án của bạn!`
+Xem ngay danh mục sản phẩm mới để không bỏ lỡ linh kiện cho dự án của bạn!`
   },
   voucher_gift: {
-    subject: "🎁 [ElectroHub] TẶNG BẠN VOUCHER ĐẶC QUYỀN: Giảm ngay 15% cho đơn hàng tiếp theo!",
+    subject: "[ElectroHub] TẶNG BẠN VOUCHER ĐẶC QUYỀN: Giảm ngay 15% cho đơn hàng tiếp theo!",
     body: `Kính gửi quý khách hàng thân thiết,
 
 Để cảm ơn sự tin tưởng và đồng hành của bạn cùng ElectroHub trong suốt thời gian qua, chúng tôi xin gửi tặng bạn món quà tri ân đặc biệt:
 
-🎟 Mã giảm giá: TRIAN2026
-💰 Ưu đãi: Giảm 15% trên tổng giá trị đơn hàng (tối đa 100.000₫).
-📅 Hạn sử dụng: Đến hết ngày 30 của tháng này.
+- Mã giảm giá: TRIAN2026
+- Ưu đãi: Giảm 15% trên tổng giá trị đơn hàng (tối đa 100.000₫).
+- Hạn sử dụng: Đến hết ngày 30 của tháng này.
 
 Mã ưu đãi áp dụng cho tất cả sản phẩm đang có tại website ElectroHub: từ bo mạch phát triển, cảm biến, linh kiện thụ động đến phụ kiện nguồn.
 
 Hãy nhập mã TRIAN2026 tại bước giỏ hàng hoặc thanh toán để nhận ưu đãi nhé!`
   },
   store_notice: {
-    subject: "📢 [ElectroHub] THÔNG BÁO: Cập nhật chính sách giao hàng và bảo hành linh kiện",
+    subject: "[ElectroHub] THÔNG BÁO: Cập nhật chính sách giao hàng và bảo hành linh kiện",
     body: `Kính gửi quý khách hàng,
 
 Nhằm nâng cao chất lượng dịch vụ và mang lại trải nghiệm mua sắm tốt nhất, ElectroHub xin trân trọng thông báo một số cập nhật mới:
 
-📦 Thời gian giao hàng: Giao hàng hỏa tốc trong 2-4 giờ tại nội thành và 1-3 ngày trên toàn quốc.
-🛡 Chính sách bảo hành: Hỗ trợ 1 đổi 1 trong vòng 7 ngày đối với các bo mạch, module phát hiện lỗi từ nhà sản xuất.
-💬 Kênh hỗ trợ trực tuyến: Đội ngũ kỹ thuật hỗ trợ tư vấn linh kiện và sơ đồ đấu nối 24/7.
+- Thời gian giao hàng: Giao hàng hỏa tốc trong 2-4 giờ tại nội thành và 1-3 ngày trên toàn quốc.
+- Chính sách bảo hành: Hỗ trợ 1 đổi 1 trong vòng 7 ngày đối với các bo mạch, module phát hiện lỗi từ nhà sản xuất.
+- Kênh hỗ trợ trực tuyến: Đội ngũ kỹ thuật hỗ trợ tư vấn linh kiện và sơ đồ đấu nối 24/7.
 
 Mọi thắc mắc cần hỗ trợ, quý khách vui lòng liên hệ qua fanpage hoặc hotline của ElectroHub.
 
@@ -1655,7 +1655,6 @@ initAdminTinyMCE();
 loadUserNav();
 loadAccountSidebar();
 loadManagerStats();
-loadRevenueReport();
 loadAdminUsers();
 loadAccountOrders();
 loadStaffOrders();
@@ -2067,75 +2066,733 @@ document.querySelector("[data-profile-form]")?.addEventListener("submit", async 
   }
 });
 
-// Báo cáo doanh thu (/manager)
-async function loadRevenueReport() {
-  const container = document.querySelector("[data-revenue-stats]");
-  if (!container) return;
-  try {
-    const data = await request("/api/v1/auth/admin/revenue");
-    const totalEl = document.querySelector("[data-rev-total]");
-    if (totalEl) totalEl.textContent = money(data.total_revenue);
+// Báo cáo doanh thu (/manager) & Phân tích kinh doanh
+var revPeriodState = {
+  period_type: "month",
+  year: new Date().getFullYear(),
+  month: new Date().getMonth() + 1,
+  quarter: Math.floor(new Date().getMonth() / 3) + 1,
+};
+var revLoadedData = null;
+var revInitialized = false;
 
-    const vnpayEl = document.querySelector("[data-rev-vnpay]");
-    if (vnpayEl) vnpayEl.textContent = money(data.vnpay_revenue);
+function formatShortVnd(value) {
+  const num = Number(value) || 0;
+  if (Math.abs(num) >= 1_000_000_000) return (num / 1_000_000_000).toFixed(1) + " tỷ";
+  if (Math.abs(num) >= 1_000_000) return (num / 1_000_000).toFixed(1) + " tr";
+  if (Math.abs(num) >= 1_000) return (num / 1_000).toFixed(0) + " k";
+  return String(num);
+}
 
-    const paypalEl = document.querySelector("[data-rev-paypal]");
-    if (paypalEl) {
-      const rate = 25000;
-      const usd = (data.paypal_revenue / rate).toFixed(2);
-      paypalEl.textContent = `${money(data.paypal_revenue)} (≈ $${usd})`;
+function initRevenueControls() {
+  if (revInitialized) return;
+  const dashboard = document.querySelector("[data-revenue-dashboard]");
+  if (!dashboard) return;
+  revInitialized = true;
+
+  // Month selector
+  const monthSelect = dashboard.querySelector("[data-rev-select-month]");
+  if (monthSelect) {
+    monthSelect.value = String(revPeriodState.month);
+    monthSelect.addEventListener("change", (e) => {
+      revPeriodState.month = Number(e.target.value);
+      fetchRevenueData();
+    });
+  }
+
+  // Quarter selector
+  const quarterSelect = dashboard.querySelector("[data-rev-select-quarter]");
+  if (quarterSelect) {
+    quarterSelect.value = String(revPeriodState.quarter);
+    quarterSelect.addEventListener("change", (e) => {
+      revPeriodState.quarter = Number(e.target.value);
+      fetchRevenueData();
+    });
+  }
+
+  // Year selector
+  const yearSelect = dashboard.querySelector("[data-rev-select-year]");
+  if (yearSelect) {
+    const curY = revPeriodState.year;
+    if (!yearSelect.options.length) {
+      yearSelect.innerHTML = `<option value="${curY}" selected>Năm ${curY}</option><option value="${curY - 1}">Năm ${curY - 1}</option>`;
+    } else {
+      yearSelect.value = String(curY);
     }
+    yearSelect.addEventListener("change", (e) => {
+      revPeriodState.year = Number(e.target.value);
+      fetchRevenueData();
+    });
+  }
 
-    const ordersEl = document.querySelector("[data-rev-orders]");
-    if (ordersEl) ordersEl.textContent = `${data.total_orders} đơn`;
+  // Current display label
+  const displayLabel = dashboard.querySelector("[data-period-display-label]");
+  if (displayLabel) {
+    displayLabel.textContent = `Tháng ${String(revPeriodState.month).padStart(2, "0")}/${revPeriodState.year}`;
+  }
 
-    // Phân bố trạng thái đơn
-    const chipsContainer = document.querySelector("[data-status-chips]");
-    if (chipsContainer && data.status_counts) {
-      chipsContainer.innerHTML = Object.entries(statusNames).map(([key, label]) => {
-        const count = data.status_counts[key] || 0;
-        return `<span class="status-chip" style="padding:6px 14px;border-radius:20px;background:#f4f7f8;border:1px solid #dce3e5;font-size:0.86rem;"><strong>${count}</strong> ${label}</span>`;
-      }).join("");
-    }
+  // Period Type Tabs
+  const tabs = dashboard.querySelectorAll("[data-period-type]");
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      tabs.forEach((t) => t.classList.remove("is-active"));
+      tab.classList.add("is-active");
+      const type = tab.dataset.periodType;
+      revPeriodState.period_type = type;
 
-    // Bảng đơn hàng phát sinh doanh thu gần đây
-    const tableContainer = document.querySelector("[data-revenue-orders]");
-    if (tableContainer) {
-      if (!data.recent_orders || !data.recent_orders.length) {
-        tableContainer.innerHTML = "<p>Chưa có đơn hàng nào phát sinh.</p>";
-      } else {
-        tableContainer.innerHTML = `
-          <div style="overflow-x:auto;">
-            <table class="admin-table" style="width:100%;border-collapse:collapse;font-size:0.88rem;text-align:left;">
-              <thead>
-                <tr style="border-bottom:2px solid #edf2f4;color:var(--muted);">
-                  <th style="padding:10px 8px;">Mã đơn</th>
-                  <th style="padding:10px 8px;">Thời gian</th>
-                  <th style="padding:10px 8px;">Cổng thanh toán</th>
-                  <th style="padding:10px 8px;">Trạng thái đơn</th>
-                  <th style="padding:10px 8px;text-align:right;">Doanh thu</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${data.recent_orders.map(o => `
-                  <tr style="border-bottom:1px solid #edf2f4;">
-                    <td style="padding:10px 8px;"><strong><a href="/cart/tracking?code=${encodeURIComponent(o.code)}">${escapeHtml(o.code)}</a></strong></td>
-                    <td style="padding:10px 8px;color:var(--muted);">${new Date(o.created_at).toLocaleString("vi-VN")}</td>
-                    <td style="padding:10px 8px;">${escapeHtml(o.payment_method)} (${escapeHtml(paymentStatusNames[o.payment_status] || o.payment_status)})</td>
-                    <td style="padding:10px 8px;">${orderTag(o.status)}</td>
-                    <td style="padding:10px 8px;text-align:right;font-weight:700;color:#b54c28;">${money(o.total)}</td>
-                  </tr>
-                `).join("")}
-              </tbody>
-            </table>
-          </div>
-        `;
+      const groupMonth = dashboard.querySelector("[data-group-month]");
+      const groupQuarter = dashboard.querySelector("[data-group-quarter]");
+      const groupYear = dashboard.querySelector("[data-group-year]");
+
+      if (groupMonth) groupMonth.hidden = type !== "month";
+      if (groupQuarter) groupQuarter.hidden = type !== "quarter";
+      if (groupYear) groupYear.hidden = type === "all";
+
+      fetchRevenueData();
+    });
+  });
+
+  // Print Report Button
+  const printBtn = dashboard.querySelector("[data-revenue-print]");
+  if (printBtn) {
+    printBtn.addEventListener("click", () => window.print());
+  }
+
+  // Window resize observer for canvas charts
+  window.addEventListener("resize", () => {
+    if (revLoadedData) {
+      const timelineCanvas = document.getElementById("revenueTimelineChart");
+      if (timelineCanvas && revLoadedData.timeline_comparison) {
+        drawTimelineChart(timelineCanvas, revLoadedData.timeline_comparison);
+      }
+      const structureCanvas = document.getElementById("revenueStructureChart");
+      if (structureCanvas && revLoadedData.payment_breakdown) {
+        drawStructureChart(structureCanvas, revLoadedData.payment_breakdown, revLoadedData.status_counts);
       }
     }
+  });
+}
+
+async function fetchRevenueData() {
+  const container = document.querySelector("[data-revenue-dashboard]") || document.querySelector("[data-revenue-stats]");
+  if (!container) return;
+
+  try {
+    const params = new URLSearchParams({ period_type: revPeriodState.period_type });
+    if (revPeriodState.period_type !== "all") {
+      params.set("year", revPeriodState.year);
+    }
+    if (revPeriodState.period_type === "month") {
+      params.set("month", revPeriodState.month);
+    } else if (revPeriodState.period_type === "quarter") {
+      params.set("quarter", revPeriodState.quarter);
+    }
+
+    const data = await request(`/api/v1/auth/admin/revenue?${params.toString()}`);
+    revLoadedData = data;
+
+    // Update export CSV button href
+    const exportBtn = document.querySelector("[data-revenue-export]");
+    if (exportBtn) {
+      exportBtn.href = `/api/v1/auth/admin/revenue/export?${params.toString()}`;
+    }
+
+    renderRevenueDashboard(data);
   } catch (error) {
-    if (container) container.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
+    console.error("Lỗi tải báo cáo doanh thu:", error);
+    const totalEl = document.querySelector("[data-rev-total]");
+    if (totalEl) totalEl.textContent = "Lỗi tải dữ liệu";
   }
 }
+
+function renderRevenueDashboard(data) {
+  // Update year select options if available
+  const yearSelect = document.querySelector("[data-rev-select-year]");
+  if (yearSelect && data.available_years && data.available_years.length) {
+    const currentVal = Number(yearSelect.value) || revPeriodState.year;
+    yearSelect.innerHTML = data.available_years
+      .map((y) => `<option value="${y}" ${y === currentVal ? "selected" : ""}>Năm ${y}</option>`)
+      .join("");
+  }
+
+  // Current period label
+  const labelEl = document.querySelector("[data-period-display-label]");
+  if (labelEl && data.period) {
+    labelEl.textContent = data.period.label;
+  }
+
+  const kpis = data.kpis || {};
+  const pbreakdown = data.payment_breakdown || {
+    vnpay: { revenue: data.vnpay_revenue || 0, count: 0, percentage: 0 },
+    paypal: { revenue: data.paypal_revenue || 0, count: 0, percentage: 0 },
+    cod: { revenue: data.cod_revenue || 0, count: 0, percentage: 0 },
+  };
+
+  // 1. Total Revenue & Growth
+  const totalEl = document.querySelector("[data-rev-total]");
+  if (totalEl) totalEl.textContent = money(data.total_revenue);
+
+  const growthEl = document.querySelector("[data-rev-growth]");
+  if (growthEl) {
+    const growth = kpis.revenue_growth;
+    if (growth === undefined || growth === null) {
+      growthEl.textContent = "—";
+      growthEl.className = "trend-badge trend-neutral";
+    } else if (growth > 0) {
+      growthEl.textContent = `+${growth}% kỳ trước`;
+      growthEl.className = "trend-badge trend-up";
+    } else if (growth < 0) {
+      growthEl.textContent = `${growth}% kỳ trước`;
+      growthEl.className = "trend-badge trend-down";
+    } else {
+      growthEl.textContent = `0% kỳ trước`;
+      growthEl.className = "trend-badge trend-neutral";
+    }
+  }
+
+  const compareSub = document.querySelector("[data-rev-compare-sub]");
+  if (compareSub && data.period) {
+    compareSub.textContent = data.period.prev_label
+      ? `Kỳ trước: ${money(kpis.prev_revenue || 0)} (${data.period.prev_label})`
+      : "Đơn hàng đã thanh toán hoặc hoàn tất";
+  }
+
+  // 2. Orders & Completion Rate
+  const ordersEl = document.querySelector("[data-rev-orders]");
+  if (ordersEl) {
+    ordersEl.textContent = `${kpis.completed_orders || 0} / ${data.total_orders} đơn`;
+  }
+
+  const completionRateEl = document.querySelector("[data-rev-completion-rate]");
+  if (completionRateEl) {
+    completionRateEl.textContent = `${kpis.completion_rate || 0}% hoàn tất`;
+  }
+
+  const cancelledEl = document.querySelector("[data-rev-cancelled]");
+  if (cancelledEl) {
+    cancelledEl.textContent = `Đã hủy: ${kpis.cancelled_orders || 0} · Chờ duyệt: ${data.status_counts?.pending || 0}`;
+  }
+
+  // 3. Average Order Value (AOV)
+  const aovEl = document.querySelector("[data-rev-aov]");
+  if (aovEl) aovEl.textContent = money(kpis.aov || 0);
+
+  const aovGrowthEl = document.querySelector("[data-rev-aov-growth]");
+  if (aovGrowthEl) {
+    const aovG = kpis.aov_growth;
+    if (aovG > 0) {
+      aovGrowthEl.textContent = `+${aovG}% kỳ trước`;
+      aovGrowthEl.className = "trend-badge trend-up";
+    } else if (aovG < 0) {
+      aovGrowthEl.textContent = `${aovG}% kỳ trước`;
+      aovGrowthEl.className = "trend-badge trend-down";
+    } else {
+      aovGrowthEl.textContent = "—";
+      aovGrowthEl.className = "trend-badge trend-neutral";
+    }
+  }
+
+  // 4. Items sold & Discounts
+  const itemsSoldEl = document.querySelector("[data-rev-items-sold]");
+  if (itemsSoldEl) {
+    itemsSoldEl.textContent = `${(kpis.total_items_sold || 0).toLocaleString("vi-VN")} cái`;
+  }
+
+  const discountEl = document.querySelector("[data-rev-discount]");
+  if (discountEl) {
+    discountEl.textContent = `Ưu đãi voucher: ${money(kpis.total_discount || 0)}`;
+  }
+
+  // Payment Breakdown Strips
+  const vnpayEl = document.querySelector("[data-rev-vnpay]");
+  if (vnpayEl) vnpayEl.textContent = money(pbreakdown.vnpay.revenue);
+  const vnpayPct = document.querySelector("[data-rev-vnpay-pct]");
+  if (vnpayPct) vnpayPct.textContent = `${pbreakdown.vnpay.percentage}%`;
+
+  const paypalEl = document.querySelector("[data-rev-paypal]");
+  if (paypalEl) paypalEl.textContent = money(pbreakdown.paypal.revenue);
+  const paypalPct = document.querySelector("[data-rev-paypal-pct]");
+  if (paypalPct) paypalPct.textContent = `${pbreakdown.paypal.percentage}%`;
+  const paypalUsd = document.querySelector("[data-rev-paypal-usd]");
+  if (paypalUsd) {
+    const usd = (pbreakdown.paypal.revenue / 25000).toFixed(2);
+    paypalUsd.textContent = `Thanh toán quốc tế (≈ $${usd})`;
+  }
+
+  const codEl = document.querySelector("[data-rev-cod]");
+  if (codEl) codEl.textContent = money(pbreakdown.cod.revenue);
+  const codPct = document.querySelector("[data-rev-cod-pct]");
+  if (codPct) codPct.textContent = `${pbreakdown.cod.percentage}%`;
+
+  // Status Chips
+  const chipsContainer = document.querySelector("[data-status-chips]");
+  if (chipsContainer && data.status_counts) {
+    chipsContainer.innerHTML = Object.entries(statusNames)
+      .map(([key, label]) => {
+        const count = data.status_counts[key] || 0;
+        return `<span class="status-chip" style="padding:6px 14px;border-radius:20px;background:#f4f7f8;border:1px solid #dce3e5;font-size:0.86rem;"><strong>${count}</strong> ${label}</span>`;
+      })
+      .join("");
+  }
+
+  // Timeline Comparison Chart
+  const timelineCanvas = document.getElementById("revenueTimelineChart");
+  if (timelineCanvas && data.timeline_comparison) {
+    const timelineSub = document.querySelector("[data-chart-timeline-sub]");
+    if (timelineSub && data.timeline_comparison) {
+      timelineSub.textContent = `${data.timeline_comparison.current_name} so với ${data.timeline_comparison.prev_name}`;
+    }
+    const legCurr = document.querySelector("[data-legend-current]");
+    if (legCurr) legCurr.textContent = data.timeline_comparison.current_name;
+    const legPrev = document.querySelector("[data-legend-prev]");
+    if (legPrev) legPrev.textContent = data.timeline_comparison.prev_name;
+
+    drawTimelineChart(timelineCanvas, data.timeline_comparison);
+  }
+
+  // Structure & Distribution Chart
+  const structureCanvas = document.getElementById("revenueStructureChart");
+  if (structureCanvas && data.payment_breakdown) {
+    drawStructureChart(structureCanvas, data.payment_breakdown, data.status_counts);
+  }
+
+  // Top Selling Products Section
+  const topProductsContainer = document.querySelector("[data-top-products]");
+  const topCountBadge = document.querySelector("[data-top-products-count]");
+  if (topProductsContainer) {
+    const products = data.top_products || [];
+    if (topCountBadge) topCountBadge.textContent = `${products.length} sản phẩm`;
+
+    if (!products.length) {
+      topProductsContainer.innerHTML = `
+        <div style="padding:28px 16px;text-align:center;background:#f8fafb;border-radius:6px;border:1px dashed #dce3e5;color:var(--muted);">
+          <p style="margin:0 0 4px;font-weight:600;color:var(--ink);">Chưa có sản phẩm nào phát sinh doanh thu trong kỳ này.</p>
+          <small>Đơn hàng phát sinh thanh toán sẽ tự động tổng hợp vào danh sách này.</small>
+        </div>
+      `;
+    } else {
+      topProductsContainer.innerHTML = `
+        <table class="top-products-table">
+          <thead>
+            <tr>
+              <th style="width:60px;text-align:center;">Hạng</th>
+              <th style="min-width:200px;">Sản phẩm</th>
+              <th style="width:130px;text-align:center;">Số lượng đã bán</th>
+              <th style="width:140px;text-align:right;">Doanh thu</th>
+              <th style="width:160px;min-width:140px;">Tỷ trọng doanh thu</th>
+              <th style="width:120px;text-align:center;">Tồn kho</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${products
+              .map((p) => {
+                let rankClass = "rank-other";
+                let rankIcon = `#${p.rank}`;
+                if (p.rank === 1) { rankClass = "rank-1"; rankIcon = "#1"; }
+                else if (p.rank === 2) { rankClass = "rank-2"; rankIcon = "#2"; }
+                else if (p.rank === 3) { rankClass = "rank-3"; rankIcon = "#3"; }
+
+                const stockTag = p.stock > 10
+                  ? `<span style="color:#2e7d32;font-weight:600;">Còn ${p.stock}</span>`
+                  : p.stock > 0
+                  ? `<span style="color:#e65100;font-weight:600;">Sắp hết (${p.stock})</span>`
+                  : `<span style="color:#c62828;font-weight:600;">Hết hàng</span>`;
+
+                return `
+                  <tr>
+                    <td style="text-align:center;">
+                      <span class="rank-badge ${rankClass}">${rankIcon}</span>
+                    </td>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:12px;">
+                        <img class="top-product-img" src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}" onerror="this.src='/static/img/product-placeholder.svg'">
+                        <div>
+                          <strong style="display:block;margin-bottom:2px;">
+                            <a href="/products/${encodeURIComponent(p.slug)}" target="_blank" style="color:var(--ink);text-decoration:none;">${escapeHtml(p.name)}</a>
+                          </strong>
+                          <small style="color:var(--muted);font-family:monospace;">SKU: ${escapeHtml(p.sku)}</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td style="text-align:center;font-weight:700;font-size:0.95rem;white-space:nowrap;">
+                      ${p.quantity_sold.toLocaleString("vi-VN")} cái
+                    </td>
+                    <td style="text-align:right;font-weight:750;color:#b54c28;font-size:0.95rem;white-space:nowrap;">
+                      ${money(p.revenue)}
+                    </td>
+                    <td>
+                      <div style="display:flex;justify-content:space-between;font-size:0.78rem;font-weight:600;margin-bottom:2px;white-space:nowrap;">
+                        <span>${p.revenue_share}%</span>
+                        <span style="color:var(--muted);">${p.order_count} đơn</span>
+                      </div>
+                      <div class="mini-progress-bar">
+                        <div class="mini-progress-fill" style="width:${Math.min(100, Math.max(2, p.revenue_share))}%;"></div>
+                      </div>
+                    </td>
+                    <td style="text-align:center;white-space:nowrap;">
+                      ${stockTag}
+                    </td>
+                  </tr>
+                `;
+              })
+              .join("")}
+          </tbody>
+        </table>
+      `;
+    }
+  }
+
+  // Recent Orders Table
+  const tableContainer = document.querySelector("[data-revenue-orders]");
+  const ordersCountBadge = document.querySelector("[data-revenue-orders-count]");
+  if (ordersCountBadge && data.recent_orders) {
+    ordersCountBadge.textContent = `${data.recent_orders.length} đơn`;
+  }
+  if (tableContainer) {
+    if (!data.recent_orders || !data.recent_orders.length) {
+      tableContainer.innerHTML = `
+        <div style="padding:28px 16px;text-align:center;background:#f8fafb;border-radius:6px;border:1px dashed #dce3e5;color:var(--muted);">
+          <p style="margin:0;">Chưa có đơn hàng nào phát sinh trong kỳ này.</p>
+        </div>
+      `;
+    } else {
+      tableContainer.innerHTML = `
+        <table class="revenue-orders-table">
+          <thead>
+            <tr>
+              <th style="width:130px;min-width:110px;">Mã đơn</th>
+              <th style="min-width:160px;">Khách hàng</th>
+              <th style="width:140px;min-width:120px;">Thời gian</th>
+              <th style="width:180px;min-width:150px;">Cổng thanh toán</th>
+              <th style="width:140px;min-width:120px;text-align:center;">Trạng thái đơn</th>
+              <th style="width:140px;min-width:120px;text-align:right;">Doanh thu</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.recent_orders
+              .map((o) => {
+                const d = new Date(o.created_at);
+                const timeStr = d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+                const dateStr = d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+                const methodLabel = providerNames[o.payment_method] || o.payment_method || "COD";
+                const statusLabel = paymentStatusNames[o.payment_status] || o.payment_status || "Chưa thanh toán";
+                const orderStatusText = statusNames[o.status] || o.status || "Chờ xử lý";
+
+                return `
+                  <tr>
+                    <td>
+                      <a href="/cart/tracking?code=${encodeURIComponent(o.code)}" target="_blank" class="order-code-link">${escapeHtml(o.code)}</a>
+                    </td>
+                    <td>
+                      <span style="font-weight:600;color:var(--ink);">${escapeHtml(o.customer_name || "Khách hàng")}</span>
+                    </td>
+                    <td>
+                      <div class="order-time-val">${timeStr}</div>
+                      <div class="order-date-val">${dateStr}</div>
+                    </td>
+                    <td>
+                      <div class="order-channel-val">${escapeHtml(methodLabel)}</div>
+                      <div class="order-channel-sub">${escapeHtml(statusLabel)}</div>
+                    </td>
+                    <td style="text-align:center;">
+                      <span class="status-pill status-${escapeHtml(o.status)}">${escapeHtml(orderStatusText)}</span>
+                    </td>
+                    <td class="order-revenue-val">
+                      ${money(o.total)}
+                    </td>
+                  </tr>
+                `;
+              })
+              .join("")}
+          </tbody>
+        </table>
+      `;
+    }
+  }
+}
+
+// Draw Canvas Timeline Comparison Chart
+function drawTimelineChart(canvas, timeline) {
+  if (!canvas || !timeline) return;
+  const rect = canvas.getBoundingClientRect();
+  const width = rect.width || canvas.clientWidth || 560;
+  const height = rect.height || 300;
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, width, height);
+
+  const labels = timeline.labels || [];
+  const currentSeries = timeline.current_series || [];
+  const prevSeries = timeline.previous_series || [];
+  const n = labels.length;
+
+  if (n === 0) {
+    ctx.fillStyle = "#64748b";
+    ctx.font = "14px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Chưa có dữ liệu so sánh trong kỳ", width / 2, height / 2);
+    return;
+  }
+
+  const padLeft = 60;
+  const padRight = 20;
+  const padTop = 25;
+  const padBottom = 35;
+  const chartWidth = width - padLeft - padRight;
+  const chartHeight = height - padTop - padBottom;
+
+  const maxVal = Math.max(...currentSeries, ...prevSeries, 1000);
+  // Round maxVal to a clean ceiling
+  const factor = Math.pow(10, Math.floor(Math.log10(maxVal)));
+  const niceMax = Math.ceil(maxVal / factor) * factor;
+
+  // Draw Horizontal Gridlines & Y-Axis Labels
+  const gridCount = 4;
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#edf2f7";
+  ctx.fillStyle = "#64748b";
+  ctx.font = "11px system-ui, sans-serif";
+  ctx.textAlign = "right";
+
+  for (let i = 0; i <= gridCount; i++) {
+    const val = (niceMax / gridCount) * i;
+    const y = height - padBottom - (i / gridCount) * chartHeight;
+
+    ctx.beginPath();
+    ctx.moveTo(padLeft, y);
+    ctx.lineTo(width - padRight, y);
+    ctx.stroke();
+
+    ctx.fillText(formatShortVnd(val), padLeft - 8, y + 4);
+  }
+
+  // Draw Dual Bars
+  const step = chartWidth / n;
+  const barWidth = Math.max(3, Math.min(18, step * 0.35));
+  const hitBoxes = [];
+
+  for (let i = 0; i < n; i++) {
+    const cx = padLeft + (i + 0.5) * step;
+    const currVal = currentSeries[i] || 0;
+    const prevVal = prevSeries[i] || 0;
+
+    const currH = (currVal / niceMax) * chartHeight;
+    const prevH = (prevVal / niceMax) * chartHeight;
+
+    const prevX = cx - barWidth - 1;
+    const prevY = height - padBottom - prevH;
+
+    const currX = cx + 1;
+    const currY = height - padBottom - currH;
+
+    // Previous Period Bar (Slate/Grey)
+    if (prevH > 0) {
+      ctx.fillStyle = "#cbd5e1";
+      ctx.beginPath();
+      if (typeof ctx.roundRect === "function" && prevH >= 4) {
+        ctx.roundRect(prevX, prevY, barWidth, prevH, [3, 3, 0, 0]);
+      } else {
+        ctx.rect(prevX, prevY, barWidth, prevH);
+      }
+      ctx.fill();
+    }
+
+    // Current Period Bar (Terracotta)
+    if (currH > 0) {
+      ctx.fillStyle = "#b54c28";
+      ctx.beginPath();
+      if (typeof ctx.roundRect === "function" && currH >= 4) {
+        ctx.roundRect(currX, currY, barWidth, currH, [3, 3, 0, 0]);
+      } else {
+        ctx.rect(currX, currY, barWidth, currH);
+      }
+      ctx.fill();
+    }
+
+    // Store hit box for tooltip
+    hitBoxes.push({
+      x: cx - step / 2,
+      width: step,
+      label: labels[i],
+      currVal,
+      prevVal,
+    });
+
+    // Draw X-axis label (decimate if many labels)
+    const showLabel = n <= 15 || i % 2 === 0 || i === n - 1;
+    if (showLabel) {
+      ctx.fillStyle = "#64748b";
+      ctx.textAlign = "center";
+      ctx.font = "11px system-ui, sans-serif";
+      ctx.fillText(labels[i], cx, height - padBottom + 16);
+    }
+  }
+
+  // Interactive Hover Tooltip
+  const tooltipEl = document.getElementById("chartTooltip");
+  if (tooltipEl) {
+    canvas.onmousemove = (e) => {
+      const bbox = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - bbox.left;
+      const mouseY = e.clientY - bbox.top;
+
+      const hit = hitBoxes.find((b) => mouseX >= b.x && mouseX <= b.x + b.width);
+      if (hit && (hit.currVal > 0 || hit.prevVal > 0)) {
+        let diffPct = "0%";
+        if (hit.prevVal > 0) {
+          const diff = (((hit.currVal - hit.prevVal) / hit.prevVal) * 100).toFixed(1);
+          diffPct = Number(diff) > 0 ? `+${diff}%` : `${diff}%`;
+        } else if (hit.currVal > 0) {
+          diffPct = "+100%";
+        }
+
+        tooltipEl.hidden = false;
+        tooltipEl.style.left = `${Math.min(width - 170, Math.max(10, mouseX + 12))}px`;
+        tooltipEl.style.top = `${Math.max(10, mouseY - 70)}px`;
+        tooltipEl.innerHTML = `
+          <strong>${timeline.granularity === "monthly" ? "Tháng " + hit.label : hit.label}</strong><br>
+          <span style="color:#ffaa88;">● ${timeline.current_name}: ${money(hit.currVal)}</span><br>
+          <span style="color:#cbd5e1;">● ${timeline.prev_name}: ${money(hit.prevVal)}</span><br>
+          <small style="color:#94a3b8;">Tăng trưởng: ${diffPct}</small>
+        `;
+      } else {
+        tooltipEl.hidden = true;
+      }
+    };
+
+    canvas.onmouseleave = () => {
+      tooltipEl.hidden = true;
+    };
+  }
+}
+
+// Draw Donut Chart for Payment Structure & Status
+function drawStructureChart(canvas, paymentBreakdown, statusCounts) {
+  if (!canvas || !paymentBreakdown) return;
+  const rect = canvas.getBoundingClientRect();
+  const width = rect.width || 280;
+  const height = 260;
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, width, height);
+
+  const channels = [
+    { label: "VNPAY", rev: paymentBreakdown.vnpay?.revenue || 0, color: "#0066cc", pct: paymentBreakdown.vnpay?.percentage || 0 },
+    { label: "PayPal", rev: paymentBreakdown.paypal?.revenue || 0, color: "#eab308", pct: paymentBreakdown.paypal?.percentage || 0 },
+    { label: "COD/Khác", rev: paymentBreakdown.cod?.revenue || 0, color: "#10b981", pct: paymentBreakdown.cod?.percentage || 0 },
+  ];
+
+  const totalRev = channels.reduce((sum, c) => sum + c.rev, 0);
+
+  const centerX = width / 2;
+  const centerY = height / 2 - 25;
+  const outerRadius = 72;
+  const innerRadius = 46;
+
+  if (totalRev === 0) {
+    // Empty state circle
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.lineWidth = 14;
+    ctx.stroke();
+
+    ctx.fillStyle = "#64748b";
+    ctx.font = "12px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Chưa có", centerX, centerY - 2);
+    ctx.fillText("doanh thu", centerX, centerY + 14);
+    return;
+  }
+
+  // Draw Donut Arcs
+  let startAngle = -Math.PI / 2;
+  for (const c of channels) {
+    if (c.rev <= 0) continue;
+    const sliceAngle = (c.rev / totalRev) * Math.PI * 2;
+    const endAngle = startAngle + sliceAngle;
+
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, outerRadius, startAngle, endAngle);
+    ctx.arc(centerX, centerY, innerRadius, endAngle, startAngle, true);
+    ctx.closePath();
+    ctx.fillStyle = c.color;
+    ctx.fill();
+
+    startAngle = endAngle;
+  }
+
+  // Center Text
+  ctx.fillStyle = "#1e293b";
+  ctx.font = "bold 13px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(formatShortVnd(totalRev), centerX, centerY - 2);
+  ctx.fillStyle = "#64748b";
+  ctx.font = "10px system-ui, sans-serif";
+  ctx.fillText("Doanh thu", centerX, centerY + 13);
+
+  // Bottom Legend
+  const legendY = height - 42;
+  ctx.textAlign = "left";
+  ctx.font = "11px system-ui, sans-serif";
+
+  let lx = 14;
+  for (const c of channels) {
+    ctx.fillStyle = c.color;
+    ctx.beginPath();
+    ctx.arc(lx + 4, legendY + 4, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#334155";
+    ctx.fillText(`${c.label} (${c.pct}%)`, lx + 12, legendY + 8);
+    lx += (width - 28) / 3;
+  }
+
+  // Order Status Mini Progress Bar at very bottom
+  if (statusCounts) {
+    const doneCount = (statusCounts.confirmed || 0) + (statusCounts.shipping || 0) + (statusCounts.done || 0);
+    const pendingCount = statusCounts.pending || 0;
+    const cancelCount = statusCounts.cancelled || 0;
+    const totalOrders = doneCount + pendingCount + cancelCount;
+
+    if (totalOrders > 0) {
+      const barY = height - 12;
+      const barWidth = width - 40;
+      const bx = 20;
+
+      const doneW = (doneCount / totalOrders) * barWidth;
+      const pendW = (pendingCount / totalOrders) * barWidth;
+      const cancW = (cancelCount / totalOrders) * barWidth;
+
+      ctx.fillStyle = "#10b981";
+      ctx.fillRect(bx, barY, doneW, 5);
+      ctx.fillStyle = "#f59e0b";
+      ctx.fillRect(bx + doneW, barY, pendW, 5);
+      ctx.fillStyle = "#ef4444";
+      ctx.fillRect(bx + doneW + pendW, barY, cancW, 5);
+    }
+  }
+}
+
+async function loadRevenueReport() {
+  const container = document.querySelector("[data-revenue-dashboard]") || document.querySelector("[data-revenue-stats]");
+  if (!container) return;
+  try {
+    initRevenueControls();
+    await fetchRevenueData();
+  } catch (err) {
+    console.error("Lỗi khởi tạo báo cáo doanh thu:", err);
+  }
+}
+loadRevenueReport();
 
 // Quản lý Phân quyền & Khóa người dùng (/admin/users)
 let adminUsersList = [];

@@ -4,60 +4,250 @@
   {% include "account/_sidebar.html" %}
 
   <main class="account-main">
-    <section class="account-content-card">
+    <section class="account-content-card" data-revenue-dashboard>
+      <!-- Dashboard Header -->
       <header class="account-content-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
         <div>
           <p class="eyebrow">BÁO CÁO & THỐNG KÊ</p>
-          <h1>Báo cáo doanh thu</h1>
-          <p>Tổng hợp doanh thu từ đơn hàng thực tế, cổng thanh toán trực tuyến và tỷ lệ hoàn tất đơn.</p>
+          <h1>Báo cáo doanh thu & Hiệu quả kinh doanh</h1>
+          <p>Phân tích doanh thu, so sánh tăng trưởng theo kỳ, cơ cấu thanh toán và top sản phẩm bán chạy.</p>
         </div>
-        <span class="role-pill role-admin">Quản lý</span>
+        <div class="dashboard-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button type="button" class="button-admin-light" data-revenue-print aria-label="In báo cáo">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            <span>In báo cáo</span>
+          </button>
+          <a href="/api/v1/auth/admin/revenue/export" class="button-admin-primary" data-revenue-export aria-label="Xuất file CSV" download>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Xuất báo cáo (CSV)</span>
+          </a>
+        </div>
       </header>
 
-      <!-- Revenue Summary Stats -->
-      <section class="revenue-stats-grid" data-revenue-stats aria-live="polite">
-        <article class="revenue-stat-card">
-          <span>Tổng doanh thu thực thu</span>
-          <strong data-rev-total style="color:#b54c28;font-size:1.6rem;">—</strong>
-          <small>Đơn hàng đã thanh toán / xác nhận</small>
-        </article>
-        <article class="revenue-stat-card">
-          <span>Doanh thu VNPAY (VND)</span>
-          <strong data-rev-vnpay>—</strong>
-          <small>Thanh toán nội địa qua cổng VNPAY</small>
-        </article>
-        <article class="revenue-stat-card">
-          <span>Doanh thu PayPal (USD)</span>
-          <strong data-rev-paypal>—</strong>
-          <small>Thanh toán quốc tế qua PayPal</small>
-        </article>
-        <article class="revenue-stat-card">
-          <span>Tổng số đơn phát sinh</span>
-          <strong data-rev-orders>—</strong>
-          <small>Bao gồm mọi trạng thái đơn</small>
-        </article>
+      <!-- Period Filter Bar -->
+      <section class="revenue-filter-bar" aria-label="Bộ lọc thời gian báo cáo">
+        <div class="period-type-tabs" role="tablist">
+          <button type="button" class="period-tab is-active" data-period-type="month" role="tab">Theo Tháng</button>
+          <button type="button" class="period-tab" data-period-type="quarter" role="tab">Theo Quý</button>
+          <button type="button" class="period-tab" data-period-type="year" role="tab">Theo Năm</button>
+          <button type="button" class="period-tab" data-period-type="all" role="tab">Tất cả thời gian</button>
+        </div>
+
+        <div class="period-selectors">
+          <!-- Month Selector -->
+          <div class="selector-group" data-group-month>
+            <label class="sr-only" for="revSelectMonth">Chọn tháng</label>
+            <select id="revSelectMonth" class="admin-select" data-rev-select-month>
+              <option value="1">Tháng 01</option>
+              <option value="2">Tháng 02</option>
+              <option value="3">Tháng 03</option>
+              <option value="4">Tháng 04</option>
+              <option value="5">Tháng 05</option>
+              <option value="6">Tháng 06</option>
+              <option value="7">Tháng 07</option>
+              <option value="8">Tháng 08</option>
+              <option value="9">Tháng 09</option>
+              <option value="10">Tháng 10</option>
+              <option value="11" selected>Tháng 11</option>
+              <option value="12">Tháng 12</option>
+            </select>
+          </div>
+
+          <!-- Quarter Selector -->
+          <div class="selector-group" data-group-quarter hidden>
+            <label class="sr-only" for="revSelectQuarter">Chọn quý</label>
+            <select id="revSelectQuarter" class="admin-select" data-rev-select-quarter>
+              <option value="1">Quý 1 (Tháng 1 – 3)</option>
+              <option value="2">Quý 2 (Tháng 4 – 6)</option>
+              <option value="3">Quý 3 (Tháng 7 – 9)</option>
+              <option value="4" selected>Quý 4 (Tháng 10 – 12)</option>
+            </select>
+          </div>
+
+          <!-- Year Selector -->
+          <div class="selector-group" data-group-year>
+            <label class="sr-only" for="revSelectYear">Chọn năm</label>
+            <select id="revSelectYear" class="admin-select" data-rev-select-year>
+              <option value="2026" selected>Năm 2026</option>
+              <option value="2025">Năm 2025</option>
+            </select>
+          </div>
+
+          <span class="period-current-badge" data-period-display-label>Tháng 11/2026</span>
+        </div>
+      </section>
+
+      <!-- Primary Overview: Left: Vertical Stat Cards (Xếp Dọc) | Right: Main Comparison Timeline Chart -->
+      <section class="revenue-overview-section" style="margin-bottom:24px;">
+        <div class="revenue-overview-grid">
+          <!-- Left: Vertical Stack of KPI Cards (Xếp Dọc) -->
+          <div class="revenue-stats-vertical" data-revenue-stats aria-live="polite">
+            <!-- 1. Total Revenue -->
+            <article class="revenue-stat-card">
+              <div class="stat-card-header">
+                <span class="stat-title">Tổng doanh thu thực tế</span>
+                <span class="trend-badge" data-rev-growth>—</span>
+              </div>
+              <strong data-rev-total style="color:#b54c28;font-size:1.65rem;">—</strong>
+              <small data-rev-compare-sub>So với kỳ trước</small>
+            </article>
+
+            <!-- 2. Orders & Completion Rate -->
+            <article class="revenue-stat-card">
+              <div class="stat-card-header">
+                <span class="stat-title">Đơn hoàn tất / Tổng đơn</span>
+                <span class="stat-pill stat-pill-success" data-rev-completion-rate>—%</span>
+              </div>
+              <strong data-rev-orders>—</strong>
+              <small data-rev-cancelled>Đã hủy: 0 đơn</small>
+            </article>
+
+            <!-- 3. Average Order Value (AOV) -->
+            <article class="revenue-stat-card">
+              <div class="stat-card-header">
+                <span class="stat-title">Giá trị đơn trung bình (AOV)</span>
+                <span class="trend-badge" data-rev-aov-growth>—</span>
+              </div>
+              <strong data-rev-aov>—</strong>
+              <small>Doanh thu / đơn hoàn tất</small>
+            </article>
+
+            <!-- 4. Items Sold -->
+            <article class="revenue-stat-card">
+              <div class="stat-card-header">
+                <span class="stat-title">Sản phẩm đã bán</span>
+                <span class="stat-pill stat-pill-neutral">Xuất kho</span>
+              </div>
+              <strong data-rev-items-sold>—</strong>
+              <small data-rev-discount>Tổng ưu đãi: 0 ₫</small>
+            </article>
+          </div>
+
+          <!-- Right: Revenue Timeline Comparison Chart -->
+          <article class="chart-card chart-card-main">
+            <header class="chart-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+              <div>
+                <h3 style="margin:0 0 2px;font-size:1.05rem;color:var(--ink);">Biểu đồ so sánh doanh thu theo thời gian</h3>
+                <small style="color:var(--muted);" data-chart-timeline-sub>Kỳ này so với kỳ liền trước</small>
+              </div>
+              <div class="chart-legend" style="display:flex;gap:12px;font-size:0.82rem;">
+                <span style="display:inline-flex;align-items:center;gap:6px;">
+                  <i style="width:12px;height:12px;background:#b54c28;border-radius:3px;display:inline-block;"></i>
+                  <span data-legend-current>Kỳ này</span>
+                </span>
+                <span style="display:inline-flex;align-items:center;gap:6px;">
+                  <i style="width:12px;height:12px;background:#cbd5e1;border-radius:3px;display:inline-block;"></i>
+                  <span data-legend-prev>Kỳ trước</span>
+                </span>
+              </div>
+            </header>
+            <div class="chart-canvas-wrapper" style="position:relative;min-height:300px;flex:1;display:flex;align-items:center;">
+              <canvas id="revenueTimelineChart" height="300" style="width:100%;height:300px;display:block;"></canvas>
+              <div id="chartTooltip" class="chart-tooltip" hidden></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- Middle Section: Payment Breakdown (Left) & Structure Donut (Right) -->
+      <section class="revenue-structure-section" style="margin-bottom:24px;">
+        <div class="revenue-structure-grid">
+          <!-- Left: Payment Channels Strip -->
+          <article class="chart-card" style="display:flex;flex-direction:column;justify-content:space-between;">
+            <header class="chart-header" style="margin-bottom:14px;">
+              <h3 style="margin:0 0 2px;font-size:1.05rem;color:var(--ink);">Cơ cấu doanh thu theo cổng thanh toán</h3>
+              <small style="color:var(--muted);">Doanh thu thực nhận từ các phương thức</small>
+            </header>
+            <div class="payment-channels-list" style="display:flex;flex-direction:column;gap:10px;">
+              <article class="payment-channel-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <strong style="display:flex;align-items:center;gap:8px;">
+                    <span style="width:10px;height:10px;border-radius:50%;background:#0066cc;display:inline-block;"></span>
+                    Cổng VNPAY (VND)
+                  </strong>
+                  <span class="channel-pct" data-rev-vnpay-pct>0%</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:4px;">
+                  <p class="channel-val" data-rev-vnpay style="margin:0;">—</p>
+                  <small style="color:var(--muted);">QR Pay / Thẻ ATM nội địa</small>
+                </div>
+              </article>
+
+              <article class="payment-channel-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <strong style="display:flex;align-items:center;gap:8px;">
+                    <span style="width:10px;height:10px;border-radius:50%;background:#eab308;display:inline-block;"></span>
+                    Cổng PayPal (USD)
+                  </strong>
+                  <span class="channel-pct" data-rev-paypal-pct>0%</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:4px;">
+                  <p class="channel-val" data-rev-paypal style="margin:0;">—</p>
+                  <small style="color:var(--muted);" data-rev-paypal-usd>Thanh toán quốc tế</small>
+                </div>
+              </article>
+
+              <article class="payment-channel-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <strong style="display:flex;align-items:center;gap:8px;">
+                    <span style="width:10px;height:10px;border-radius:50%;background:#10b981;display:inline-block;"></span>
+                    COD / Tiền mặt
+                  </strong>
+                  <span class="channel-pct" data-rev-cod-pct>0%</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:4px;">
+                  <p class="channel-val" data-rev-cod style="margin:0;">—</p>
+                  <small style="color:var(--muted);">Thu hộ khi nhận hàng</small>
+                </div>
+              </article>
+            </div>
+          </article>
+
+          <!-- Right: Donut Structure Chart -->
+          <article class="chart-card">
+            <header class="chart-header" style="margin-bottom:14px;">
+              <h3 style="margin:0 0 2px;font-size:1.05rem;color:var(--ink);">Tỷ trọng doanh thu & Trạng thái</h3>
+              <small style="color:var(--muted);">Biểu đồ tròn kênh thanh toán & tỷ lệ xử lý đơn</small>
+            </header>
+            <div class="chart-canvas-wrapper" style="position:relative;min-height:240px;display:flex;flex-direction:column;justify-content:center;">
+              <canvas id="revenueStructureChart" height="240" style="width:100%;height:240px;display:block;"></canvas>
+            </div>
+          </article>
+        </div>
       </section>
 
       <!-- Status Breakdown Strip -->
       <div class="order-status-breakdown" style="margin:24px 0;">
-        <h3 style="font-size:1.05rem;margin:0 0 12px;color:var(--ink);">Phân bố trạng thái đơn hàng</h3>
+        <h3 style="font-size:1.02rem;margin:0 0 10px;color:var(--ink);">Phân bố trạng thái đơn hàng trong kỳ</h3>
         <div class="status-chips-strip" data-status-chips style="display:flex;gap:10px;flex-wrap:wrap;"></div>
       </div>
 
-      <!-- Recent Revenue Orders Table -->
-      <section class="revenue-orders-section" style="margin-top:24px;">
-        <h3 style="font-size:1.05rem;margin:0 0 12px;color:var(--ink);">Đơn hàng gần đây có phát sinh doanh thu</h3>
-        <div class="revenue-orders-table-wrap" data-revenue-orders aria-live="polite">
-          <p>Đang tải dữ liệu doanh thu…</p>
+      <!-- Top Selling Products Section -->
+      <section class="top-products-section" style="margin-top:28px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <h3 style="font-size:1.05rem;margin:0;color:var(--ink);">Top sản phẩm bán chạy nhất trong kỳ</h3>
+            <small style="color:var(--muted);">Xếp hạng theo tổng doanh thu và số lượng linh kiện tiêu thụ</small>
+          </div>
+          <span class="role-pill" data-top-products-count>0 sản phẩm</span>
+        </div>
+        <div class="top-products-wrap" data-top-products aria-live="polite">
+          <p>Đang tải dữ liệu sản phẩm…</p>
         </div>
       </section>
 
-      <!-- Quick links to other admin sections -->
-      <section class="workspace-links" aria-label="Lối tắt quản lý" style="margin-top:28px;">
-        <a href="/admin/products"><span class="workspace-icon" aria-hidden="true">01</span><strong>Danh mục sản phẩm</strong><span>Thêm sản phẩm, cập nhật giá và tồn kho.</span><b>Quản lý sản phẩm →</b></a>
-        <a href="/staff/orders"><span class="workspace-icon" aria-hidden="true">02</span><strong>Xử lý đơn hàng</strong><span>Theo dõi đơn mới và cập nhật tiến độ xử lý.</span><b>Xem đơn hàng →</b></a>
-        <a href="/admin/newsletter"><span class="workspace-icon" aria-hidden="true">03</span><strong>Email marketing</strong><span>Gửi thông báo tới khách đã đăng ký nhận tin.</span><b>Soạn email →</b></a>
-        <a href="/admin/users"><span class="workspace-icon" aria-hidden="true">04</span><strong>Phân quyền & Người dùng</strong><span>Phân quyền và quản lý trạng thái khóa tài khoản.</span><b>Quản lý người dùng →</b></a>
+      <!-- Orders in Period Table -->
+      <section class="revenue-orders-section" style="margin-top:32px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <h3 style="font-size:1.05rem;margin:0;color:var(--ink);">Danh sách đơn hàng phát sinh trong kỳ</h3>
+            <small style="color:var(--muted);">Hiển thị các đơn hàng gần nhất (cuộn trong khung để xem toàn bộ)</small>
+          </div>
+          <span class="role-pill" data-revenue-orders-count>0 đơn</span>
+        </div>
+        <div class="revenue-orders-table-wrap" data-revenue-orders aria-live="polite">
+          <p>Đang tải dữ liệu đơn hàng…</p>
+        </div>
       </section>
     </section>
   </main>

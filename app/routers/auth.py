@@ -156,44 +156,40 @@ def toggle_user_block(
 
 
 @router.get("/admin/revenue", include_in_schema=False, dependencies=[Depends(require_admin)])
-def get_revenue_report(db: DbSession):
-    from app.models.order import Order
+def get_revenue_report(
+    db: DbSession,
+    period_type: str = "month",
+    year: int | None = None,
+    month: int | None = None,
+    quarter: int | None = None,
+):
+    from app.services.revenue_service import get_revenue_analytics
 
-    orders = db.scalars(select(Order).order_by(Order.created_at.desc())).all()
-    paid_statuses = {"confirmed", "shipping", "done"}
-    total_revenue = 0
-    paypal_revenue = 0
-    vnpay_revenue = 0
-    by_status = {"pending": 0, "confirmed": 0, "shipping": 0, "done": 0, "cancelled": 0}
-    for o in orders:
-        st = o.status
-        by_status[st] = by_status.get(st, 0) + 1
-        is_paid = (o.payment and o.payment.status == "paid") or (st in paid_statuses)
-        if is_paid:
-            total_revenue += o.total
-            if o.payment:
-                if o.payment.method == "PAYPAL":
-                    paypal_revenue += o.total
-                elif o.payment.method == "VNPAY":
-                    vnpay_revenue += o.total
+    return get_revenue_analytics(
+        db, period_type=period_type, year=year, month=month, quarter=quarter
+    )
 
-    recent = [
-        {
-            "code": o.code,
-            "total": o.total,
-            "status": o.status,
-            "payment_method": o.payment.method if o.payment else "CHƯA RÕ",
-            "payment_status": o.payment.status if o.payment else "pending",
-            "created_at": o.created_at.isoformat(),
-            "items_count": len(o.items) if o.items else 0,
-        }
-        for o in orders[:15]
-    ]
-    return {
-        "total_revenue": total_revenue,
-        "paypal_revenue": paypal_revenue,
-        "vnpay_revenue": vnpay_revenue,
-        "total_orders": len(orders),
-        "status_counts": by_status,
-        "recent_orders": recent,
-    }
+
+@router.get("/admin/revenue/export", include_in_schema=False, dependencies=[Depends(require_admin)])
+def export_revenue_report(
+    db: DbSession,
+    period_type: str = "month",
+    year: int | None = None,
+    month: int | None = None,
+    quarter: int | None = None,
+):
+    from app.services.revenue_service import generate_revenue_csv
+
+    csv_text, filename = generate_revenue_csv(
+        db, period_type=period_type, year=year, month=month, quarter=quarter
+    )
+    content = "\ufeff" + csv_text
+    return Response(
+        content=content.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-cache",
+        },
+    )
+
