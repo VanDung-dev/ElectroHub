@@ -145,6 +145,13 @@ def site_structured_data() -> str:
         "url": f"{base}/",
         "logo": f"{base}/static/img/favicon-180.png",
         "inLanguage": "vi",
+        "address": {
+            "@type": "PostalAddress",
+            "streetAddress": settings.store_address,
+            "addressLocality": "Tân Hưng",
+            "addressRegion": "Hồ Chí Minh",
+            "addressCountry": "VN",
+        },
     }
     same_as = [url for url in (settings.facebook_page_url, settings.zalo_page_url) if url]
     if same_as:
@@ -186,6 +193,15 @@ def product_structured_data(product: Product) -> str:
         if product.image_url.startswith(("http://", "https://"))
         else f"{base}{product.image_url}"
     )
+    if getattr(product, "images", None):
+        images = [
+            img.url if img.url.startswith(("http://", "https://")) else f"{base}{img.url}"
+            for img in product.images
+        ]
+        if image not in images:
+            images.insert(0, image)
+    else:
+        images = [image]
     offer = {
         "@type": "Offer",
         "priceCurrency": "VND",
@@ -218,7 +234,7 @@ def product_structured_data(product: Product) -> str:
                 "name": product.name,
                 "sku": product.sku,
                 "url": url,
-                "image": [image],
+                "image": images,
                 "description": description or product_meta_description(product),
                 "offers": offer,
             },
@@ -294,6 +310,9 @@ def page_endpoint(template_name: str):
             "tawkto_embed_code": get_settings().tawkto_embed_code,
             "tawkto_property_id": get_settings().tawkto_property_id,
             "tawkto_widget_id": get_settings().tawkto_widget_id,
+            "store_address": get_settings().store_address,
+            "google_maps_embed_url": get_settings().google_maps_embed_url,
+            "google_maps_direct_url": get_settings().google_maps_direct_url,
             "page_title": page_title,
             "page_description": page_description,
             **social_image(
@@ -375,6 +394,9 @@ def product_detail(slug: str, request: Request, db: DbSession):
             "tawkto_embed_code": get_settings().tawkto_embed_code,
             "tawkto_property_id": get_settings().tawkto_property_id,
             "tawkto_widget_id": get_settings().tawkto_widget_id,
+            "store_address": get_settings().store_address,
+            "google_maps_embed_url": get_settings().google_maps_embed_url,
+            "google_maps_direct_url": get_settings().google_maps_direct_url,
             "product": product,
             "page_title": product_page_title(product),
             "page_description": product_meta_description(product),
@@ -403,6 +425,9 @@ def newsletter_unsubscribe_page(request: Request, token: str):
             "csrf_token": csrf_token,
             "token": token,
             "site_url": get_settings().site_url.rstrip("/"),
+            "store_address": get_settings().store_address,
+            "google_maps_embed_url": get_settings().google_maps_embed_url,
+            "google_maps_direct_url": get_settings().google_maps_direct_url,
             "page_title": "Hủy nhận email | ElectroHub",
             "page_description": "Hủy đăng ký nhận email marketing.",
             "robots_policy": "noindex,follow",
@@ -427,6 +452,9 @@ def not_found_response(request: Request):
         context={
             "csrf_token": csrf_token,
             "site_url": base,
+            "store_address": get_settings().store_address,
+            "google_maps_embed_url": get_settings().google_maps_embed_url,
+            "google_maps_direct_url": get_settings().google_maps_direct_url,
             "page_title": "Không tìm thấy trang | ElectroHub",
             "page_description": "Trang bạn tìm không tồn tại hoặc sản phẩm đã được thay thế.",
             "robots_policy": "noindex,follow",

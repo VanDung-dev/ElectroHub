@@ -15,6 +15,15 @@ admin_router = APIRouter(prefix="/api/v1/admin/products", tags=["admin", "produc
 AdminUser = Annotated[User, Depends(require_admin)]
 
 
+class ProductImageOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    url: str
+    alt: str = ""
+    sort: int = 0
+
+
 class ProductCard(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -27,6 +36,7 @@ class ProductCard(BaseModel):
     price: int
     sale_price: int | None
     stock: int
+    images: list[ProductImageOut] = Field(default_factory=list)
 
 
 class ProductList(BaseModel):

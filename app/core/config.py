@@ -48,6 +48,9 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("tawkto_widget_id", "widget_id"),
     )
+    store_address: str = "458/3F Nguyễn Hữu Thọ, Tân Hưng, Hồ Chí Minh"
+    google_maps_embed_url: str = "https://maps.google.com/maps?q=458%2F3F+Nguy%E1%BB%85n+H%E1%BB%AFu+Th%E1%BB%8D%2C+T%C3%A2n+H%C6%B0ng%2C+H%E1%BB%93+Ch%C3%AD+Minh&t=&z=16&ie=UTF8&iwloc=&output=embed"
+    google_maps_direct_url: str = "https://www.google.com/maps/search/?api=1&query=458%2F3F+Nguy%E1%BB%85n+H%E1%BB%AFu+Th%E1%BB%8D%2C+T%C3%A2n+H%C6%B0ng%2C+H%E1%BB%93+Ch%C3%AD+Minh"
 
     # Payments. ``mock`` keeps the original simulated flow; ``sandbox`` and ``live``
     # call the real gateways and therefore require provider credentials.
@@ -109,6 +112,12 @@ class Settings(BaseSettings):
                 self.tawkto_widget_id = m.group(2)
             else:
                 self.tawkto_widget_id = widget.strip("/").split("/")[-1]
+        if not self.store_address.strip():
+            self.store_address = "458/3F Nguyễn Hữu Thọ, Tân Hưng, Hồ Chí Minh"
+        if not self.google_maps_embed_url.strip():
+            self.google_maps_embed_url = "https://maps.google.com/maps?q=458%2F3F+Nguy%E1%BB%85n+H%E1%BB%AFu+Th%E1%BB%8D%2C+T%C3%A2n+H%C6%B0ng%2C+H%E1%BB%93+Ch%C3%AD+Minh&t=&z=16&ie=UTF8&iwloc=&output=embed"
+        if not self.google_maps_direct_url.strip():
+            self.google_maps_direct_url = "https://www.google.com/maps/search/?api=1&query=458%2F3F+Nguy%E1%BB%85n+H%E1%BB%AFu+Th%E1%BB%8D%2C+T%C3%A2n+H%C6%B0ng%2C+H%E1%BB%93+Ch%C3%AD+Minh"
         self._validate_payment_configuration()
         return self
 

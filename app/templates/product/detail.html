@@ -2,7 +2,51 @@
 {% block content %}
 <nav class="breadcrumb" aria-label="Đường dẫn"><a href="/">Trang chủ</a><span>/</span><a href="/collections/all">Sản phẩm</a><span>/</span><span>{{ product.name }}</span></nav>
 <article class="product-detail">
-  <img src="{{ product.image_url }}" alt="{{ product.name }}" width="560" height="420" fetchpriority="high">
+  <div class="product-gallery">
+    <div class="gallery-main">
+      <img
+        id="product-gallery-main"
+        src="{{ product.images[0].url if product.images else product.image_url }}"
+        alt="{{ product.name }}"
+        width="500"
+        height="500"
+        fetchpriority="high"
+      >
+      {% if product.images and product.images | length > 1 %}
+      <button
+        type="button"
+        class="gallery-nav gallery-nav--prev"
+        data-gallery-nav="prev"
+        aria-label="Xem ảnh trước"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
+      <button
+        type="button"
+        class="gallery-nav gallery-nav--next"
+        data-gallery-nav="next"
+        aria-label="Xem ảnh tiếp theo"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </button>
+      {% endif %}
+    </div>
+    {% if product.images and product.images | length > 1 %}
+    <div class="gallery-thumbs" role="region" aria-label="Bộ sưu tập hình ảnh {{ product.name }}">
+      {% for img in product.images %}
+      <button
+        type="button"
+        class="gallery-thumb{% if loop.first %} is-active{% endif %}"
+        data-full-src="{{ img.url }}"
+        aria-label="Xem ảnh {{ loop.index }} của {{ product.name }}"
+        aria-current="{% if loop.first %}true{% else %}false{% endif %}"
+      >
+        <img src="{{ img.url }}" alt="" width="68" height="68" loading="lazy">
+      </button>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
   <div><p class="eyebrow">SKU: {{ product.sku }}</p><h1>{{ product.name }}</h1><p class="stock-status">{% if product.stock > 0 %}Còn hàng · {{ product.stock }} sản phẩm{% else %}Tạm hết hàng{% endif %}</p>
     <div class="detail-price"><strong class="price">{{ (product.sale_price if product.sale_price is not none else product.price) | vnd }} ₫</strong>{% if product.sale_price is not none and product.sale_price < product.price %}<del>{{ product.price | vnd }} ₫</del><span class="detail-discount">Giảm {{ "{:g}".format(((product.price - product.sale_price) / product.price * 100) | round(1)) | replace(".", ",") }}%</span>{% endif %}</div>
     <p>{{ product.description }}</p>
