@@ -21,6 +21,9 @@ x-app-environment: &app-environment
   PROPERTY_ID: ${PROPERTY_ID:-${TAWKTO_PROPERTY_ID:-}}
   WIDGET_ID: ${WIDGET_ID:-${TAWKTO_WIDGET_ID:-}}
   TAWKTO_EMBED_CODE: ${TAWKTO_EMBED_CODE:-}
+  STORE_ADDRESS: ${STORE_ADDRESS:-}
+  GOOGLE_MAPS_EMBED_URL: ${GOOGLE_MAPS_EMBED_URL:-}
+  GOOGLE_MAPS_DIRECT_URL: ${GOOGLE_MAPS_DIRECT_URL:-}
   # Payments: the app container needs these explicitly; .env alone is not injected.
   PAYMENT_MODE: ${PAYMENT_MODE:-mock}
   REFUND_HOLD_HOURS: ${REFUND_HOLD_HOURS:-72}
@@ -117,7 +120,7 @@ services:
     depends_on:
       sqlserver-init:
         condition: service_completed_successfully
-    command: ["sh", "-c", "alembic upgrade head && python -m app.seeds.accounts"]
+    command: ["sh", "-c", "alembic upgrade head && python -m app.seeds.accounts && python -m app.seeds.seed"]
     restart: "no"
 
   app:
