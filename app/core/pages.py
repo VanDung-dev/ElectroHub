@@ -1,12 +1,15 @@
+import html
 import json
 import unicodedata
 from functools import lru_cache
+from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup
 from sqlalchemy import select
 
 from app.core.config import ROOT, get_settings
@@ -20,8 +23,112 @@ def format_vnd(value: int) -> str:
     return f"{int(value):,.0f}".replace(",", ".")
 
 
+class HTMLSanitizer(HTMLParser):
+    ALLOWED_TAGS = {
+        "p",
+        "br",
+        "hr",
+        "b",
+        "strong",
+        "i",
+        "em",
+        "u",
+        "s",
+        "strike",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "ul",
+        "ol",
+        "li",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "th",
+        "td",
+        "code",
+        "pre",
+        "blockquote",
+        "span",
+        "a",
+        "img",
+    }
+    ALLOWED_ATTRS = {
+        "a": {"href", "title", "target", "rel"},
+        "img": {"src", "alt", "title", "width", "height"},
+        "td": {"colspan", "rowspan"},
+        "th": {"colspan", "rowspan"},
+    }
+    DROP_CONTENT_TAGS = {"script", "style", "iframe", "object", "embed"}
+
+    def __init__(self):
+        super().__init__()
+        self.result = []
+        self.drop_stack = 0
+
+    def handle_starttag(self, tag, attrs):
+        tag_lower = tag.lower()
+        if tag_lower in self.DROP_CONTENT_TAGS:
+            self.drop_stack += 1
+            return
+        if self.drop_stack > 0:
+            return
+        if tag_lower in self.ALLOWED_TAGS:
+            cleaned_attrs = []
+            allowed = self.ALLOWED_ATTRS.get(tag_lower, set())
+            for name, val in attrs:
+                name_lower = name.lower()
+                if name_lower in allowed:
+                    if name_lower == "href" and val.strip().lower().startswith("javascript:"):
+                        continue
+                    cleaned_attrs.append(f'{name_lower}="{html.escape(val, quote=True)}"')
+            attr_str = (" " + " ".join(cleaned_attrs)) if cleaned_attrs else ""
+            self.result.append(f"<{tag_lower}{attr_str}>")
+
+    def handle_endtag(self, tag):
+        tag_lower = tag.lower()
+        if tag_lower in self.DROP_CONTENT_TAGS:
+            if self.drop_stack > 0:
+                self.drop_stack -= 1
+            return
+        if self.drop_stack > 0:
+            return
+        if tag_lower in self.ALLOWED_TAGS and tag_lower not in {"br", "hr", "img"}:
+            self.result.append(f"</{tag_lower}>")
+
+    def handle_data(self, data):
+        if self.drop_stack == 0:
+            self.result.append(html.escape(data))
+
+    def handle_entityref(self, name):
+        if self.drop_stack == 0:
+            self.result.append(f"&{name};")
+
+    def handle_charref(self, name):
+        if self.drop_stack == 0:
+            self.result.append(f"&#{name};")
+
+    def get_html(self):
+        return "".join(self.result)
+
+
+def sanitize_html(content: str | None) -> Markup:
+    """Sanitize rich-text HTML descriptions from TinyMCE, dropping dangerous tags like script/iframe."""
+    if not content:
+        return Markup("")
+    parser = HTMLSanitizer()
+    parser.feed(content)
+    cleaned = parser.get_html()
+    return Markup(cleaned)
+
+
 templates = Jinja2Templates(directory=ROOT / "app/templates")
 templates.env.filters["vnd"] = format_vnd
+templates.env.filters["clean_html"] = sanitize_html
 router = APIRouter(include_in_schema=False)
 
 SITE_NAME = "ElectroHub"
@@ -44,6 +151,7 @@ PAGE_TEMPLATES = {
     "/cart/tracking": "cart/tracking.html",
     "/account/login": "auth/login.html",
     "/account/register": "auth/register.html",
+    "/account": "account/profile.html",
     "/account/orders": "account/orders.html",
     "/blogs/all": "blog/list.html",
     "/blogs/{slug}": "blog/detail.html",
@@ -51,6 +159,7 @@ PAGE_TEMPLATES = {
     "/admin/products": "admin/products.html",
     "/admin/orders": "admin/orders.html",
     "/admin/newsletter": "admin/newsletter.html",
+    "/admin/users": "admin/users.html",
     "/staff/orders": "admin/orders.html",
 }
 PAGE_META = {
@@ -72,8 +181,19 @@ PAGE_META = {
         "Tạo tài khoản | ElectroHub",
         "Đăng ký tài khoản ElectroHub để đặt hàng.",
     ),
+    "/account": (
+        "Tài khoản của tôi | ElectroHub",
+        "Quản lý thông tin tài khoản cá nhân tại ElectroHub.",
+    ),
     "/account/orders": ("Đơn hàng của tôi | ElectroHub", "Lịch sử đơn hàng ElectroHub của bạn."),
-    "/manager": ("Tổng quan cửa hàng | ElectroHub", "Khu vực quản lý cửa hàng ElectroHub."),
+    "/manager": (
+        "Báo cáo doanh thu | ElectroHub",
+        "Báo cáo doanh thu và tổng quan đơn hàng cửa hàng ElectroHub.",
+    ),
+    "/admin/users": (
+        "Phân quyền & Người dùng | ElectroHub",
+        "Quản lý phân quyền và khóa tài khoản tại ElectroHub.",
+    ),
     "/staff/orders": ("Xử lý đơn hàng | ElectroHub", "Danh sách và trạng thái đơn hàng."),
 }
 

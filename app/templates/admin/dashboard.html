@@ -1,10 +1,65 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="workspace-heading"><div><p class="eyebrow">KHU VỰC QUẢN LÝ</p><h1>Tổng quan cửa hàng</h1><p>Quản lý sản phẩm, đơn hàng và nội dung gửi khách hàng.</p></div><span class="role-pill">Quản lý</span></section>
-<section class="manager-stats" data-manager-stats aria-live="polite"><article><span>Sản phẩm</span><strong>—</strong></article><article><span>Đơn hàng</span><strong>—</strong></article><article><span>Đang chờ xử lý</span><strong>—</strong></article></section>
-<section class="workspace-links" aria-label="Công cụ quản lý">
-  <a href="/admin/products"><span class="workspace-icon" aria-hidden="true">01</span><strong>Danh mục sản phẩm</strong><span>Thêm sản phẩm, cập nhật giá và tồn kho.</span><b>Quản lý sản phẩm →</b></a>
-  <a href="/admin/orders"><span class="workspace-icon" aria-hidden="true">02</span><strong>Đơn hàng</strong><span>Theo dõi và cập nhật trạng thái giao hàng.</span><b>Xem đơn hàng →</b></a>
-  <a href="/admin/newsletter"><span class="workspace-icon" aria-hidden="true">03</span><strong>Email marketing</strong><span>Gửi thông báo tới khách đã đăng ký nhận tin.</span><b>Soạn email →</b></a>
-</section>
+<div class="account-layout">
+  {% include "account/_sidebar.html" %}
+
+  <main class="account-main">
+    <section class="account-content-card">
+      <header class="account-content-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+        <div>
+          <p class="eyebrow">BÁO CÁO & THỐNG KÊ</p>
+          <h1>Báo cáo doanh thu</h1>
+          <p>Tổng hợp doanh thu từ đơn hàng thực tế, cổng thanh toán trực tuyến và tỷ lệ hoàn tất đơn.</p>
+        </div>
+        <span class="role-pill role-admin">Quản lý</span>
+      </header>
+
+      <!-- Revenue Summary Stats -->
+      <section class="revenue-stats-grid" data-revenue-stats aria-live="polite">
+        <article class="revenue-stat-card">
+          <span>Tổng doanh thu thực thu</span>
+          <strong data-rev-total style="color:#b54c28;font-size:1.6rem;">—</strong>
+          <small>Đơn hàng đã thanh toán / xác nhận</small>
+        </article>
+        <article class="revenue-stat-card">
+          <span>Doanh thu VNPAY (VND)</span>
+          <strong data-rev-vnpay>—</strong>
+          <small>Thanh toán nội địa qua cổng VNPAY</small>
+        </article>
+        <article class="revenue-stat-card">
+          <span>Doanh thu PayPal (USD)</span>
+          <strong data-rev-paypal>—</strong>
+          <small>Thanh toán quốc tế qua PayPal</small>
+        </article>
+        <article class="revenue-stat-card">
+          <span>Tổng số đơn phát sinh</span>
+          <strong data-rev-orders>—</strong>
+          <small>Bao gồm mọi trạng thái đơn</small>
+        </article>
+      </section>
+
+      <!-- Status Breakdown Strip -->
+      <div class="order-status-breakdown" style="margin:24px 0;">
+        <h3 style="font-size:1.05rem;margin:0 0 12px;color:var(--ink);">Phân bố trạng thái đơn hàng</h3>
+        <div class="status-chips-strip" data-status-chips style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+      </div>
+
+      <!-- Recent Revenue Orders Table -->
+      <section class="revenue-orders-section" style="margin-top:24px;">
+        <h3 style="font-size:1.05rem;margin:0 0 12px;color:var(--ink);">Đơn hàng gần đây có phát sinh doanh thu</h3>
+        <div class="revenue-orders-table-wrap" data-revenue-orders aria-live="polite">
+          <p>Đang tải dữ liệu doanh thu…</p>
+        </div>
+      </section>
+
+      <!-- Quick links to other admin sections -->
+      <section class="workspace-links" aria-label="Lối tắt quản lý" style="margin-top:28px;">
+        <a href="/admin/products"><span class="workspace-icon" aria-hidden="true">01</span><strong>Danh mục sản phẩm</strong><span>Thêm sản phẩm, cập nhật giá và tồn kho.</span><b>Quản lý sản phẩm →</b></a>
+        <a href="/staff/orders"><span class="workspace-icon" aria-hidden="true">02</span><strong>Xử lý đơn hàng</strong><span>Theo dõi đơn mới và cập nhật tiến độ xử lý.</span><b>Xem đơn hàng →</b></a>
+        <a href="/admin/newsletter"><span class="workspace-icon" aria-hidden="true">03</span><strong>Email marketing</strong><span>Gửi thông báo tới khách đã đăng ký nhận tin.</span><b>Soạn email →</b></a>
+        <a href="/admin/users"><span class="workspace-icon" aria-hidden="true">04</span><strong>Phân quyền & Người dùng</strong><span>Phân quyền và quản lý trạng thái khóa tài khoản.</span><b>Quản lý người dùng →</b></a>
+      </section>
+    </section>
+  </main>
+</div>
 {% endblock %}

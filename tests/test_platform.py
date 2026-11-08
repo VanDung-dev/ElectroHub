@@ -223,7 +223,9 @@ def test_ui_improvements_and_orders_page_rendering(client):
     assert 'id="search-dropdown"' in html
 
     # Tracking link in shop-nav
-    shop_nav_part = html[html.find('class="shop-nav"') : html.find("</nav>", html.find('class="shop-nav"'))]
+    shop_nav_part = html[
+        html.find('class="shop-nav"') : html.find("</nav>", html.find('class="shop-nav"'))
+    ]
     assert 'href="/cart/tracking"' in shop_nav_part
     assert "Tra cứu đơn hàng" in shop_nav_part
 
@@ -236,4 +238,3 @@ def test_ui_improvements_and_orders_page_rendering(client):
     footer_part = html[html.find('class="site-footer"') :]
     assert 'class="store-location"' in footer_part
     assert 'class="footer-address"' in footer_part
-

@@ -18,6 +18,8 @@ RUN pip install --no-cache-dir -r requirements.txt \
 COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini main.py ./
+RUN mkdir -p /app/app/static/img/products \
+    && chown -R app:app /app
 USER app
 
 EXPOSE 8000

@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Integer, String, Unicode
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Integer, String, Unicode, false
 from sqlalchemy.dialects.mssql import DATETIME2
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -16,6 +16,7 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(60))
     name: Mapped[str] = mapped_column(Unicode(100))
     role: Mapped[str] = mapped_column(String(16), default="customer")
+    is_blocked: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     created_at: Mapped[datetime] = mapped_column(
         DateTime().with_variant(DATETIME2(), "mssql"),
         default=lambda: datetime.now(UTC).replace(tzinfo=None),

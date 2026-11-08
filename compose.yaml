@@ -134,6 +134,8 @@ services:
         condition: service_started
     ports:
       - "127.0.0.1:${APP_PORT:-8000}:8000"
+    volumes:
+      - ./app/static/img/products:/app/app/static/img/products
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3).close()"]
       interval: 10s
