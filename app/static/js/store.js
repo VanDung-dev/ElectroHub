@@ -879,3 +879,67 @@ document.querySelector("[data-payment-actions]")?.addEventListener("click", asyn
   finally { buttons.forEach((node) => node.disabled = false); }
 });
 loadPaymentDemo();
+
+function initProductGallery() {
+  const gallery = document.querySelector(".product-gallery");
+  if (!gallery) return;
+  const mainImg = gallery.querySelector("#product-gallery-main");
+  const thumbs = Array.from(gallery.querySelectorAll(".gallery-thumb"));
+  const navPrev = gallery.querySelector("[data-gallery-nav='prev']");
+  const navNext = gallery.querySelector("[data-gallery-nav='next']");
+  if (!mainImg || !thumbs.length) return;
+
+  const switchToIndex = (index) => {
+    if (index < 0 || index >= thumbs.length) return;
+    const targetThumb = thumbs[index];
+    const src = targetThumb.dataset.fullSrc;
+    if (src && mainImg.getAttribute("src") !== src) {
+      mainImg.style.opacity = "0.7";
+      mainImg.onload = () => {
+        mainImg.style.opacity = "1";
+      };
+      mainImg.onerror = () => {
+        mainImg.style.opacity = "1";
+      };
+      mainImg.src = src;
+      if (mainImg.complete) {
+        mainImg.style.opacity = "1";
+      }
+    }
+    thumbs.forEach((t) => {
+      t.classList.remove("is-active");
+      t.setAttribute("aria-current", "false");
+    });
+    targetThumb.classList.add("is-active");
+    targetThumb.setAttribute("aria-current", "true");
+    targetThumb.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+  };
+
+  const getActiveIndex = () => {
+    const idx = thumbs.findIndex((t) => t.classList.contains("is-active"));
+    return idx >= 0 ? idx : 0;
+  };
+
+  // Only switch when left mouse button is clicked (event.button === 0)
+  thumbs.forEach((thumb, idx) => {
+    thumb.addEventListener("click", (e) => {
+      if (e.button !== undefined && e.button !== 0) return;
+      switchToIndex(idx);
+    });
+  });
+
+  navPrev?.addEventListener("click", (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    const current = getActiveIndex();
+    const prev = (current - 1 + thumbs.length) % thumbs.length;
+    switchToIndex(prev);
+  });
+
+  navNext?.addEventListener("click", (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    const current = getActiveIndex();
+    const next = (current + 1) % thumbs.length;
+    switchToIndex(next);
+  });
+}
+initProductGallery();

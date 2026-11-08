@@ -27,8 +27,8 @@
   <meta name="twitter:image" content="{{ page_image }}">
   <meta name="twitter:image:alt" content="{{ page_image_alt | default('ElectroHub') }}">
   {% if site_json_ld %}<script type="application/ld+json">{{ site_json_ld | safe }}</script>{% endif %}
-  <link rel="stylesheet" href="/static/css/base.css">
-  <script defer src="/static/js/store.js?v=6"></script>
+  <link rel="stylesheet" href="/static/css/base.css?v=6">
+  <script defer src="/static/js/store.js?v=8"></script>
 </head>
 <body>
   <div class="store-topbar"><span>ElectroHub · Linh kiện điện tử & thiết bị</span><a href="/cart/tracking">Tra cứu đơn hàng</a></div>
@@ -44,6 +44,12 @@
       <form data-newsletter><label class="sr-only" for="newsletter-email">Email</label><input id="newsletter-email" name="email" type="email" required placeholder="Email của bạn"><label><input name="consent" type="checkbox" required> Tôi đồng ý nhận email ưu đãi và có thể hủy bất cứ lúc nào.</label><button>Đăng ký</button></form>
       <p data-newsletter-message role="status" aria-live="polite"></p>
     </section>
+    <div class="footer-contact">
+      <p class="footer-address">
+        <strong>Địa chỉ cửa hàng:</strong> {{ store_address | default('458/3F Nguyễn Hữu Thọ, Tân Hưng, Hồ Chí Minh') }}
+        · <a href="{{ google_maps_direct_url | default('https://www.google.com/maps/search/?api=1&query=458%2F3F+Nguy%E1%BB%85n+H%E1%BB%AFu+Th%E1%BB%8D%2C+T%C3%A2n+H%C6%B0ng%2C+H%E1%BB%93+Ch%C3%AD+Minh') }}" target="_blank" rel="noopener noreferrer">Xem trên Google Maps</a>
+      </p>
+    </div>
     <nav class="footer-links" aria-label="Thông tin mua hàng"><a href="/collections/all">Sản phẩm</a><a href="/cart/tracking">Tra cứu đơn hàng</a><a href="/account/orders">Đơn hàng của tôi</a></nav><p>© ElectroHub · Thiết bị điện tử và linh kiện</p>
   </footer>
   <aside class="chat-links" aria-label="Liên hệ trực tuyến">
