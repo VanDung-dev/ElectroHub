@@ -3,33 +3,4 @@
 <section class="store-intro"><div><p class="eyebrow">CỬA HÀNG LINH KIỆN ĐIỆN TỬ</p><h1>Linh kiện cho mọi dự án.</h1><p>Chọn bo mạch, cảm biến và thiết bị theo nhu cầu của bạn.</p><a class="button" href="/collections/all">Xem tất cả sản phẩm →</a></div><aside><strong>Mua hàng tại ElectroHub</strong><p>Xem giá và tồn kho trực tiếp trên từng sản phẩm.</p><a href="/cart/tracking">Đã đặt hàng? Tra cứu đơn →</a></aside></section>
 <section class="featured-products"><div class="section-heading"><div><p class="eyebrow">KHÁM PHÁ CỬA HÀNG</p><h2>Sản phẩm đang bán</h2></div><a href="/collections/all">Xem tất cả →</a></div><div class="product-grid" data-products aria-live="polite">{% for product in products %}{% include "product/card.html" %}{% endfor %}{% if not products %}<div class="empty-state"><h2>Không tìm thấy sản phẩm</h2><p>Thử từ khóa khác hoặc bỏ bớt bộ lọc.</p><a href="/collections/all">Xem tất cả sản phẩm</a></div>{% endif %}</div><p data-message role="status" aria-live="polite"></p></section>
 <section class="buying-steps"><h2>Mua hàng thật đơn giản</h2><ol><li><strong>Chọn sản phẩm</strong><span>Kiểm tra thông tin, giá và số lượng còn hàng.</span></li><li><strong>Kiểm tra giỏ hàng</strong><span>Điều chỉnh số lượng trước khi đặt mua.</span></li><li><strong>Đặt hàng & theo dõi</strong><span>Điền địa chỉ, chọn thanh toán và lưu mã đơn.</span></li></ol></section>
-<section class="store-location" aria-labelledby="store-location-heading">
-  <div class="store-location-info">
-    <p class="eyebrow">ĐỊA CHỈ TRẢI NGHIỆM</p>
-    <h2 id="store-location-heading">Ghé thăm ElectroHub</h2>
-    <div class="location-details">
-      <p class="location-item">
-        <strong>Địa chỉ:</strong>
-        <span>{{ store_address }}</span>
-      </p>
-      <p class="location-item">
-        <strong>Giờ mở cửa:</strong>
-        <span>Thứ Hai – Thứ Sáu: 09:00 – 17:00</span>
-      </p>
-    </div>
-    <a class="button button-sm" href="{{ google_maps_direct_url }}" target="_blank" rel="noopener noreferrer">Mở chỉ đường trên Google Maps →</a>
-  </div>
-  <div class="store-map-card">
-    <iframe
-      src="{{ google_maps_embed_url }}"
-      width="100%"
-      height="100%"
-      style="border:0;"
-      allowfullscreen=""
-      loading="lazy"
-      referrerpolicy="no-referrer-when-downgrade"
-      title="Bản đồ Google Maps vị trí {{ store_address }}">
-    </iframe>
-  </div>
-</section>
 {% endblock %}
