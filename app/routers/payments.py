@@ -68,7 +68,8 @@ def payment_details(code: str, user: CurrentUser, db: DbSession):
 @router.post("/orders/{code}/session", response_model=PaymentSessionOut)
 def create_payment_session(code: str, request: Request, user: CurrentUser, db: DbSession):
     order, payment = _owned_payment(code, user.id, db)
-    session = payment_service.create_session(db, order, payment, _client_ip(request))
+    origin = str(request.base_url).rstrip("/")
+    session = payment_service.create_session(db, order, payment, _client_ip(request), base_url=origin)
     return PaymentSessionOut(**session)
 
 
