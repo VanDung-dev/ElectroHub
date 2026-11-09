@@ -38,17 +38,17 @@ def test_demo_products_seed_and_images(client, database):
     from app.seeds.seed import seed_products
 
     all_product_images = (
-        "arduino-uno.png",
-        "arduino-uno-1.png",
-        "arduino-uno-2.png",
-        "arduino-uno-3.png",
-        "esp32-devkit.png",
-        "esp32-devkit-1.png",
-        "esp32-devkit-2.png",
-        "dht22.png",
-        "dht22-1.png",
-        "dht22-2.png",
-        "dht22-3.png",
+        "arduino-uno.webp",
+        "arduino-uno-1.webp",
+        "arduino-uno-2.webp",
+        "arduino-uno-3.webp",
+        "esp32-devkit.webp",
+        "esp32-devkit-1.webp",
+        "esp32-devkit-2.webp",
+        "dht22.webp",
+        "dht22-1.webp",
+        "dht22-2.webp",
+        "dht22-3.webp",
     )
 
     # 1. Verify all image files exist on disk
@@ -63,15 +63,15 @@ def test_demo_products_seed_and_images(client, database):
 
     # 3. Check storefront renders the new image URLs
     html = client.get("/").text
-    assert "/static/img/products/esp32-devkit.png" in html
-    assert "/static/img/products/arduino-uno.png" in html
-    assert "/static/img/products/dht22.png" in html
+    assert "/static/img/products/esp32-devkit.webp" in html
+    assert "/static/img/products/arduino-uno.webp" in html
+    assert "/static/img/products/dht22.webp" in html
 
     # 4. Check static endpoint serves all product images with 200
     for filename in all_product_images:
         res = client.get(f"/static/img/products/{filename}")
         assert res.status_code == 200
-        assert res.headers["content-type"].startswith("image/png")
+        assert res.headers["content-type"].startswith("image/webp")
 
     # 5. Check PDP gallery for demo products (multi-image)
     for slug in ("arduino-uno-demo", "esp32-devkit-demo", "dht22-demo"):
@@ -87,16 +87,16 @@ def test_demo_products_seed_and_images(client, database):
 
     # Check specific gallery items for Arduino Uno
     uno_html = client.get("/products/arduino-uno-demo").text
-    assert "/static/img/products/arduino-uno-1.png" in uno_html
-    assert "/static/img/products/arduino-uno-2.png" in uno_html
-    assert "/static/img/products/arduino-uno-3.png" in uno_html
+    assert "/static/img/products/arduino-uno-1.webp" in uno_html
+    assert "/static/img/products/arduino-uno-2.webp" in uno_html
+    assert "/static/img/products/arduino-uno-3.webp" in uno_html
 
     # Check specific gallery items for DHT22
     dht_html = client.get("/products/dht22-demo").text
-    assert "/static/img/products/dht22.png" in dht_html
-    assert "/static/img/products/dht22-1.png" in dht_html
-    assert "/static/img/products/dht22-2.png" in dht_html
-    assert "/static/img/products/dht22-3.png" in dht_html
+    assert "/static/img/products/dht22.webp" in dht_html
+    assert "/static/img/products/dht22-1.webp" in dht_html
+    assert "/static/img/products/dht22-2.webp" in dht_html
+    assert "/static/img/products/dht22-3.webp" in dht_html
 
 
 def test_product_detail_single_image_no_thumbnails(client, database):
@@ -195,7 +195,7 @@ def test_admin_create_and_update_product_with_html_description(client, database)
         "price": 180000,
         "sale_price": 150000,
         "stock": 45,
-        "image_url": "/static/img/products/esp32-devkit.png",
+        "image_url": "/static/img/products/esp32-devkit.webp",
         "description": "<h3>Thông số</h3><ul><li>Flash 4MB</li><li>SRAM 520KB</li></ul>",
     }
     create_res = client.post("/api/v1/admin/products", json=create_payload, headers=admin_headers)
@@ -242,12 +242,12 @@ def test_admin_create_product_with_multi_images_and_gallery(client, database):
         "name": "ESP32 Multi Angle Board",
         "price": 160000,
         "stock": 30,
-        "image_url": "/static/img/products/esp32-devkit.png",
+        "image_url": "/static/img/products/esp32-devkit.webp",
         "description": "<p>Bo mạch nhiều ảnh xem thực tế.</p>",
         "images": [
-            {"url": "/static/img/products/esp32-devkit.png", "alt": "Mặt trước", "sort": 0},
-            {"url": "/static/img/products/esp32-devkit-1.png", "alt": "Góc nghiêng", "sort": 1},
-            {"url": "/static/img/products/esp32-devkit-2.png", "alt": "Mặt sau", "sort": 2},
+            {"url": "/static/img/products/esp32-devkit.webp", "alt": "Mặt trước", "sort": 0},
+            {"url": "/static/img/products/esp32-devkit-1.webp", "alt": "Góc nghiêng", "sort": 1},
+            {"url": "/static/img/products/esp32-devkit-2.webp", "alt": "Mặt sau", "sort": 2},
         ],
     }
     create_res = client.post("/api/v1/admin/products", json=payload, headers=admin_headers)
@@ -260,15 +260,15 @@ def test_admin_create_product_with_multi_images_and_gallery(client, database):
     assert "gallery-thumbs" in pdp_html
     assert "gallery-nav--prev" in pdp_html
     assert "gallery-nav--next" in pdp_html
-    assert "/static/img/products/esp32-devkit-1.png" in pdp_html
-    assert "/static/img/products/esp32-devkit-2.png" in pdp_html
+    assert "/static/img/products/esp32-devkit-1.webp" in pdp_html
+    assert "/static/img/products/esp32-devkit-2.webp" in pdp_html
 
     # 4. Update product gallery images
     update_payload = {
         **payload,
         "images": [
-            {"url": "/static/img/products/esp32-devkit.png", "alt": "Mặt trước", "sort": 0},
-            {"url": "/static/img/products/esp32-devkit-1.png", "alt": "Góc nghiêng", "sort": 1},
+            {"url": "/static/img/products/esp32-devkit.webp", "alt": "Mặt trước", "sort": 0},
+            {"url": "/static/img/products/esp32-devkit-1.webp", "alt": "Góc nghiêng", "sort": 1},
         ],
     }
     update_res = client.put(
@@ -279,50 +279,51 @@ def test_admin_create_product_with_multi_images_and_gallery(client, database):
 
     # Verify on PDP
     pdp_html2 = client.get("/products/esp32-multi-angle").text
-    assert "/static/img/products/esp32-devkit-2.png" not in pdp_html2
+    assert "/static/img/products/esp32-devkit-2.webp" not in pdp_html2
 
 
 def test_admin_upload_image_and_library_list(client, database):
     admin_headers = make_admin(client, database, email="admin_uploader@example.com")
 
     # 1. Non-admin cannot upload
-    fake_png = (
+    valid_png = (
         b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
-        b"\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05"
-        b"\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
+        b"\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8\xcf\xc0"
+        b"\x00\x00\x03\x01\x01\x00\xc9\xfe\x92\xef\x00\x00\x00\x00IEND\xaeB`\x82"
     )
     no_auth_res = client.post(
         "/api/v1/admin/products/upload-image",
-        files={"file": ("test_chip.png", io.BytesIO(fake_png), "image/png")},
+        files={"file": ("test_chip.png", io.BytesIO(valid_png), "image/png")},
     )
     assert no_auth_res.status_code in (401, 403)
 
-    # 2. Admin uploads valid PNG image (with standard and browser-specific MIME types)
+    # 2. Admin uploads valid PNG image (with standard and browser-specific MIME types) -> converted to WebP
     upload_res = client.post(
         "/api/v1/admin/products/upload-image",
-        files={"file": ("test_chip.png", io.BytesIO(fake_png), "image/png")},
+        files={"file": ("test_chip.png", io.BytesIO(valid_png), "image/png")},
         headers=admin_headers,
     )
     assert upload_res.status_code == 200
     uploaded_url = upload_res.json()["url"]
     uploaded_filename = upload_res.json()["filename"]
     assert uploaded_url.startswith("/static/img/products/prod_")
-    assert uploaded_url.endswith(".png")
+    assert uploaded_url.endswith(".webp")
 
-    # 2b. Admin uploads PNG with uppercase extension and octet-stream MIME
+    # 2b. Admin uploads PNG with uppercase extension and octet-stream MIME -> converted to WebP
     upload_res2 = client.post(
         "/api/v1/admin/products/upload-image",
-        files={"file": ("MY_MODULE.PNG", io.BytesIO(fake_png), "application/octet-stream")},
+        files={"file": ("MY_MODULE.PNG", io.BytesIO(valid_png), "application/octet-stream")},
         headers=admin_headers,
     )
     assert upload_res2.status_code == 200
     uploaded_url2 = upload_res2.json()["url"]
     uploaded_filename2 = upload_res2.json()["filename"]
-    assert uploaded_url2.endswith(".png")
+    assert uploaded_url2.endswith(".webp")
 
-    # Verify static file can be retrieved
+    # Verify static file can be retrieved as webp
     file_res = client.get(uploaded_url)
     assert file_res.status_code == 200
+    assert file_res.headers["content-type"].startswith("image/webp")
 
     # 3. List library images
     lib_res = client.get("/api/v1/admin/products/library-images", headers=admin_headers)

@@ -1,9 +1,11 @@
+import io
 import secrets
 from pathlib import Path
 from typing import Annotated
 from urllib.parse import unquote, urlsplit
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -179,7 +181,7 @@ async def upload_product_image(
     user: AdminUser,
     file: UploadFile = File(...),
 ):
-    """Upload a product image from user's computer and return its static URL."""
+    """Upload a product image from user's computer, convert to WebP, and return its static URL."""
     ext = Path(file.filename or "").suffix.lower()
     if not ext:
         ct = (file.content_type or "").lower()
@@ -207,11 +209,36 @@ async def upload_product_image(
     if not content:
         raise HTTPException(400, "Tệp tải lên rỗng")
 
-    filename = f"prod_{secrets.token_hex(8)}{ext}"
     upload_dir = ROOT / "app" / "static" / "img" / "products"
     upload_dir.mkdir(parents=True, exist_ok=True)
+
+    if ext == ".svg":
+        filename = f"prod_{secrets.token_hex(8)}.svg"
+        file_path = upload_dir / filename
+        file_path.write_bytes(content)
+        return {
+            "url": f"/static/img/products/{filename}",
+            "filename": filename,
+        }
+
+    try:
+        img = Image.open(io.BytesIO(content))
+        out_buf = io.BytesIO()
+        if getattr(img, "is_animated", False):
+            img.save(out_buf, format="WEBP", save_all=True)
+        else:
+            if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
+                img = img.convert("RGBA")
+            elif img.mode != "RGB":
+                img = img.convert("RGB")
+            img.save(out_buf, format="WEBP", quality=85, method=4)
+        webp_bytes = out_buf.getvalue()
+    except Exception:
+        raise HTTPException(400, "Tệp ảnh không hợp lệ hoặc bị hỏng")
+
+    filename = f"prod_{secrets.token_hex(8)}.webp"
     file_path = upload_dir / filename
-    file_path.write_bytes(content)
+    file_path.write_bytes(webp_bytes)
 
     return {
         "url": f"/static/img/products/{filename}",

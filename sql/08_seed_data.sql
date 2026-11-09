@@ -44,10 +44,10 @@ SET IDENTITY_INSERT dbo.products ON;
 INSERT INTO dbo.products (id, slug, sku, name, description, image_url, price, sale_price, stock)
 SELECT source.id, source.slug, source.sku, source.name, source.description, source.image_url, source.price, source.sale_price, source.stock
 FROM (VALUES
-    (1, 'esp32-wroom-32d', 'EH-ESP32', N'Module Wi-Fi BLE ESP32-WROOM-32D', N'Vi điều khiển lõi kép 240MHz, tích hợp Wi-Fi 802.11 b/g/n và Bluetooth 4.2 BLE.', '/static/img/products/esp32-devkit.png', 85000, 75000, 50),
-    (2, 'arduino-uno-r3', 'EH-UNO-R3', N'Bo mạch Arduino Uno R3 ATmega328P', N'Bo mạch vi điều khiển tiêu chuẩn học tập, tương thích hoàn toàn Arduino IDE.', '/static/img/products/arduino-uno.png', 120000, 110000, 35),
+    (1, 'esp32-wroom-32d', 'EH-ESP32', N'Module Wi-Fi BLE ESP32-WROOM-32D', N'Vi điều khiển lõi kép 240MHz, tích hợp Wi-Fi 802.11 b/g/n và Bluetooth 4.2 BLE.', '/static/img/products/esp32-devkit.webp', 85000, 75000, 50),
+    (2, 'arduino-uno-r3', 'EH-UNO-R3', N'Bo mạch Arduino Uno R3 ATmega328P', N'Bo mạch vi điều khiển tiêu chuẩn học tập, tương thích hoàn toàn Arduino IDE.', '/static/img/products/arduino-uno.webp', 120000, 110000, 35),
     (3, 'stm32-blue-pill', 'EH-STM32', N'Bo mạch STM32F103C8T6 Blue Pill', N'ARM Cortex-M3 72MHz, 64KB Flash, phù hợp các ứng dụng điều khiển thời gian thực.', '/static/img/product-placeholder.svg', 65000, NULL, 20),
-    (4, 'cam-bien-dht22', 'EH-DHT22', N'Cảm biến nhiệt độ độ ẩm DHT22/AM2302', N'Cảm biến độ chính xác cao: nhiệt độ -40~80°C (±0.5°C), độ ẩm 0~100% RH (±2%).', '/static/img/products/dht22.png', 95000, 85000, 40),
+    (4, 'cam-bien-dht22', 'EH-DHT22', N'Cảm biến nhiệt độ độ ẩm DHT22/AM2302', N'Cảm biến độ chính xác cao: nhiệt độ -40~80°C (±0.5°C), độ ẩm 0~100% RH (±2%).', '/static/img/products/dht22.webp', 95000, 85000, 40),
     (5, 'cam-bien-hc-sr04', 'EH-SR04', N'Cảm biến khoảng cách siêu âm HC-SR04', N'Khoảng cách đo 2cm - 400cm, độ phân giải 3mm, ứng dụng xe tránh vật cản.', '/static/img/products/sr04.jpg', 25000, NULL, 100),
     (6, 'module-relay-5v-4-kenh', 'EH-RELAY-4CH', N'Module Relay 5V 4 kênh cách ly quang', N'Kích đóng ngắt tải AC 250V/10A hoặc DC 30V/10A, có opto cách ly an toàn.', '/static/img/products/relay.jpg', 55000, 49000, 15),
     (7, 'mach-ha-ap-buck-lm2596', 'EH-LM2596', N'Mạch giảm áp DC-DC LM2596 3A', N'Điện áp vào 4V-35V, điện áp ra điều chỉnh 1.23V-30V, dòng tải max 3A.', '/static/img/products/lm2596.jpg', 22000, NULL, 80),
@@ -62,27 +62,27 @@ GO
 IF NOT EXISTS (SELECT 1 FROM dbo.product_images WHERE product_id = 1)
 BEGIN
     INSERT INTO dbo.product_images (product_id, url, alt, sort) VALUES
-    (1, '/static/img/products/esp32-devkit.png', N'Mặt trước', 0),
-    (1, '/static/img/products/esp32-devkit-1.png', N'Góc nghiêng', 1),
-    (1, '/static/img/products/esp32-devkit-2.png', N'Khác / Chi tiết', 2);
+    (1, '/static/img/products/esp32-devkit.webp', N'Mặt trước', 0),
+    (1, '/static/img/products/esp32-devkit-1.webp', N'Góc nghiêng', 1),
+    (1, '/static/img/products/esp32-devkit-2.webp', N'Khác / Chi tiết', 2);
 END
 
 IF NOT EXISTS (SELECT 1 FROM dbo.product_images WHERE product_id = 2)
 BEGIN
     INSERT INTO dbo.product_images (product_id, url, alt, sort) VALUES
-    (2, '/static/img/products/arduino-uno.png', N'Mặt trước', 0),
-    (2, '/static/img/products/arduino-uno-1.png', N'Góc nghiêng', 1),
-    (2, '/static/img/products/arduino-uno-2.png', N'Mặt sau', 2),
-    (2, '/static/img/products/arduino-uno-3.png', N'Khác / Sơ đồ chi tiết', 3);
+    (2, '/static/img/products/arduino-uno.webp', N'Mặt trước', 0),
+    (2, '/static/img/products/arduino-uno-1.webp', N'Góc nghiêng', 1),
+    (2, '/static/img/products/arduino-uno-2.webp', N'Mặt sau', 2),
+    (2, '/static/img/products/arduino-uno-3.webp', N'Khác / Sơ đồ chi tiết', 3);
 END
 
 IF NOT EXISTS (SELECT 1 FROM dbo.product_images WHERE product_id = 4)
 BEGIN
     INSERT INTO dbo.product_images (product_id, url, alt, sort) VALUES
-    (4, '/static/img/products/dht22.png', N'Mặt trước', 0),
-    (4, '/static/img/products/dht22-1.png', N'Mặt sau', 1),
-    (4, '/static/img/products/dht22-2.png', N'Chân cắm', 2),
-    (4, '/static/img/products/dht22-3.png', N'Khác / Thông số', 3);
+    (4, '/static/img/products/dht22.webp', N'Mặt trước', 0),
+    (4, '/static/img/products/dht22-1.webp', N'Mặt sau', 1),
+    (4, '/static/img/products/dht22-2.webp', N'Chân cắm', 2),
+    (4, '/static/img/products/dht22-3.webp', N'Khác / Thông số', 3);
 END
 PRINT N'Đã nạp bảng product_images.';
 GO

@@ -1431,18 +1431,18 @@ function addGalleryRow(url = "", alt = "") {
 
 const GALLERY_PRESETS = {
   "arduino-uno": [
-    "/static/img/products/arduino-uno-1.png",
-    "/static/img/products/arduino-uno-2.png",
-    "/static/img/products/arduino-uno-3.png",
+    "/static/img/products/arduino-uno-1.webp",
+    "/static/img/products/arduino-uno-2.webp",
+    "/static/img/products/arduino-uno-3.webp",
   ],
   "esp32-devkit": [
-    "/static/img/products/esp32-devkit-1.png",
-    "/static/img/products/esp32-devkit-2.png",
+    "/static/img/products/esp32-devkit-1.webp",
+    "/static/img/products/esp32-devkit-2.webp",
   ],
   "dht22": [
-    "/static/img/products/dht22-1.png",
-    "/static/img/products/dht22-2.png",
-    "/static/img/products/dht22-3.png",
+    "/static/img/products/dht22-1.webp",
+    "/static/img/products/dht22-2.webp",
+    "/static/img/products/dht22-3.webp",
   ],
 };
 
