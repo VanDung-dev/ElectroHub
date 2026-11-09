@@ -11,7 +11,7 @@ DEMO_PRODUCTS = (
         "sku": "EH-DEMO-001",
         "name": "ESP32 DevKit (sản phẩm mẫu)",
         "description": "Bo mạch phát triển ESP32 mẫu để kiểm tra giao diện cửa hàng.",
-        "image_url": "/static/img/products/esp32-devkit.png",
+        "image_url": "/static/img/products/esp32-devkit.webp",
         "price": 185_000,
         "sale_price": 165_000,
         "stock": 25,
@@ -21,7 +21,7 @@ DEMO_PRODUCTS = (
         "sku": "EH-DEMO-002",
         "name": "Arduino Uno (sản phẩm mẫu)",
         "description": "Bo mạch Arduino Uno mẫu để kiểm tra luồng xem sản phẩm và giỏ hàng.",
-        "image_url": "/static/img/products/arduino-uno.png",
+        "image_url": "/static/img/products/arduino-uno.webp",
         "price": 220_000,
         "sale_price": None,
         "stock": 18,
@@ -31,7 +31,7 @@ DEMO_PRODUCTS = (
         "sku": "EH-DEMO-003",
         "name": "Cảm biến DHT22 (sản phẩm mẫu)",
         "description": "Cảm biến nhiệt độ và độ ẩm mẫu để kiểm tra giá và tình trạng kho.",
-        "image_url": "/static/img/products/dht22.png",
+        "image_url": "/static/img/products/dht22.webp",
         "price": 95_000,
         "sale_price": None,
         "stock": 40,
@@ -40,33 +40,33 @@ DEMO_PRODUCTS = (
 
 # Additional mappings for sample products from initial SQL seeds
 ADDITIONAL_IMAGE_MAPPINGS = {
-    "EH-ESP32": "/static/img/products/esp32-devkit.png",
-    "EH-UNO-R3": "/static/img/products/arduino-uno.png",
-    "EH-DHT22": "/static/img/products/dht22.png",
+    "EH-ESP32": "/static/img/products/esp32-devkit.webp",
+    "EH-UNO-R3": "/static/img/products/arduino-uno.webp",
+    "EH-DHT22": "/static/img/products/dht22.webp",
 }
 
 # Multi-image gallery definitions (supporting front, angle, back, and flexible other/khác)
 PRODUCT_GALLERY_MAPPINGS = {
     "arduino-uno": [
-        {"url": "/static/img/products/arduino-uno.png", "alt": "Mặt trước", "sort": 0},
-        {"url": "/static/img/products/arduino-uno-1.png", "alt": "Góc nghiêng", "sort": 1},
-        {"url": "/static/img/products/arduino-uno-2.png", "alt": "Mặt sau", "sort": 2},
+        {"url": "/static/img/products/arduino-uno.webp", "alt": "Mặt trước", "sort": 0},
+        {"url": "/static/img/products/arduino-uno-1.webp", "alt": "Góc nghiêng", "sort": 1},
+        {"url": "/static/img/products/arduino-uno-2.webp", "alt": "Mặt sau", "sort": 2},
         {
-            "url": "/static/img/products/arduino-uno-3.png",
+            "url": "/static/img/products/arduino-uno-3.webp",
             "alt": "Khác / Sơ đồ chi tiết",
             "sort": 3,
         },
     ],
     "esp32": [
-        {"url": "/static/img/products/esp32-devkit.png", "alt": "Mặt trước", "sort": 0},
-        {"url": "/static/img/products/esp32-devkit-1.png", "alt": "Góc nghiêng", "sort": 1},
-        {"url": "/static/img/products/esp32-devkit-2.png", "alt": "Khác / Chi tiết", "sort": 2},
+        {"url": "/static/img/products/esp32-devkit.webp", "alt": "Mặt trước", "sort": 0},
+        {"url": "/static/img/products/esp32-devkit-1.webp", "alt": "Góc nghiêng", "sort": 1},
+        {"url": "/static/img/products/esp32-devkit-2.webp", "alt": "Khác / Chi tiết", "sort": 2},
     ],
     "dht22": [
-        {"url": "/static/img/products/dht22.png", "alt": "Mặt trước", "sort": 0},
-        {"url": "/static/img/products/dht22-1.png", "alt": "Mặt sau", "sort": 1},
-        {"url": "/static/img/products/dht22-2.png", "alt": "Chân cắm", "sort": 2},
-        {"url": "/static/img/products/dht22-3.png", "alt": "Khác / Thông số", "sort": 3},
+        {"url": "/static/img/products/dht22.webp", "alt": "Mặt trước", "sort": 0},
+        {"url": "/static/img/products/dht22-1.webp", "alt": "Mặt sau", "sort": 1},
+        {"url": "/static/img/products/dht22-2.webp", "alt": "Chân cắm", "sort": 2},
+        {"url": "/static/img/products/dht22-3.webp", "alt": "Khác / Thông số", "sort": 3},
     ],
 }
 
