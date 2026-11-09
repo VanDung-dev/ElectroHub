@@ -38,7 +38,13 @@ def _txn_ref(order_code: str, attempt: int) -> str:
     return f"{stem}{attempt:02d}"
 
 
-def create_session(db: Session, order: Order, payment: Payment, ip_addr: str) -> dict:
+def create_session(
+    db: Session,
+    order: Order,
+    payment: Payment,
+    ip_addr: str,
+    base_url: str | None = None,
+) -> dict:
     settings = get_settings()
     if order.status == "cancelled":
         raise HTTPException(409, "Đơn hàng đã hủy")
@@ -66,12 +72,14 @@ def create_session(db: Session, order: Order, payment: Payment, ip_addr: str) ->
         payment.amount_minor = order.total * 100
         db.commit()
         try:
+            return_url = f"{base_url.rstrip('/')}/payments/vnpay/return" if base_url else None
             url = vnpay.build_payment_url(
                 settings,
                 txn_ref=payment.txn_ref,
                 amount_vnd=order.total,
                 order_info=f"Thanh toan don hang {order.code}",
                 ip_addr=ip_addr,
+                return_url=return_url,
             )
         except PaymentGatewayError as exc:
             raise HTTPException(502, str(exc)) from exc
@@ -93,6 +101,7 @@ def create_session(db: Session, order: Order, payment: Payment, ip_addr: str) ->
             txn_ref=payment.txn_ref,
             amount_minor=payment.amount_minor,
             currency=payment.currency,
+            base_url=base_url,
         )
     except PaymentGatewayError as exc:
         raise HTTPException(502, str(exc)) from exc
