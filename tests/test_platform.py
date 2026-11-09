@@ -238,3 +238,39 @@ def test_ui_improvements_and_orders_page_rendering(client):
     footer_part = html[html.find('class="site-footer"') :]
     assert 'class="store-location"' in footer_part
     assert 'class="footer-address"' in footer_part
+
+
+def test_html_error_handling_for_pages(client, database):
+    browser_headers = {"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"}
+
+    # 1. Unauthenticated access to protected pages redirects to login (303)
+    for protected_path in [
+        "/manager",
+        "/admin/products",
+        "/admin/orders",
+        "/staff/orders",
+        "/payments/EH-TEST",
+    ]:
+        res = client.get(protected_path, headers=browser_headers, follow_redirects=False)
+        assert res.status_code == 303
+        assert res.headers["location"].startswith(f"/account/login?next={protected_path}")
+
+    # 2. Customer logged in accessing admin pages returns 404 HTML instead of raw JSON
+    from tests.conftest import login, register
+
+    register(client, email="customer_perm@example.com")
+    login(client, email="customer_perm@example.com")
+    for admin_path in [
+        "/manager",
+        "/admin/products",
+        "/admin/orders",
+        "/admin/users",
+        "/admin/newsletter",
+        "/staff/orders",
+    ]:
+        res = client.get(admin_path, headers=browser_headers, follow_redirects=False)
+        assert res.status_code == 404
+        assert res.headers["content-type"].startswith("text/html")
+        assert "<!doctype html>" in res.text.lower()
+        assert '{"detail"' not in res.text
+        assert "404" in res.text
