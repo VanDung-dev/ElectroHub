@@ -82,7 +82,7 @@ def create_app() -> FastAPI:
                 if request.url.query:
                     target = f"{target}?{request.url.query}"
                 return RedirectResponse(f"/account/login?next={target}", status_code=303)
-            if exc.status_code == 404:
+            if exc.status_code in {403, 404}:
                 response = not_found_response(request)
                 response.status_code = 404
                 return response
