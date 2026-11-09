@@ -135,7 +135,7 @@ services:
     ports:
       - "127.0.0.1:${APP_PORT:-8000}:8000"
     volumes:
-      - ./app/static/img/products:/app/app/static/img/products
+      - product_images:/app/app/static/img/products
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3).close()"]
       interval: 10s
@@ -145,21 +145,28 @@ services:
 
   # localtunnel: expose app to the public web via HTTPS tunnel (https://<subdomain>.loca.lt)
   localtunnel:
-    image: node:22-alpine
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.localtunnel
+    image: electrohub-localtunnel:local
     restart: unless-stopped
-    command:
-      - "npx"
-      - "-y"
-      - "localtunnel"
-      - "--port"
-      - "8000"
-      - "--local-host"
-      - "app"
-      - "--subdomain"
-      - "${LOCALTUNNEL_SUBDOMAIN:-electrohub}"
-    depends_on:
-      app:
-        condition: service_healthy
+    environment:
+      LOCALTUNNEL_SUBDOMAIN: ${LOCALTUNNEL_SUBDOMAIN:-electrohub}
+      LOCALTUNNEL_STRICT: ${LOCALTUNNEL_STRICT:-false}
+      LOCAL_HOST: app
+      PORT: "8000"
+    volumes:
+      - ./docker/tunnel.js:/app/tunnel.js:ro
+    healthcheck:
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "fetch('http://app:8000/api/v1/health', { signal: AbortSignal.timeout(3000) }).then(r => process.exit(r.status === 200 ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
   mailpit:
     image: axllent/mailpit:latest
@@ -172,3 +179,4 @@ services:
 volumes:
   sqlserver_data:
   sqlserver_test_data:
+  product_images:
