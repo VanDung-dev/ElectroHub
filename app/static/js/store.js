@@ -1139,6 +1139,7 @@ function renderAdminProductsList() {
       <div style="display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid #f1f5f9;margin-top:auto;">
         <button type="button" class="button-admin-light" data-edit-product="${product.id}" style="width:100%;padding:8px 12px;font-size:0.86rem;font-weight:600;white-space:nowrap;">Chỉnh sửa</button>
         <a href="/products/${encodeURIComponent(product.slug)}" target="_blank" class="button-admin-light" style="width:100%;padding:8px 12px;font-size:0.86rem;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;" title="Xem sản phẩm bán lẻ">Xem trên web</a>
+        <button type="button" class="button-admin-light" data-delete-product="${product.id}" data-product-name="${escapeHtml(product.name)}" data-product-sku="${escapeHtml(product.sku)}" style="width:100%;padding:8px 12px;font-size:0.86rem;color:#b91c1c;border-color:#fecaca;background:#fff5f5;font-weight:600;white-space:nowrap;">Xóa sản phẩm</button>
       </div>
     </article>`;
   }).join("");
@@ -1147,6 +1148,13 @@ function renderAdminProductsList() {
 async function loadAdminProducts() {
   const list = document.querySelector("[data-admin-products]");
   if (!list) return;
+  const initialDataNode = document.getElementById("admin-products-data");
+  if (initialDataNode && !window.adminProducts) {
+    try {
+      window.adminProducts = JSON.parse(initialDataNode.textContent);
+      updateLiveProductPreview();
+    } catch (e) { /* ignore parse error */ }
+  }
   try {
     const result = await request("/api/v1/admin/products");
     window.adminProducts = result.items;
@@ -1166,6 +1174,8 @@ document.querySelector("[data-switch-to-create]")?.addEventListener("click", () 
     form.elements.id.value = "";
     form.elements.image_url.value = "/static/img/product-placeholder.svg";
   }
+  const deleteCurrentBtn = document.querySelector("[data-delete-current-product]");
+  if (deleteCurrentBtn) deleteCurrentBtn.style.display = "none";
   const galleryContainer = document.querySelector("[data-gallery-container]");
   if (galleryContainer) galleryContainer.innerHTML = "";
   if (typeof tinymce !== "undefined" && tinymce.get("admin-product-description")) {
@@ -1567,7 +1577,28 @@ document.querySelector("[data-admin-product]")?.addEventListener("submit", async
   }
 });
 
-document.querySelector("[data-admin-products]")?.addEventListener("click", (event) => {
+async function executeDeleteProduct(productId, productName) {
+  const confirmed = window.confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${productName || `ID: ${productId}`}" không?\nThao tác này sẽ xóa vĩnh viễn sản phẩm khỏi hệ thống.`);
+  if (!confirmed) return;
+  try {
+    await request(`/api/v1/admin/products/${productId}`, { method: "DELETE" });
+    message(`Đã xóa sản phẩm "${productName || productId}" thành công.`);
+    await loadAdminProducts();
+    switchProductTab("list");
+  } catch (error) {
+    window.alert(error.message || "Không thể xóa sản phẩm");
+    message(error.message);
+  }
+}
+
+document.querySelector("[data-admin-products]")?.addEventListener("click", async (event) => {
+  const deleteBtn = event.target.closest("[data-delete-product]");
+  if (deleteBtn) {
+    const id = Number(deleteBtn.dataset.deleteProduct);
+    const name = deleteBtn.dataset.productName;
+    await executeDeleteProduct(id, name);
+    return;
+  }
   const button = event.target.closest("[data-edit-product]");
   if (!button) return;
   const product = window.adminProducts?.find((item) => item.id === Number(button.dataset.editProduct));
@@ -1576,6 +1607,10 @@ document.querySelector("[data-admin-products]")?.addEventListener("click", (even
   if (!form) return;
   for (const [key, value] of Object.entries(product)) {
     if (form.elements[key]) form.elements[key].value = value ?? "";
+  }
+  const deleteCurrentBtn = document.querySelector("[data-delete-current-product]");
+  if (deleteCurrentBtn) {
+    deleteCurrentBtn.style.display = "inline-flex";
   }
   const galleryContainer = document.querySelector("[data-gallery-container]");
   if (galleryContainer) {
@@ -1596,12 +1631,22 @@ document.querySelector("[data-admin-products]")?.addEventListener("click", (even
   form.scrollIntoView({behavior:"smooth", block:"start"});
 });
 
+document.querySelector("[data-delete-current-product]")?.addEventListener("click", async () => {
+  const form = document.querySelector("[data-admin-product]");
+  const productId = Number(form?.elements.id?.value);
+  const productName = form?.elements.name?.value;
+  if (!productId) return;
+  await executeDeleteProduct(productId, productName);
+});
+
 document.querySelector("[data-reset-product]")?.addEventListener("click", () => {
   const form = document.querySelector("[data-admin-product]");
   if (!form) return;
   form.reset();
   form.elements.id.value = "";
   form.elements.image_url.value = "/static/img/product-placeholder.svg";
+  const deleteCurrentBtn = document.querySelector("[data-delete-current-product]");
+  if (deleteCurrentBtn) deleteCurrentBtn.style.display = "none";
   const galleryContainer = document.querySelector("[data-gallery-container]");
   if (galleryContainer) galleryContainer.innerHTML = "";
   if (typeof tinymce !== "undefined" && tinymce.get("admin-product-description")) {

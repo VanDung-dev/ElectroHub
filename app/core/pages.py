@@ -462,6 +462,10 @@ def page_endpoint(template_name: str):
         }
         if template_name in CATALOG_TEMPLATES:
             context.update(catalog_context(request, db))
+        elif template_name == "admin/products.html":
+            context["products"] = db.scalars(
+                select(Product).order_by(Product.name, Product.id)
+            ).all()
         response = templates.TemplateResponse(
             request=request,
             name=template_name,
