@@ -21,7 +21,7 @@
       <nav class="tab-nav" aria-label="Mục quản lý sản phẩm">
         <button type="button" class="tab-btn is-active" data-tab-product-target="list">
           <span>Danh sách sản phẩm</span>
-          <span class="tab-badge" data-product-total-badge>0</span>
+          <span class="tab-badge" data-product-total-badge>{{ products | length if products is defined else 0 }}</span>
         </button>
         <button type="button" class="tab-btn" data-tab-product-target="editor">
           <span data-editor-tab-label>Tạo &amp; Chỉnh sửa sản phẩm</span>
@@ -41,7 +41,45 @@
         </div>
 
         <div class="product-grid" data-admin-products aria-live="polite" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));gap:16px;">
-          <p>Đang tải danh mục sản phẩm…</p>
+          {% if products %}
+            {% for product in products %}
+            {% set on_sale = product.sale_price is not none and product.sale_price < product.price %}
+            <article class="product-card" style="display:flex;flex-direction:column;justify-content:space-between;border:1px solid #e2e8f0;border-radius:8px;padding:14px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+              <div>
+                <div style="background:#f8fafb;border-radius:6px;padding:8px;display:flex;align-items:center;justify-content:center;height:160px;margin-bottom:10px;overflow:hidden;">
+                  <img src="{{ product.image_url }}" alt="{{ product.name }}" width="560" height="420" loading="lazy" style="max-height:100%;max-width:100%;object-fit:contain;">
+                </div>
+                <div style="margin-bottom:4px;">
+                  <span style="font-size:0.75rem;padding:3px 8px;border-radius:4px;background:#edf2f7;color:#4a5568;font-family:monospace;font-weight:600;display:inline-block;white-space:nowrap;">{{ product.sku }}</span>
+                </div>
+                <div style="margin-bottom:8px;">
+                  {% if product.stock <= 0 %}
+                  <span style="font-size:0.75rem;padding:3px 10px;border-radius:12px;background:#fee2e2;color:#b91c1c;font-weight:600;display:inline-block;white-space:nowrap;">Hết hàng</span>
+                  {% elif product.stock <= 10 %}
+                  <span style="font-size:0.75rem;padding:3px 10px;border-radius:12px;background:#fef3c7;color:#b45309;font-weight:600;display:inline-block;white-space:nowrap;">Sắp hết: {{ product.stock }}</span>
+                  {% else %}
+                  <span style="font-size:0.75rem;padding:3px 10px;border-radius:12px;background:#dcfce7;color:#15803d;font-weight:600;display:inline-block;white-space:nowrap;">Còn hàng: {{ product.stock }}</span>
+                  {% endif %}
+                </div>
+                <h2 style="font-size:0.96rem;margin:4px 0 6px;line-height:1.4;font-weight:650;color:var(--ink);">{{ product.name }}</h2>
+                <div style="margin-bottom:14px;">
+                  {% if on_sale %}
+                  <strong style="color:var(--accent);font-size:1.05rem;">{{ product.sale_price | vnd }} ₫</strong> <del style="color:var(--muted);font-size:0.86rem;margin-left:6px;">{{ product.price | vnd }} ₫</del>
+                  {% else %}
+                  <strong style="font-size:1.05rem;color:var(--ink);">{{ product.price | vnd }} ₫</strong>
+                  {% endif %}
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid #f1f5f9;margin-top:auto;">
+                <button type="button" class="button-admin-light" data-edit-product="{{ product.id }}" style="width:100%;padding:8px 12px;font-size:0.86rem;font-weight:600;white-space:nowrap;">Chỉnh sửa</button>
+                <a href="/products/{{ product.slug }}" target="_blank" class="button-admin-light" style="width:100%;padding:8px 12px;font-size:0.86rem;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;" title="Xem sản phẩm bán lẻ">Xem trên web</a>
+                <button type="button" class="button-admin-light" data-delete-product="{{ product.id }}" data-product-name="{{ product.name }}" data-product-sku="{{ product.sku }}" style="width:100%;padding:8px 12px;font-size:0.86rem;color:#b91c1c;border-color:#fecaca;background:#fff5f5;font-weight:600;white-space:nowrap;">Xóa sản phẩm</button>
+              </div>
+            </article>
+            {% endfor %}
+          {% else %}
+            <p style="grid-column:1/-1;text-align:center;padding:32px;color:var(--muted);">Chưa có sản phẩm nào trong kho.</p>
+          {% endif %}
         </div>
       </section>
 
@@ -208,6 +246,7 @@
             <button type="submit" class="button-admin-primary" data-save-btn style="min-width:140px;">Lưu sản phẩm</button>
             <button type="button" class="button-admin-light" data-reset-product>Làm mới form</button>
             <button type="button" class="button-admin-light" data-back-to-list>Hủy &amp; Quay lại</button>
+            <button type="button" class="button-admin-light" data-delete-current-product style="display:none;margin-left:auto;color:#b91c1c;border-color:#fecaca;background:#fff5f5;font-weight:600;">Xóa sản phẩm này</button>
           </div>
           <p data-message role="status" aria-live="polite" style="margin-top:14px;font-weight:600;"></p>
         </form>
@@ -310,4 +349,29 @@
 
 <!-- TinyMCE library from CDNJS (Community Free Edition, No API Key Required) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
+
+<script id="admin-products-data" type="application/json">
+[
+  {% if products %}
+    {% for product in products %}
+    {
+      "id": {{ product.id }},
+      "slug": {{ product.slug | tojson }},
+      "sku": {{ product.sku | tojson }},
+      "name": {{ product.name | tojson }},
+      "description": {{ (product.description or '') | tojson }},
+      "image_url": {{ product.image_url | tojson }},
+      "price": {{ product.price }},
+      "sale_price": {{ product.sale_price if product.sale_price is not none else 'null' }},
+      "stock": {{ product.stock }},
+      "images": [
+        {% for img in product.images %}
+        {"id": {{ img.id }}, "url": {{ img.url | tojson }}, "alt": {{ (img.alt or '') | tojson }}, "sort": {{ img.sort }}}{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ]
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  {% endif %}
+]
+</script>
 {% endblock %}

@@ -7,11 +7,13 @@ from urllib.parse import unquote, urlsplit
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 
 from app.core.config import ROOT
 from app.core.deps import DbSession, require_admin
+from app.models.cart import CartItem
+from app.models.order import OrderItem
 from app.models.product import Product, ProductImage
 from app.models.user import User
 
@@ -174,6 +176,26 @@ def update_product(product_id: int, data: ProductUpsert, user: AdminUser, db: Db
         raise HTTPException(409, "Slug hoặc mã SKU đã được sử dụng") from None
     db.refresh(product)
     return product
+
+
+@admin_router.delete("/{product_id}")
+def delete_product(product_id: int, user: AdminUser, db: DbSession):
+    """Delete an existing product if it has not been ordered yet."""
+    product = db.get(Product, product_id)
+    if product is None:
+        raise HTTPException(404, "Không tìm thấy sản phẩm")
+
+    has_orders = db.scalar(select(OrderItem.id).where(OrderItem.product_id == product_id).limit(1))
+    if has_orders is not None:
+        raise HTTPException(
+            400,
+            "Không thể xóa sản phẩm đã có trong đơn hàng. Bạn có thể chỉnh sửa số lượng tồn kho về 0 để ngừng bán.",
+        )
+
+    db.execute(delete(CartItem).where(CartItem.product_id == product_id))
+    db.delete(product)
+    db.commit()
+    return {"detail": "Đã xóa sản phẩm thành công", "id": product_id}
 
 
 @admin_router.post("/upload-image", include_in_schema=False)

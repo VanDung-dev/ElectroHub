@@ -161,6 +161,17 @@ def test_product_detail_renders_rich_html_description(client, database):
 
 def test_admin_products_page_and_tinymce_integration(client, database):
     admin_headers = make_admin(client, database)
+    with Session(database) as db:
+        db.add(
+            Product(
+                slug="test-ssr-del",
+                sku="SSR-001",
+                name="SSR Product",
+                price=100000,
+                stock=5,
+            )
+        )
+        db.commit()
     response = client.get("/admin/products", headers=admin_headers)
     assert response.status_code == 200
     html = response.text
@@ -177,6 +188,9 @@ def test_admin_products_page_and_tinymce_integration(client, database):
     assert "data-upload-primary" in html
     assert "data-open-library" in html
     assert "data-insert-template" in html
+    assert "data-delete-current-product" in html
+    assert "data-delete-product" in html
+    assert "admin-products-data" in html
 
     # Verify Live Storefront Preview Frame
     assert "storefront-preview-card" in html
@@ -340,3 +354,101 @@ def test_admin_upload_image_and_library_list(client, database):
     test_file_path2 = ROOT / "app" / "static" / "img" / "products" / uploaded_filename2
     if test_file_path2.exists():
         test_file_path2.unlink()
+
+
+def test_admin_delete_product_success_and_protection(client, database):
+    admin_headers = make_admin(client, database, email="admin_delete_prod@example.com")
+
+    from app.models.cart import CartItem
+    from app.models.product import ProductImage
+
+    # 1. Create a product with gallery images and a cart item
+    with Session(database) as db:
+        user = db.scalar(select(User).where(User.email == "admin_delete_prod@example.com"))
+        prod = Product(
+            slug="to-be-deleted",
+            sku="DEL-001",
+            name="Sản phẩm thử xóa",
+            price=120000,
+            stock=10,
+            image_url="/static/img/products/arduino-uno.webp",
+        )
+        db.add(prod)
+        db.flush()
+        prod.images.append(
+            ProductImage(url="/static/img/products/arduino-uno-1.webp", alt="Góc nghiêng", sort=1)
+        )
+        db.add(CartItem(user_id=user.id, product_id=prod.id, qty=2))
+        db.commit()
+        prod_id = prod.id
+
+    # 2. Non-authenticated / non-admin cannot delete
+    no_auth_res = client.delete(f"/api/v1/admin/products/{prod_id}")
+    assert no_auth_res.status_code in (401, 403)
+
+    # 3. Admin deletes non-existent product
+    not_found_res = client.delete("/api/v1/admin/products/999999", headers=admin_headers)
+    assert not_found_res.status_code == 404
+
+    # 4. Admin deletes existing product successfully
+    del_res = client.delete(f"/api/v1/admin/products/{prod_id}", headers=admin_headers)
+    assert del_res.status_code == 200
+    assert del_res.json()["id"] == prod_id
+    assert "thành công" in del_res.json()["detail"]
+
+    # 5. Verify database state
+    with Session(database) as db:
+        assert db.get(Product, prod_id) is None
+        assert (
+            db.scalars(select(ProductImage).where(ProductImage.product_id == prod_id)).all() == []
+        )
+        assert db.scalars(select(CartItem).where(CartItem.product_id == prod_id)).all() == []
+
+    # 6. Verify PDP returns 404
+    pdp_res = client.get("/products/to-be-deleted")
+    assert pdp_res.status_code == 404
+
+
+def test_admin_delete_product_blocked_if_ordered(client, database):
+    admin_headers = make_admin(client, database, email="admin_delete_order@example.com")
+
+    from app.models.order import Order, OrderItem
+
+    # 1. Create product and an existing order containing it
+    with Session(database) as db:
+        user = db.scalar(select(User).where(User.email == "admin_delete_order@example.com"))
+        prod = Product(
+            slug="ordered-product",
+            sku="ORDERED-001",
+            name="Sản phẩm đã có đơn hàng",
+            price=250000,
+            stock=15,
+            image_url="/static/img/products/esp32-devkit.webp",
+        )
+        db.add(prod)
+        db.flush()
+        order = Order(
+            code="ORD-TEST-DEL",
+            user_id=user.id,
+            status="confirmed",
+            subtotal=250000,
+            discount=0,
+            vat=0,
+            shipping_fee=20000,
+            total=270000,
+            address={"fullname": "Khách Test", "phone": "0912345678", "detail": "123 Test"},
+        )
+        db.add(order)
+        db.flush()
+        db.add(OrderItem(order_id=order.id, product_id=prod.id, price=250000, qty=1))
+        db.commit()
+        prod_id = prod.id
+
+    # 2. Admin attempts to delete ordered product
+    del_res = client.delete(f"/api/v1/admin/products/{prod_id}", headers=admin_headers)
+    assert del_res.status_code == 400
+    assert "Không thể xóa sản phẩm đã có trong đơn hàng" in del_res.json()["detail"]
+
+    # 3. Verify product is not deleted
+    with Session(database) as db:
+        assert db.get(Product, prod_id) is not None
