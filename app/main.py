@@ -76,10 +76,16 @@ def create_app() -> FastAPI:
         wants_html = "text/html" in request.headers.get(
             "accept", ""
         ) or request.url.path.startswith("/products/")
-        if exc.status_code == 404 and not request.url.path.startswith("/api/") and wants_html:
-            response = not_found_response(request)
-            response.status_code = 404
-            return response
+        if not request.url.path.startswith("/api/") and wants_html:
+            if exc.status_code == 401:
+                target = request.url.path
+                if request.url.query:
+                    target = f"{target}?{request.url.query}"
+                return RedirectResponse(f"/account/login?next={target}", status_code=303)
+            if exc.status_code in {403, 404}:
+                response = not_found_response(request)
+                response.status_code = 404
+                return response
         return JSONResponse({"detail": detail}, status_code=exc.status_code, headers=exc.headers)
 
     @app.exception_handler(RequestValidationError)

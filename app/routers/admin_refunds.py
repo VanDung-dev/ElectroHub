@@ -28,17 +28,8 @@ router = APIRouter(
 
 
 def _refund_info(refund) -> RefundInfo:
-    return RefundInfo(
-        id=refund.id,
-        status=refund.status,
-        amount=refund.amount,
-        currency=refund.currency,
-        reason=refund.reason,
-        requested_at=refund.requested_at,
-        due_at=refund.due_at,
-        confirmed_at=refund.confirmed_at,
-        provider_refund_id=refund.provider_refund_id,
-    )
+    # ponytail: use pydantic from_attributes to avoid manual field mapping
+    return RefundInfo.model_validate(refund)
 
 
 @router.get("", response_model=RefundListResponse)

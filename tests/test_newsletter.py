@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.models.newsletter import EmailCampaign, NewsletterSubscriber
 from app.models.user import User
-from app.routers.newsletter import _unsubscribe_token
 from app.services import email_service
 from tests.conftest import csrf_headers, login, register
 
@@ -19,7 +18,9 @@ def make_admin(client, database, email="admin@example.com"):
     return csrf_headers(client)
 
 
-def test_subscribe_creates_subscriber_and_duplicate_handles_gracefully(client, database, monkeypatch):
+def test_subscribe_creates_subscriber_and_duplicate_handles_gracefully(
+    client, database, monkeypatch
+):
     sent_emails = []
 
     def fake_send_smtp(to_email, subject, text_content, html_content=None):
@@ -39,7 +40,9 @@ def test_subscribe_creates_subscriber_and_duplicate_handles_gracefully(client, d
 
     # Verify in DB
     with Session(database) as db:
-        sub = db.scalar(select(NewsletterSubscriber).where(NewsletterSubscriber.email == "tester@electrohub.vn"))
+        sub = db.scalar(
+            select(NewsletterSubscriber).where(NewsletterSubscriber.email == "tester@electrohub.vn")
+        )
         assert sub is not None
 
     # Verify background task sent welcome email
@@ -65,7 +68,7 @@ def test_unsubscribe_success_and_invalid_token(client, database):
         db.add(NewsletterSubscriber(email="leaving@electrohub.vn"))
         db.commit()
 
-    token = _unsubscribe_token("leaving@electrohub.vn")
+    token = email_service.unsubscribe_token("leaving@electrohub.vn")
 
     # Invalid token (wrong signature)
     bad_res = client.post(
@@ -93,7 +96,11 @@ def test_unsubscribe_success_and_invalid_token(client, database):
     assert "Đã hủy đăng ký nhận tin" in ok_res.json()["detail"]
 
     with Session(database) as db:
-        sub = db.scalar(select(NewsletterSubscriber).where(NewsletterSubscriber.email == "leaving@electrohub.vn"))
+        sub = db.scalar(
+            select(NewsletterSubscriber).where(
+                NewsletterSubscriber.email == "leaving@electrohub.vn"
+            )
+        )
         assert sub is None
 
 
@@ -131,10 +138,12 @@ def test_admin_send_campaign_flow(client, database, monkeypatch):
 
     # Add subscribers
     with Session(database) as db:
-        db.add_all([
-            NewsletterSubscriber(email="sub1@electrohub.vn"),
-            NewsletterSubscriber(email="sub2@electrohub.vn"),
-        ])
+        db.add_all(
+            [
+                NewsletterSubscriber(email="sub1@electrohub.vn"),
+                NewsletterSubscriber(email="sub2@electrohub.vn"),
+            ]
+        )
         db.commit()
 
     # Configure SMTP settings
@@ -164,12 +173,16 @@ def test_admin_send_campaign_flow(client, database, monkeypatch):
             FakeSMTP.sent_messages.append(message)
 
     import smtplib
+
     monkeypatch.setattr(smtplib, "SMTP", FakeSMTP)
 
     # Send campaign
     res = client.post(
         "/api/v1/newsletter/send",
-        json={"subject": "Siêu sale cuối tuần", "body": "Giảm giá 30% cho tất cả module ESP32 và cảm biến.\n\nĐặt hàng ngay hôm nay!"},
+        json={
+            "subject": "Siêu sale cuối tuần",
+            "body": "Giảm giá 30% cho tất cả module ESP32 và cảm biến.\n\nĐặt hàng ngay hôm nay!",
+        },
         headers=admin_headers,
     )
     assert res.status_code == 200
@@ -178,7 +191,9 @@ def test_admin_send_campaign_flow(client, database, monkeypatch):
     # Verify background task sent 2 messages and recorded campaign
     assert len(FakeSMTP.sent_messages) == 2
     with Session(database) as db:
-        campaign = db.scalar(select(EmailCampaign).where(EmailCampaign.subject == "Siêu sale cuối tuần"))
+        campaign = db.scalar(
+            select(EmailCampaign).where(EmailCampaign.subject == "Siêu sale cuối tuần")
+        )
         assert campaign is not None
         assert campaign.recipient_count == 2
         assert campaign.status == "sent"
@@ -188,10 +203,12 @@ def test_admin_subscriber_management(client, database):
     admin_headers = make_admin(client, database, email="admin3@electrohub.vn")
 
     with Session(database) as db:
-        db.add_all([
-            NewsletterSubscriber(email="alpha@domain.com"),
-            NewsletterSubscriber(email="beta@domain.com"),
-        ])
+        db.add_all(
+            [
+                NewsletterSubscriber(email="alpha@domain.com"),
+                NewsletterSubscriber(email="beta@domain.com"),
+            ]
+        )
         db.commit()
 
     # 1. List subscribers
@@ -238,7 +255,11 @@ def test_admin_campaign_history_and_preview(client, database):
 
     # 2. Campaign list
     with Session(database) as db:
-        db.add(EmailCampaign(subject="Chiến dịch trước đó", body="Nội dung cũ", recipient_count=5, status="sent"))
+        db.add(
+            EmailCampaign(
+                subject="Chiến dịch trước đó", body="Nội dung cũ", recipient_count=5, status="sent"
+            )
+        )
         db.commit()
 
     hist_res = client.get("/api/v1/admin/newsletter/campaigns", headers=admin_headers)

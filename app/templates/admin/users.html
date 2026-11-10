@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="account-layout">
+  {% include "account/_sidebar.html" %}
+
+  <main class="account-main">
+    <section class="account-content-card">
+      <header class="account-content-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+        <div>
+          <p class="eyebrow">QUẢN TRỊ HỆ THỐNG</p>
+          <h1>Phân quyền & Người dùng</h1>
+          <p>Xem danh sách tài khoản, điều chỉnh phân quyền (Khách hàng, Nhân viên, Quản trị viên) và khóa/mở khóa tài khoản.</p>
+        </div>
+        <span class="role-pill role-admin">Quản trị viên</span>
+      </header>
+
+      <div class="user-management-toolbar" style="margin-bottom:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <input type="search" data-user-search placeholder="Tìm theo tên hoặc email người dùng..." style="min-height:38px;padding:6px 14px;border:1px solid #bcc8cc;border-radius:4px;flex:1;min-width:240px;">
+        <button type="button" data-refresh-users class="button-light" style="padding:6px 14px;min-height:38px;">Làm mới danh sách</button>
+      </div>
+
+      <div class="admin-users-table-wrap" data-admin-users aria-live="polite">
+        <p>Đang tải danh sách người dùng…</p>
+      </div>
+      <p data-admin-user-message role="status" aria-live="polite"></p>
+    </section>
+  </main>
+</div>
+{% endblock %}

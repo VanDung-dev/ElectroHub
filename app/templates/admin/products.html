@@ -1,18 +1,377 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Quản lý sản phẩm</h1>
-<form data-admin-product class="form-card">
-  <input type="hidden" name="id">
-  <label>Tên sản phẩm<input name="name" required maxlength="200"></label>
-  <label>Slug URL<input name="slug" required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="200"></label>
-  <label>Mã SKU<input name="sku" required pattern="[A-Z0-9-]+" maxlength="32"></label>
-  <label>Mô tả ngắn<textarea name="description" maxlength="1000" rows="3"></textarea></label>
-  <label>URL ảnh (HTTPS hoặc /static/img/)<input name="image_url" required maxlength="500" value="/static/img/product-placeholder.svg"></label>
-  <label>Giá gốc (VND)<input name="price" required type="number" min="0"></label>
-  <label>Giá khuyến mãi (không bắt buộc)<input name="sale_price" type="number" min="0"></label>
-  <label>Tồn kho<input name="stock" required type="number" min="0"></label>
-  <div><button>Lưu sản phẩm</button> <button type="button" data-reset-product>Thêm mới</button></div>
-</form>
-<p data-message role="status" aria-live="polite"></p>
-<div class="product-grid" data-admin-products></div>
+<div class="account-layout">
+  {% include "account/_sidebar.html" %}
+
+  <main class="account-main">
+    <section class="account-content-card">
+      <header class="account-content-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+        <div>
+          <p class="eyebrow">QUẢN TRỊ KHO HÀNG</p>
+          <h1>Danh mục sản phẩm</h1>
+          <p>Quản lý kho hàng, tạo mới và chỉnh sửa sản phẩm với bản xem trước thực tế giống hệt giao diện khách hàng.</p>
+        </div>
+        <button type="button" class="button-admin-primary" data-switch-to-create style="display:inline-flex;align-items:center;gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Tạo sản phẩm mới</span>
+        </button>
+      </header>
+
+      <!-- Navigation tabs: Danh sách sản phẩm vs Biên tập sản phẩm -->
+      <nav class="tab-nav" aria-label="Mục quản lý sản phẩm">
+        <button type="button" class="tab-btn is-active" data-tab-product-target="list">
+          <span>Danh sách sản phẩm</span>
+          <span class="tab-badge" data-product-total-badge>{{ products | length if products is defined else 0 }}</span>
+        </button>
+        <button type="button" class="tab-btn" data-tab-product-target="editor">
+          <span data-editor-tab-label>Tạo &amp; Chỉnh sửa sản phẩm</span>
+        </button>
+      </nav>
+
+      <!-- TAB 1: Danh sách sản phẩm -->
+      <section data-tab-product-pane="list">
+        <div style="display:flex;gap:12px;margin-bottom:18px;align-items:center;flex-wrap:wrap;">
+          <input type="search" data-admin-product-search placeholder="Tìm kiếm sản phẩm theo tên, SKU, slug..." style="min-height:38px;padding:6px 14px;border:1px solid #bcc8cc;border-radius:4px;flex:1;min-width:240px;">
+          <select data-admin-stock-filter style="min-height:38px;padding:6px 12px;border:1px solid #bcc8cc;border-radius:4px;font:inherit;">
+            <option value="">Tất cả tình trạng kho</option>
+            <option value="in_stock">Còn hàng (Tồn &gt; 0)</option>
+            <option value="out_of_stock">Hết hàng (Tồn = 0)</option>
+            <option value="sale">Đang giảm giá</option>
+          </select>
+        </div>
+
+        <div class="product-grid" data-admin-products aria-live="polite" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));gap:16px;">
+          {% if products %}
+            {% for product in products %}
+            {% set on_sale = product.sale_price is not none and product.sale_price < product.price %}
+            <article class="product-card" style="display:flex;flex-direction:column;justify-content:space-between;border:1px solid #e2e8f0;border-radius:8px;padding:14px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+              <div>
+                <div style="background:#f8fafb;border-radius:6px;padding:8px;display:flex;align-items:center;justify-content:center;height:160px;margin-bottom:10px;overflow:hidden;">
+                  <img src="{{ product.image_url }}" alt="{{ product.name }}" width="560" height="420" loading="lazy" style="max-height:100%;max-width:100%;object-fit:contain;">
+                </div>
+                <div style="margin-bottom:4px;">
+                  <span style="font-size:0.75rem;padding:3px 8px;border-radius:4px;background:#edf2f7;color:#4a5568;font-family:monospace;font-weight:600;display:inline-block;white-space:nowrap;">{{ product.sku }}</span>
+                </div>
+                <div style="margin-bottom:8px;">
+                  {% if product.stock <= 0 %}
+                  <span style="font-size:0.75rem;padding:3px 10px;border-radius:12px;background:#fee2e2;color:#b91c1c;font-weight:600;display:inline-block;white-space:nowrap;">Hết hàng</span>
+                  {% elif product.stock <= 10 %}
+                  <span style="font-size:0.75rem;padding:3px 10px;border-radius:12px;background:#fef3c7;color:#b45309;font-weight:600;display:inline-block;white-space:nowrap;">Sắp hết: {{ product.stock }}</span>
+                  {% else %}
+                  <span style="font-size:0.75rem;padding:3px 10px;border-radius:12px;background:#dcfce7;color:#15803d;font-weight:600;display:inline-block;white-space:nowrap;">Còn hàng: {{ product.stock }}</span>
+                  {% endif %}
+                </div>
+                <h2 style="font-size:0.96rem;margin:4px 0 6px;line-height:1.4;font-weight:650;color:var(--ink);">{{ product.name }}</h2>
+                <div style="margin-bottom:14px;">
+                  {% if on_sale %}
+                  <strong style="color:var(--accent);font-size:1.05rem;">{{ product.sale_price | vnd }} ₫</strong> <del style="color:var(--muted);font-size:0.86rem;margin-left:6px;">{{ product.price | vnd }} ₫</del>
+                  {% else %}
+                  <strong style="font-size:1.05rem;color:var(--ink);">{{ product.price | vnd }} ₫</strong>
+                  {% endif %}
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid #f1f5f9;margin-top:auto;">
+                <button type="button" class="button-admin-light" data-edit-product="{{ product.id }}" style="width:100%;padding:8px 12px;font-size:0.86rem;font-weight:600;white-space:nowrap;">Chỉnh sửa</button>
+                <a href="/products/{{ product.slug }}" target="_blank" class="button-admin-light" style="width:100%;padding:8px 12px;font-size:0.86rem;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;" title="Xem sản phẩm bán lẻ">Xem trên web</a>
+                <button type="button" class="button-admin-light" data-delete-product="{{ product.id }}" data-product-name="{{ product.name }}" data-product-sku="{{ product.sku }}" style="width:100%;padding:8px 12px;font-size:0.86rem;color:#b91c1c;border-color:#fecaca;background:#fff5f5;font-weight:600;white-space:nowrap;">Xóa sản phẩm</button>
+              </div>
+            </article>
+            {% endfor %}
+          {% else %}
+            <p style="grid-column:1/-1;text-align:center;padding:32px;color:var(--muted);">Chưa có sản phẩm nào trong kho.</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <!-- TAB 2: Biên tập sản phẩm + Live Storefront Preview -->
+      <section data-tab-product-pane="editor" hidden>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <h2 data-editor-heading style="margin:0;font-size:1.25rem;">Tạo sản phẩm mới</h2>
+            <p style="margin:4px 0 0;font-size:0.86rem;color:var(--muted);">Nhập thông tin bên dưới — Bản xem trước khách hàng bên dưới sẽ tự động cập nhật ngay tức thì.</p>
+          </div>
+          <button type="button" class="button-light" data-back-to-list style="font-size:0.86rem;padding:6px 14px;">← Quay lại danh sách</button>
+        </div>
+
+        <!-- Form nhập liệu sản phẩm chuẩn -->
+        <form data-admin-product class="form-card product-editor-form" style="margin:0 0 28px;background:#fbfcfc;border:1px solid #dce3e5;padding:24px;border-radius:8px;max-width:100%;width:100%;box-sizing:border-box;">
+          <input type="hidden" name="id">
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:18px;">
+            <!-- Tên sản phẩm -->
+            <label style="grid-column:1/-1;">
+              <strong>Tên sản phẩm *</strong>
+              <input name="name" required maxlength="200" placeholder="Ví dụ: Bo mạch ESP32-WROOM-32D Dual Core Wi-Fi & Bluetooth" data-input-name style="margin-top:6px;">
+            </label>
+
+            <!-- Slug URL -->
+            <label>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong>Slug URL (đường dẫn trang) *</strong>
+                <button type="button" class="field-chip" data-generate-slug style="padding:2px 6px;font-size:0.72rem;">Tạo từ tên</button>
+              </div>
+              <input name="slug" required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="200" placeholder="bo-mach-esp32-wroom-32d" data-input-slug style="margin-top:6px;">
+              <span class="field-hint" style="display:block;margin-top:4px;">Đường dẫn: <code>/products/<span data-slug-preview>bo-mach-esp32</span></code></span>
+            </label>
+
+            <!-- Mã SKU -->
+            <label>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong>Mã SKU *</strong>
+                <button type="button" class="field-chip" data-generate-sku style="padding:2px 6px;font-size:0.72rem;">Gợi ý SKU</button>
+              </div>
+              <input name="sku" required pattern="[A-Z0-9-]+" maxlength="32" placeholder="ESP32-32D-DEV" data-input-sku style="margin-top:6px;">
+              <span class="field-hint" style="display:block;margin-top:4px;">Ký tự viết hoa, số và dấu gạch nối (A-Z, 0-9, -)</span>
+            </label>
+
+            <!-- Giá gốc -->
+            <label>
+              <strong>Giá gốc (VND) *</strong>
+              <input name="price" required type="number" min="0" placeholder="150000" data-input-price style="margin-top:6px;">
+              <span class="field-hint" data-price-hint style="display:block;margin-top:4px;"></span>
+            </label>
+
+            <!-- Giá khuyến mãi -->
+            <label>
+              <strong>Giá khuyến mãi (VND)</strong>
+              <input name="sale_price" type="number" min="0" placeholder="Để trống nếu không giảm giá" data-input-sale-price style="margin-top:6px;">
+              <span class="field-hint" data-sale-price-hint style="display:block;margin-top:4px;"></span>
+            </label>
+
+            <!-- Tồn kho -->
+            <label>
+              <strong>Số lượng tồn kho *</strong>
+              <input name="stock" required type="number" min="0" placeholder="50" data-input-stock style="margin-top:6px;">
+              <div class="field-chips" style="display:flex;gap:6px;margin-top:6px;">
+                <span style="font-size:0.75rem;color:var(--muted);align-self:center;">Gợi ý:</span>
+                <button type="button" class="field-chip" data-preset-stock="10">+10</button>
+                <button type="button" class="field-chip" data-preset-stock="50">+50</button>
+                <button type="button" class="field-chip" data-preset-stock="100">+100</button>
+                <button type="button" class="field-chip" data-preset-stock="0" style="color:#c53030;">0 (Hết hàng)</button>
+              </div>
+            </label>
+
+            <!-- Hình ảnh đại diện chính (Thao tác trực quan cho Lowtech) -->
+            <div style="grid-column:1/-1;">
+              <strong>Hình ảnh sản phẩm đại diện (Chính) *</strong>
+              <span class="field-hint" style="display:block;margin:2px 0 8px;">Tải ảnh trực tiếp từ máy tính hoặc nhấp chọn ảnh từ kho mẫu có sẵn.</span>
+
+              <div style="display:flex;gap:16px;align-items:center;background:#fff;border:1px solid #dce3e5;border-radius:8px;padding:16px;flex-wrap:wrap;">
+                <!-- Khung xem trước ảnh lớn -->
+                <div style="width:100px;height:100px;border:1px solid #dce3e5;border-radius:6px;background:#f8fafb;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                  <img data-image-preview src="/static/img/product-placeholder.svg" alt="Xem trước ảnh" style="max-width:100%;max-height:100%;object-fit:contain;">
+                </div>
+
+                <!-- Các nút hành động thân thiện cho Lowtech -->
+                <div style="display:flex;flex-direction:column;gap:8px;flex:1;min-width:260px;">
+                  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                    <button type="button" class="button-admin-primary" data-trigger-upload-primary style="margin:0;font-size:0.88rem;padding:8px 16px;">
+                      Tải ảnh từ máy tính
+                    </button>
+                    <input type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg,image/*" data-upload-primary style="display:none;">
+
+                    <button type="button" class="button-admin-light" data-open-library="primary" style="font-size:0.88rem;padding:8px 14px;">
+                      Chọn từ thư viện mẫu
+                    </button>
+                    <button type="button" class="button-admin-light" data-toggle-manual-url style="font-size:0.82rem;padding:8px 12px;color:var(--muted);">
+                      Sửa liên kết
+                    </button>
+                  </div>
+
+                  <!-- Thông tin ảnh hiện tại -->
+                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                    <span style="font-size:0.8rem;color:var(--muted);">Ảnh đang dùng:</span>
+                    <span data-image-display-name style="font-size:0.8rem;background:#f1f5f9;padding:3px 10px;border-radius:4px;color:#64748b;">Chưa chọn ảnh (dùng ảnh mặc định)</span>
+                    <span data-upload-primary-status style="font-size:0.8rem;font-weight:600;color:var(--accent);"></span>
+                  </div>
+
+                  <!-- Ô nhập link ẩn cho ai muốn tự gõ -->
+                  <div data-manual-url-box style="display:none;margin-top:6px;">
+                    <input name="image_url" required maxlength="500" value="/static/img/product-placeholder.svg" data-input-image placeholder="/static/img/products/... hoặc https://..." style="font-size:0.84rem;padding:6px 10px;width:100%;">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bộ sưu tập ảnh bổ sung (Gallery nhiều ảnh - Lowtech friendly) -->
+            <div style="grid-column:1/-1;background:#f8fafb;border:1px dashed #cbd5e1;border-radius:6px;padding:16px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+                <div>
+                  <strong style="font-size:0.92rem;color:var(--ink);">Bộ sưu tập ảnh bổ sung (Gallery nhiều góc độ)</strong>
+                  <span class="field-hint" style="display:block;margin-top:2px;">Thêm các góc chụp khác để hiển thị thanh chuyển ảnh trên trang sản phẩm.</span>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <button type="button" class="button-admin-primary" data-trigger-upload-gallery style="margin:0;font-size:0.82rem;padding:6px 14px;">
+                    Tải thêm ảnh từ máy
+                  </button>
+                  <input type="file" multiple accept=".png,.jpg,.jpeg,.webp,.gif,.svg,image/*" data-upload-gallery style="display:none;">
+                  <button type="button" class="button-admin-light" data-open-library="gallery" style="font-size:0.82rem;padding:6px 12px;font-weight:600;">
+                    Chọn từ thư viện mẫu
+                  </button>
+                  <button type="button" class="button-admin-light" data-add-gallery-item style="font-size:0.82rem;padding:6px 12px;">
+                    + Thêm dòng trống
+                  </button>
+                </div>
+              </div>
+
+              <div class="field-chips" style="margin-bottom:12px;">
+                <span style="font-size:0.75rem;color:var(--muted);align-self:center;">Nạp nhanh bộ ảnh mẫu:</span>
+                <button type="button" class="field-chip" data-preset-gallery="arduino-uno">Bộ 3 góc Arduino Uno</button>
+                <button type="button" class="field-chip" data-preset-gallery="esp32-devkit">Bộ 2 góc ESP32 DevKit</button>
+                <button type="button" class="field-chip" data-preset-gallery="dht22">Bộ 3 góc DHT22</button>
+                <button type="button" class="field-chip" data-preset-gallery="clear" style="color:#c53030;">Xóa tất cả ảnh phụ</button>
+              </div>
+
+              <!-- Danh sách các ảnh phụ (Gallery Rows) -->
+              <div data-gallery-container style="display:flex;flex-direction:column;gap:8px;">
+                <!-- JS dynamically renders gallery image rows here -->
+              </div>
+            </div>
+          </div>
+
+          <!-- TinyMCE: Mô tả chi tiết sản phẩm -->
+          <div style="margin-top:20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+              <label for="admin-product-description" style="font-weight:bold;margin:0;">
+                Mô tả chi tiết sản phẩm (Soạn thảo văn bản phong phú - TinyMCE)
+              </label>
+              <button type="button" class="button-admin-light" data-insert-template style="font-size:0.8rem;padding:4px 10px;border-radius:4px;">
+                + Chèn mẫu mô tả chuẩn (Đặc điểm, Thông số, Ứng dụng)
+              </button>
+            </div>
+            <textarea id="admin-product-description" name="description" rows="8" placeholder="Soạn thảo thông số kỹ thuật, đặc điểm nổi bật và ứng dụng của sản phẩm..." style="width:100%;box-sizing:border-box;"></textarea>
+          </div>
+
+          <div style="display:flex;gap:12px;margin-top:22px;align-items:center;flex-wrap:wrap;">
+            <button type="submit" class="button-admin-primary" data-save-btn style="min-width:140px;">Lưu sản phẩm</button>
+            <button type="button" class="button-admin-light" data-reset-product>Làm mới form</button>
+            <button type="button" class="button-admin-light" data-back-to-list>Hủy &amp; Quay lại</button>
+            <button type="button" class="button-admin-light" data-delete-current-product style="display:none;margin-left:auto;color:#b91c1c;border-color:#fecaca;background:#fff5f5;font-weight:600;">Xóa sản phẩm này</button>
+          </div>
+          <p data-message role="status" aria-live="polite" style="margin-top:14px;font-weight:600;"></p>
+        </form>
+
+        <!-- LIVE STOREFRONT CUSTOMER PREVIEW (Giao diện giống hệt trang khách hàng xem) -->
+        <div class="storefront-preview-card">
+          <div class="preview-browser-header">
+            <div class="preview-browser-controls">
+              <span class="preview-dot preview-dot-red"></span>
+              <span class="preview-dot preview-dot-yellow"></span>
+              <span class="preview-dot preview-dot-green"></span>
+            </div>
+            <div class="preview-browser-url">
+              https://electrohub.vn/products/<span data-live-slug-url>ten-san-pham</span>
+            </div>
+            <span class="preview-live-tag">Xem trước thời gian thực</span>
+          </div>
+
+          <div class="preview-browser-body">
+            <!-- Customer Breadcrumb -->
+            <nav class="breadcrumb" style="margin-bottom:16px;font-size:0.84rem;color:var(--muted);">
+              <span>Trang chủ</span> <span>/</span> <span>Sản phẩm</span> <span>/</span> <strong data-live-name style="color:var(--ink);">Tên sản phẩm mẫu</strong>
+            </nav>
+
+            <!-- Customer Product Detail Component -->
+            <article class="product-detail" style="padding:0;background:transparent;">
+              <div class="product-gallery" data-live-gallery>
+                <div class="gallery-main" style="background:#fff;border:1px solid var(--line);border-radius:8px;position:relative;display:flex;align-items:center;justify-content:center;padding:12px;min-height:280px;aspect-ratio:1/1;max-width:380px;">
+                  <img data-live-img src="/static/img/product-placeholder.svg" alt="Xem trước sản phẩm" style="max-width:100%;max-height:320px;object-fit:contain;">
+                  <button type="button" class="gallery-nav gallery-nav--prev" data-live-gallery-nav="prev" aria-label="Xem ảnh trước" style="display:none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                  </button>
+                  <button type="button" class="gallery-nav gallery-nav--next" data-live-gallery-nav="next" aria-label="Xem ảnh tiếp theo" style="display:none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                </div>
+                <div class="gallery-thumbs" data-live-gallery-thumbs style="display:none;margin-top:10px;"></div>
+              </div>
+
+              <div>
+                <p class="eyebrow">SKU: <span data-live-sku>ESP32-DEV</span></p>
+                <h1 data-live-title style="font-size:1.7rem;line-height:1.25;margin:6px 0 10px;">Tên sản phẩm mẫu</h1>
+                <p class="stock-status" data-live-stock style="color:#2e7d32;font-weight:600;margin-bottom:14px;">Còn hàng · 50 sản phẩm</p>
+
+                <div class="detail-price" style="margin-bottom:16px;">
+                  <strong class="price" data-live-price>120.000 ₫</strong>
+                  <del data-live-original style="color:var(--muted);font-size:1.05rem;margin-left:10px;">150.000 ₫</del>
+                  <span class="detail-discount" data-live-discount style="margin-left:8px;">Giảm 20%</span>
+                </div>
+
+                <div class="product-description-body" data-live-desc style="color:#4a5963;line-height:1.6;margin-bottom:20px;">
+                  <p>Mô tả sản phẩm sẽ hiển thị tại đây khi bạn nhập vào form bên trên.</p>
+                </div>
+
+                <div class="purchase-controls" style="margin-top:16px;">
+                  <label>Số lượng
+                    <input type="number" value="1" disabled style="width:70px;background:#f4f7f8;cursor:not-allowed;">
+                  </label>
+                  <button type="button" class="button-light" disabled style="cursor:not-allowed;" data-live-btn-add>Thêm vào giỏ hàng</button>
+                  <button type="button" class="button" disabled style="cursor:not-allowed;" data-live-btn-buy>Mua ngay</button>
+                </div>
+
+                <div style="margin-top:20px;padding-top:14px;border-top:1px dashed #dce3e5;font-size:0.82rem;color:var(--muted);display:grid;gap:6px;">
+                  <span>- Miễn phí giao hàng cho đơn từ 500.000 ₫</span>
+                  <span>- Đổi trả miễn phí trong 7 ngày nếu có lỗi kỹ thuật</span>
+                  <span>- Linh kiện chính hãng, kiểm tra hàng trước khi nhận</span>
+                </div>
+              </div>
+            </article>
+
+            <!-- Customer Product Description Section -->
+            <section class="product-info" style="margin-top:28px;padding-top:20px;border-top:1px solid #e2e8f0;">
+              <h2 style="font-size:1.2rem;margin-bottom:10px;">Thông tin chi tiết sản phẩm <span data-live-name>Tên sản phẩm</span></h2>
+              <div class="product-description-body" data-live-info-text style="line-height:1.6;color:#33424b;">
+                <p>Sản phẩm chất lượng cao tại ElectroHub, đáp ứng tiêu chuẩn nghiên cứu và lắp ráp mạch điện tử.</p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+</div>
+
+<!-- Modal chọn ảnh trực quan từ thư viện mẫu (Visual Library Modal) -->
+<dialog data-image-library-dialog style="border:1px solid #cbd5e1;border-radius:10px;padding:0;max-width:760px;width:95vw;box-shadow:0 25px 35px -5px rgba(0,0,0,0.3);margin:auto;">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;">
+    <div>
+      <h3 style="margin:0;font-size:1.05rem;color:var(--ink);">Kho ảnh sản phẩm mẫu</h3>
+      <span style="font-size:0.8rem;color:var(--muted);">Nhấp vào ảnh để chèn ngay lập tức vào sản phẩm</span>
+    </div>
+    <button type="button" data-close-library class="button-admin-light" style="padding:4px 12px;font-size:0.9rem;border-radius:6px;">Đóng</button>
+  </div>
+  <div style="padding:18px;max-height:65vh;overflow-y:auto;">
+    <div data-library-grid style="display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:14px;">
+      <!-- JS populates library photo cards here -->
+    </div>
+  </div>
+</dialog>
+
+<!-- TinyMCE library from CDNJS (Community Free Edition, No API Key Required) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
+
+<script id="admin-products-data" type="application/json">
+[
+  {% if products %}
+    {% for product in products %}
+    {
+      "id": {{ product.id }},
+      "slug": {{ product.slug | tojson }},
+      "sku": {{ product.sku | tojson }},
+      "name": {{ product.name | tojson }},
+      "description": {{ (product.description or '') | tojson }},
+      "image_url": {{ product.image_url | tojson }},
+      "price": {{ product.price }},
+      "sale_price": {{ product.sale_price if product.sale_price is not none else 'null' }},
+      "stock": {{ product.stock }},
+      "images": [
+        {% for img in product.images %}
+        {"id": {{ img.id }}, "url": {{ img.url | tojson }}, "alt": {{ (img.alt or '') | tojson }}, "sort": {{ img.sort }}}{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ]
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  {% endif %}
+]
+</script>
 {% endblock %}

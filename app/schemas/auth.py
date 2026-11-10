@@ -70,3 +70,17 @@ class DetailResponse(BaseModel):
 
 class CsrfResponse(BaseModel):
     csrf_token: str
+
+
+class UpdateProfileRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    current_password: str | None = None
+    new_password: str | None = None
+
+
+class UpdateUserRoleRequest(BaseModel):
+    role: Literal["admin", "staff", "customer"]
+
+
+class ToggleUserBlockRequest(BaseModel):
+    is_blocked: bool

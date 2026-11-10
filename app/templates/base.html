@@ -27,24 +27,86 @@
   <meta name="twitter:image" content="{{ page_image }}">
   <meta name="twitter:image:alt" content="{{ page_image_alt | default('ElectroHub') }}">
   {% if site_json_ld %}<script type="application/ld+json">{{ site_json_ld | safe }}</script>{% endif %}
-  <link rel="stylesheet" href="/static/css/base.css">
-  <script defer src="/static/js/store.js?v=6"></script>
+  <link rel="stylesheet" href="/static/css/base.css?v=16">
+  <script defer src="/static/js/store.js?v=22"></script>
 </head>
 <body>
-  <div class="store-topbar"><span>ElectroHub · Linh kiện điện tử & thiết bị</span><a href="/cart/tracking">Tra cứu đơn hàng</a></div>
-  <header class="site-header">
-    <a class="brand" href="/" aria-label="ElectroHub - trang chủ">ElectroHub<span>LINH KIỆN & THIẾT BỊ</span></a>
-    <form class="header-search" action="/collections/all" method="get" role="search"><label class="sr-only" for="store-search">Tìm tên sản phẩm hoặc mã SKU</label><input id="store-search" name="q" type="search" placeholder="Bạn cần tìm linh kiện gì?" maxlength="200"><button>Tìm kiếm</button></form>
-    <nav class="user-nav" data-user-nav aria-label="Tài khoản"><a href="/account/login">Đăng nhập</a><a class="nav-register" href="/account/register">Đăng ký</a></nav>
-  </header>
-  <nav class="shop-nav" aria-label="Điều hướng cửa hàng"><div><a href="/collections/all">Tất cả sản phẩm</a><a href="/collections/all?sale=1">Sản phẩm giảm giá</a><a href="/account/orders">Đơn hàng của tôi</a><a class="cart-link" href="/cart">Giỏ hàng <span data-cart-count>0</span></a></div></nav>
+  <div class="sticky-header">
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="ElectroHub - trang chủ">ElectroHub<span>LINH KIỆN & THIẾT BỊ</span></a>
+      <div class="header-search-wrapper">
+        <form class="header-search" action="/collections/all" method="get" role="search">
+          <label class="sr-only" for="store-search">Tìm tên sản phẩm hoặc mã SKU</label>
+          <input id="store-search" name="q" type="search" placeholder="Bạn cần tìm linh kiện gì?" maxlength="200" autocomplete="off">
+          <button type="submit">Tìm kiếm</button>
+        </form>
+        <div id="search-dropdown" class="search-dropdown" hidden></div>
+      </div>
+      <nav class="user-nav" data-user-nav aria-label="Tài khoản"><a href="/account/login">Đăng nhập</a><a class="nav-register" href="/account/register">Đăng ký</a></nav>
+    </header>
+    <nav class="shop-nav" aria-label="Điều hướng cửa hàng">
+      <div>
+        <a href="/collections/all">Tất cả sản phẩm</a>
+        <a href="/collections/all?sale=1">Sản phẩm giảm giá</a>
+        <a href="/cart/tracking">Tra cứu đơn hàng</a>
+        <a href="/account/orders">Đơn hàng của tôi</a>
+        <a class="cart-link" href="/cart" aria-label="Giỏ hàng">
+          <svg class="cart-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+          <span class="cart-label">Giỏ hàng</span>
+          <span data-cart-count>0</span>
+        </a>
+      </div>
+    </nav>
+  </div>
   <main class="container">{% block content %}{% endblock %}</main>
   <footer class="site-footer">
-    <section><h2>Nhận tin từ ElectroHub</h2><p>Tin sản phẩm và ưu đãi mới, gửi qua email.</p>
-      <form data-newsletter><label class="sr-only" for="newsletter-email">Email</label><input id="newsletter-email" name="email" type="email" required placeholder="Email của bạn"><label><input name="consent" type="checkbox" required> Tôi đồng ý nhận email ưu đãi và có thể hủy bất cứ lúc nào.</label><button>Đăng ký</button></form>
-      <p data-newsletter-message role="status" aria-live="polite"></p>
+    <section class="store-location" aria-labelledby="store-location-heading">
+      <div class="store-location-info">
+        <p class="eyebrow">ĐỊA CHỈ TRẢI NGHIỆM</p>
+        <h2 id="store-location-heading">Ghé thăm ElectroHub</h2>
+        <div class="location-details">
+          <p class="footer-address">
+            <strong>Địa chỉ:</strong>
+            <span>{{ store_address | default('458/3F Nguyễn Hữu Thọ, Tân Hưng, Hồ Chí Minh') }}</span>
+          </p>
+          <p class="location-item">
+            <strong>Giờ mở cửa:</strong>
+            <span>Thứ Hai – Thứ Sáu: 09:00 – 17:00</span>
+          </p>
+        </div>
+        <a class="button button-sm" href="{{ google_maps_direct_url | default('https://www.google.com/maps/search/?api=1&query=458%2F3F+Nguy%E1%BB%85n+H%E1%BB%AFu+Th%E1%BB%8D%2C+T%C3%A2n+H%C6%B0ng%2C+H%E1%BB%93+Ch%C3%AD+Minh') }}" target="_blank" rel="noopener noreferrer">Mở chỉ đường trên Google Maps →</a>
+      </div>
+      <div class="store-map-card">
+        <iframe
+          src="{{ google_maps_embed_url | default('https://maps.google.com/maps?q=458%2F3F+Nguy%E1%BB%85n+H%E1%BB%AFu+Th%E1%BB%8D%2C+T%C3%A2n+H%C6%B0ng%2C+H%E1%BB%93+Ch%C3%AD+Minh&t=&z=15&ie=UTF8&iwloc=&output=embed') }}"
+          width="100%"
+          height="100%"
+          style="border:0;"
+          allowfullscreen=""
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          title="Bản đồ Google Maps vị trí {{ store_address | default('458/3F Nguyễn Hữu Thọ, Tân Hưng, Hồ Chí Minh') }}">
+        </iframe>
+      </div>
     </section>
-    <nav class="footer-links" aria-label="Thông tin mua hàng"><a href="/collections/all">Sản phẩm</a><a href="/cart/tracking">Tra cứu đơn hàng</a><a href="/account/orders">Đơn hàng của tôi</a></nav><p>© ElectroHub · Thiết bị điện tử và linh kiện</p>
+    <div class="footer-meta">
+      <form class="footer-newsletter" data-newsletter>
+        <label class="sr-only" for="newsletter-email">Email</label>
+        <input id="newsletter-email" name="email" type="email" required placeholder="Nhập email nhận ưu đãi">
+        <input name="consent" type="hidden" value="1">
+        <button type="submit">Đăng ký</button>
+      </form>
+      <nav class="footer-links" aria-label="Thông tin mua hàng">
+        <a href="/collections/all">Sản phẩm</a>
+        <a href="/cart/tracking">Tra cứu đơn hàng</a>
+        <a href="/account/orders">Đơn hàng của tôi</a>
+      </nav>
+      <p class="footer-copyright">© ElectroHub · Thiết bị điện tử và linh kiện</p>
+    </div>
   </footer>
   <aside class="chat-links" aria-label="Liên hệ trực tuyến">
     {% if facebook_page_url %}<a href="{{ facebook_page_url }}" target="_blank" rel="noopener noreferrer">Nhắn Facebook</a>{% endif %}

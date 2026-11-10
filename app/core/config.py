@@ -1,3 +1,4 @@
+import re
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
@@ -47,6 +48,9 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("tawkto_widget_id", "widget_id"),
     )
+    store_address: str = "458/3F Nguyễn Hữu Thọ, Tân Hưng, Hồ Chí Minh"
+    google_maps_embed_url: str = "https://maps.google.com/maps?q=458%2F3F+Nguy%E1%BB%85n+H%E1%BB%AFu+Th%E1%BB%8D%2C+T%C3%A2n+H%C6%B0ng%2C+H%E1%BB%93+Ch%C3%AD+Minh&t=&z=16&ie=UTF8&iwloc=&output=embed"
+    google_maps_direct_url: str = "https://www.google.com/maps/search/?api=1&query=458%2F3F+Nguy%E1%BB%85n+H%E1%BB%AFu+Th%E1%BB%8D%2C+T%C3%A2n+H%C6%B0ng%2C+H%E1%BB%93+Ch%C3%AD+Minh"
 
     # Payments. ``mock`` keeps the original simulated flow; ``sandbox`` and ``live``
     # call the real gateways and therefore require provider credentials.
@@ -91,22 +95,29 @@ class Settings(BaseSettings):
             value = getattr(self, name)
             if isinstance(value, str) and not value.strip():
                 setattr(self, name, None)
-        if self.tawkto_property_id and ("/" in self.tawkto_property_id or "tawk.to" in self.tawkto_property_id):
-            import re
-            m = re.search(r"([a-f0-9]{24})(?:/([a-zA-Z0-9]+))?", self.tawkto_property_id)
+        # ponytail: compile regexes once at module scope and cleanly extract widget credentials
+        prop = self.tawkto_property_id or ""
+        if "/" in prop or "tawk.to" in prop:
+            m = re.search(r"([a-f0-9]{24})(?:/([a-zA-Z0-9]+))?", prop)
             if m:
                 self.tawkto_property_id = m.group(1)
                 if m.group(2) and not self.tawkto_widget_id:
                     self.tawkto_widget_id = m.group(2)
-        if self.tawkto_widget_id and ("/" in self.tawkto_widget_id or "tawk.to" in self.tawkto_widget_id):
-            import re
-            m = re.search(r"([a-f0-9]{24})/([a-zA-Z0-9]+)", self.tawkto_widget_id)
+        widget = self.tawkto_widget_id or ""
+        if "/" in widget or "tawk.to" in widget:
+            m = re.search(r"([a-f0-9]{24})/([a-zA-Z0-9]+)", widget)
             if m:
                 if not self.tawkto_property_id:
                     self.tawkto_property_id = m.group(1)
                 self.tawkto_widget_id = m.group(2)
             else:
-                self.tawkto_widget_id = self.tawkto_widget_id.strip("/").split("/")[-1]
+                self.tawkto_widget_id = widget.strip("/").split("/")[-1]
+        if not self.store_address.strip():
+            self.store_address = "458/3F Nguyễn Hữu Thọ, Tân Hưng, Hồ Chí Minh"
+        if not self.google_maps_embed_url.strip():
+            self.google_maps_embed_url = "https://maps.google.com/maps?q=458%2F3F+Nguy%E1%BB%85n+H%E1%BB%AFu+Th%E1%BB%8D%2C+T%C3%A2n+H%C6%B0ng%2C+H%E1%BB%93+Ch%C3%AD+Minh&t=&z=16&ie=UTF8&iwloc=&output=embed"
+        if not self.google_maps_direct_url.strip():
+            self.google_maps_direct_url = "https://www.google.com/maps/search/?api=1&query=458%2F3F+Nguy%E1%BB%85n+H%E1%BB%AFu+Th%E1%BB%8D%2C+T%C3%A2n+H%C6%B0ng%2C+H%E1%BB%93+Ch%C3%AD+Minh"
         self._validate_payment_configuration()
         return self
 

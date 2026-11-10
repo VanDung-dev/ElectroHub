@@ -54,21 +54,8 @@ def _details(db: DbSession, order: Order, payment: Payment) -> PaymentDetailsOut
         amount_minor=payment.amount_minor,
         attempt=payment.attempt,
         simulation=bool((payment.payload or {}).get("simulation")),
-        refund=(
-            RefundInfo(
-                id=refund.id,
-                status=refund.status,
-                amount=refund.amount,
-                currency=refund.currency,
-                reason=refund.reason,
-                requested_at=refund.requested_at,
-                due_at=refund.due_at,
-                confirmed_at=refund.confirmed_at,
-                provider_refund_id=refund.provider_refund_id,
-            )
-            if refund is not None
-            else None
-        ),
+        # ponytail: use pydantic from_attributes to avoid manual field mapping
+        refund=RefundInfo.model_validate(refund) if refund is not None else None,
     )
 
 
@@ -81,7 +68,8 @@ def payment_details(code: str, user: CurrentUser, db: DbSession):
 @router.post("/orders/{code}/session", response_model=PaymentSessionOut)
 def create_payment_session(code: str, request: Request, user: CurrentUser, db: DbSession):
     order, payment = _owned_payment(code, user.id, db)
-    session = payment_service.create_session(db, order, payment, _client_ip(request))
+    origin = str(request.base_url).rstrip("/")
+    session = payment_service.create_session(db, order, payment, _client_ip(request), base_url=origin)
     return PaymentSessionOut(**session)
 
 

@@ -21,6 +21,9 @@ x-app-environment: &app-environment
   PROPERTY_ID: ${PROPERTY_ID:-${TAWKTO_PROPERTY_ID:-}}
   WIDGET_ID: ${WIDGET_ID:-${TAWKTO_WIDGET_ID:-}}
   TAWKTO_EMBED_CODE: ${TAWKTO_EMBED_CODE:-}
+  STORE_ADDRESS: ${STORE_ADDRESS:-}
+  GOOGLE_MAPS_EMBED_URL: ${GOOGLE_MAPS_EMBED_URL:-}
+  GOOGLE_MAPS_DIRECT_URL: ${GOOGLE_MAPS_DIRECT_URL:-}
   # Payments: the app container needs these explicitly; .env alone is not injected.
   PAYMENT_MODE: ${PAYMENT_MODE:-mock}
   REFUND_HOLD_HOURS: ${REFUND_HOLD_HOURS:-72}
@@ -47,7 +50,7 @@ services:
       MSSQL_PID: Developer
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set a strong MSSQL_SA_PASSWORD in .env}
     ports:
-      - "127.0.0.1:${SQLSERVER_PORT:-1433}:1433"
+      - "0.0.0.0:${SQLSERVER_PORT:-1433}:1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
     healthcheck:
@@ -73,6 +76,43 @@ services:
     command: ["-S", "sqlserver", "-U", "sa", "-C", "-b", "-i", "/init.sql"]
     restart: "no"
 
+  sqlserver-test:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    container_name: electrohub-sqlserver-test
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set a strong MSSQL_SA_PASSWORD in .env}
+    ports:
+      - "0.0.0.0:${SQLSERVER_TEST_PORT:-1434}:1433"
+    volumes:
+      - sqlserver_test_data:/var/opt/mssql
+      - ./sql:/sql:ro
+    healthcheck:
+      test: >-
+        SQLCMDPASSWORD="$${MSSQL_SA_PASSWORD}" /opt/mssql-tools18/bin/sqlcmd
+        -S localhost -U sa -C -b -Q "SELECT 1" -o /dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+
+  sqlserver-test-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    container_name: electrohub-sqlserver-test-init
+    depends_on:
+      sqlserver-test:
+        condition: service_healthy
+    environment:
+      SQLCMDPASSWORD: ${MSSQL_SA_PASSWORD:?Set a strong MSSQL_SA_PASSWORD in .env}
+    volumes:
+      - ./sql:/sql:ro
+      - ./docker/init-test.sh:/init-test.sh:ro
+    entrypoint: ["/bin/sh", "/init-test.sh"]
+    restart: "no"
+
   migrate:
     build: .
     image: electrohub-app:local
@@ -80,7 +120,7 @@ services:
     depends_on:
       sqlserver-init:
         condition: service_completed_successfully
-    command: ["sh", "-c", "alembic upgrade head && python -m app.seeds.accounts"]
+    command: ["sh", "-c", "alembic upgrade head && python -m app.seeds.accounts && python -m app.seeds.seed"]
     restart: "no"
 
   app:
@@ -94,6 +134,8 @@ services:
         condition: service_started
     ports:
       - "127.0.0.1:${APP_PORT:-8000}:8000"
+    volumes:
+      - product_images:/app/app/static/img/products
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3).close()"]
       interval: 10s
@@ -103,21 +145,28 @@ services:
 
   # localtunnel: expose app to the public web via HTTPS tunnel (https://<subdomain>.loca.lt)
   localtunnel:
-    image: node:22-alpine
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.localtunnel
+    image: electrohub-localtunnel:local
     restart: unless-stopped
-    command:
-      - "npx"
-      - "-y"
-      - "localtunnel"
-      - "--port"
-      - "8000"
-      - "--local-host"
-      - "app"
-      - "--subdomain"
-      - "${LOCALTUNNEL_SUBDOMAIN:-electrohub}"
-    depends_on:
-      app:
-        condition: service_healthy
+    environment:
+      LOCALTUNNEL_SUBDOMAIN: ${LOCALTUNNEL_SUBDOMAIN:-electrohub}
+      LOCALTUNNEL_STRICT: ${LOCALTUNNEL_STRICT:-false}
+      LOCAL_HOST: app
+      PORT: "8000"
+    volumes:
+      - ./docker/tunnel.js:/app/tunnel.js:ro
+    healthcheck:
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "fetch('http://app:8000/api/v1/health', { signal: AbortSignal.timeout(3000) }).then(r => process.exit(r.status === 200 ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
   mailpit:
     image: axllent/mailpit:latest
@@ -129,3 +178,5 @@ services:
 
 volumes:
   sqlserver_data:
+  sqlserver_test_data:
+  product_images:

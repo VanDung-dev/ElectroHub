@@ -1,0 +1,10 @@
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Pre-install localtunnel to make container startup instant (no dynamic download)
+RUN npm install --no-fund --no-audit --omit=dev localtunnel@2.0.2
+
+COPY docker/tunnel.js /app/tunnel.js
+
+ENTRYPOINT ["node", "/app/tunnel.js"]

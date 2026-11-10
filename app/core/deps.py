@@ -59,6 +59,8 @@ def get_current_user(db: DbSession, token: Annotated[str | None, Security(access
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(401, "Bạn cần đăng nhập")
+    if user.is_blocked:
+        raise HTTPException(403, "Tài khoản của bạn đã bị khóa")
     return user
 
 
