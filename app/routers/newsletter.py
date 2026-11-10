@@ -23,8 +23,6 @@ from app.schemas.newsletter import (
 from app.services import email_service
 
 router = APIRouter(prefix="/api/v1/newsletter", tags=["newsletter"])
-# ponytail: alias to email_service instead of maintaining a wrapper function
-_unsubscribe_token = email_service.unsubscribe_token
 admin_router = APIRouter(
     prefix="/api/v1/admin/newsletter",
     tags=["admin_newsletter"],

@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.models.newsletter import EmailCampaign, NewsletterSubscriber
 from app.models.user import User
-from app.routers.newsletter import _unsubscribe_token
 from app.services import email_service
 from tests.conftest import csrf_headers, login, register
 
@@ -69,7 +68,7 @@ def test_unsubscribe_success_and_invalid_token(client, database):
         db.add(NewsletterSubscriber(email="leaving@electrohub.vn"))
         db.commit()
 
-    token = _unsubscribe_token("leaving@electrohub.vn")
+    token = email_service.unsubscribe_token("leaving@electrohub.vn")
 
     # Invalid token (wrong signature)
     bad_res = client.post(
