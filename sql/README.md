@@ -11,7 +11,7 @@ Hệ thống cơ sở dữ liệu T-SQL này được thiết kế và xây dự
 
 ```
 sql/
-├── 01_ddl_tables.sql                # Tạo Database ElectroHub và 10 bảng nghiệp vụ
+├── 01_ddl_tables.sql                # Tạo Database ElectroHub và cấu trúc bảng
 ├── 02_rules_defaults.sql           # Cài đặt Rules (sp_bindrule) & Defaults (sp_bindefault)
 ├── 03_triggers.sql                 # Cài đặt các Triggers nghiệp vụ và bảo toàn dữ liệu
 ├── 04_stored_procedures.sql       # Cài đặt Stored Procedures (Tạo đơn, Hủy đơn, Báo cáo)
@@ -20,8 +20,12 @@ sql/
 ├── 07_transactions_concurrency.sql # Kịch bản demo Transaction, Concurrency Control & Lock Hints
 ├── 08_seed_data.sql                # Bộ dữ liệu mẫu linh kiện điện tử để test
 ├── master_setup.sql                # File tổng quan thứ tự thực thi
+├── TABLES.md                       # Đặc tả chi tiết từng bảng trong DB (Data Dictionary & Schema)
 └── README.md                       # Hướng dẫn chi tiết và kịch bản test
 ```
+
+> [!NOTE]
+> Để xem chi tiết đặc tả từng bảng (kiểu dữ liệu, Primary Key, Foreign Key, Unique, Check constraints, Rules, Defaults, Indexes, Triggers liên quan), vui lòng đọc tài liệu: [**`sql/TABLES.md`**](TABLES.md).
 
 ---
 
