@@ -30,6 +30,7 @@ BEGIN
         password_hash VARCHAR(255) NOT NULL,
         name NVARCHAR(100) NOT NULL,
         role VARCHAR(20) NOT NULL CONSTRAINT df_users_role DEFAULT 'customer',
+        is_blocked BIT NOT NULL CONSTRAINT df_users_is_blocked DEFAULT 0,
         created_at DATETIME2 NOT NULL CONSTRAINT df_users_created_at DEFAULT SYSUTCDATETIME(),
         CONSTRAINT pk_users PRIMARY KEY CLUSTERED (id),
         CONSTRAINT uq_users_email UNIQUE NONCLUSTERED (email),
@@ -37,6 +38,14 @@ BEGIN
     );
     CREATE NONCLUSTERED INDEX ix_users_role ON dbo.users (role);
     PRINT N'Đã tạo bảng users.';
+END
+ELSE
+BEGIN
+    IF COL_LENGTH(N'dbo.users', N'is_blocked') IS NULL
+    BEGIN
+        ALTER TABLE dbo.users ADD is_blocked BIT NOT NULL CONSTRAINT df_users_is_blocked DEFAULT 0;
+        PRINT N'Đã bổ sung cột is_blocked vào bảng users.';
+    END
 END
 GO
 
@@ -247,6 +256,23 @@ BEGIN
         CONSTRAINT pk_email_campaigns PRIMARY KEY CLUSTERED (id)
     );
     PRINT N'Đã tạo bảng email_campaigns.';
+END
+GO
+
+-- 11. BẢNG PRODUCT_IMAGES (Bộ sưu tập hình ảnh chi tiết sản phẩm)
+IF OBJECT_ID(N'dbo.product_images', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.product_images (
+        id INT IDENTITY(1,1) NOT NULL,
+        product_id INT NOT NULL,
+        url VARCHAR(500) NOT NULL,
+        alt NVARCHAR(200) NOT NULL CONSTRAINT df_product_images_alt DEFAULT N'',
+        sort INT NOT NULL CONSTRAINT df_product_images_sort DEFAULT 0,
+        CONSTRAINT pk_product_images PRIMARY KEY CLUSTERED (id),
+        CONSTRAINT fk_product_images_products FOREIGN KEY (product_id) REFERENCES dbo.products(id) ON DELETE CASCADE
+    );
+    CREATE NONCLUSTERED INDEX ix_product_images_product_id ON dbo.product_images (product_id);
+    PRINT N'Đã tạo bảng product_images.';
 END
 GO
 
