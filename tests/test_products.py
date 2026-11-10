@@ -1,7 +1,12 @@
+import io
+
 import pytest
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.product import Product
+from app.models.user import User
+from tests.conftest import csrf_headers, login, register
 
 
 @pytest.mark.parametrize(
@@ -26,3 +31,424 @@ def test_product_purchase_buttons_and_discount(client, database, price, sale, st
         assert "detail-discount" not in response.text
     if stock == 0:
         assert 'data-buy-now="1" disabled' in response.text
+
+
+def test_demo_products_seed_and_images(client, database):
+    from app.core.config import ROOT
+    from app.seeds.seed import seed_products
+
+    all_product_images = (
+        "arduino-uno.webp",
+        "arduino-uno-1.webp",
+        "arduino-uno-2.webp",
+        "arduino-uno-3.webp",
+        "esp32-devkit.webp",
+        "esp32-devkit-1.webp",
+        "esp32-devkit-2.webp",
+        "dht22.webp",
+        "dht22-1.webp",
+        "dht22-2.webp",
+        "dht22-3.webp",
+    )
+
+    # 1. Verify all image files exist on disk
+    for filename in all_product_images:
+        path = ROOT / "app/static/img/products" / filename
+        assert path.is_file(), f"Missing product image: {filename}"
+
+    # 2. Seed database
+    with Session(database) as db:
+        updated = seed_products(db)
+        assert updated >= 3
+
+    # 3. Check storefront renders the new image URLs
+    html = client.get("/").text
+    assert "/static/img/products/esp32-devkit.webp" in html
+    assert "/static/img/products/arduino-uno.webp" in html
+    assert "/static/img/products/dht22.webp" in html
+
+    # 4. Check static endpoint serves all product images with 200
+    for filename in all_product_images:
+        res = client.get(f"/static/img/products/{filename}")
+        assert res.status_code == 200
+        assert res.headers["content-type"].startswith("image/webp")
+
+    # 5. Check PDP gallery for demo products (multi-image)
+    for slug in ("arduino-uno-demo", "esp32-devkit-demo", "dht22-demo"):
+        pdp_html = client.get(f"/products/{slug}").text
+        assert "product-gallery" in pdp_html
+        assert "gallery-thumbs" in pdp_html
+        assert "gallery-thumb is-active" in pdp_html
+        assert "gallery-nav--prev" in pdp_html
+        assert "gallery-nav--next" in pdp_html
+        # Textual face labels and badge removed per UX requirements
+        assert "product-gallery-badge" not in pdp_html
+        assert "thumb-label" not in pdp_html
+
+    # Check specific gallery items for Arduino Uno
+    uno_html = client.get("/products/arduino-uno-demo").text
+    assert "/static/img/products/arduino-uno-1.webp" in uno_html
+    assert "/static/img/products/arduino-uno-2.webp" in uno_html
+    assert "/static/img/products/arduino-uno-3.webp" in uno_html
+
+    # Check specific gallery items for DHT22
+    dht_html = client.get("/products/dht22-demo").text
+    assert "/static/img/products/dht22.webp" in dht_html
+    assert "/static/img/products/dht22-1.webp" in dht_html
+    assert "/static/img/products/dht22-2.webp" in dht_html
+    assert "/static/img/products/dht22-3.webp" in dht_html
+
+
+def test_product_detail_single_image_no_thumbnails(client, database):
+    with Session(database) as db:
+        db.add(
+            Product(
+                slug="single-img-product",
+                sku="SINGLE-001",
+                name="Sản phẩm một ảnh",
+                price=50000,
+                stock=5,
+                image_url="/static/img/product-placeholder.svg",
+            )
+        )
+        db.commit()
+
+    html = client.get("/products/single-img-product").text
+    assert "product-gallery" in html
+    assert "gallery-main" in html
+    assert "gallery-thumbs" not in html
+    assert "gallery-nav" not in html
+
+
+def make_admin(client, database, email="admin_products@example.com"):
+    register(client, email=email, name="Quản trị")
+    with Session(database) as db:
+        user = db.scalar(select(User).where(User.email == email))
+        user.role = "admin"
+        db.commit()
+    assert login(client, email=email).status_code == 200
+    return csrf_headers(client)
+
+
+def test_product_detail_renders_rich_html_description(client, database):
+    html_desc = (
+        "<h3>Đặc điểm nổi bật</h3>"
+        "<ul><li>Hỗ trợ Wi-Fi &amp; Bluetooth</li><li>Điện áp 3.3V</li></ul>"
+        "<p>Thiết bị chuẩn công nghiệp.</p>"
+    )
+    with Session(database) as db:
+        db.add(
+            Product(
+                slug="esp32-rich-desc",
+                sku="ESP32-RICH-1",
+                name="ESP32 Rich Description",
+                price=150000,
+                stock=20,
+                description=html_desc,
+                image_url="/static/img/products/esp32-devkit.png",
+            )
+        )
+        db.commit()
+
+    response = client.get("/products/esp32-rich-desc")
+    assert response.status_code == 200
+    assert "product-description-body" in response.text
+    # Ensure HTML is rendered safe (not escaped into &lt;h3&gt;)
+    assert "<h3>Đặc điểm nổi bật</h3>" in response.text
+    assert "<li>Hỗ trợ Wi-Fi &amp; Bluetooth</li>" in response.text
+    assert "<p>Thiết bị chuẩn công nghiệp.</p>" in response.text
+
+
+def test_admin_products_page_and_tinymce_integration(client, database):
+    admin_headers = make_admin(client, database)
+    with Session(database) as db:
+        db.add(
+            Product(
+                slug="test-ssr-del",
+                sku="SSR-001",
+                name="SSR Product",
+                price=100000,
+                stock=5,
+            )
+        )
+        db.commit()
+    response = client.get("/admin/products", headers=admin_headers)
+    assert response.status_code == 200
+    html = response.text
+
+    # Verify TinyMCE library CDN inclusion
+    assert "tinymce" in html
+    assert "tinymce.min.js" in html
+
+    # Verify Product creation form elements and helpers
+    assert 'id="admin-product-description"' in html
+    assert "data-generate-slug" in html
+    assert "data-generate-sku" in html
+    assert "data-preset-stock" in html
+    assert "data-upload-primary" in html
+    assert "data-open-library" in html
+    assert "data-insert-template" in html
+    assert "data-delete-current-product" in html
+    assert "data-delete-product" in html
+    assert "admin-products-data" in html
+
+    # Verify Live Storefront Preview Frame
+    assert "storefront-preview-card" in html
+    assert "data-live-desc" in html
+    assert "data-live-info-text" in html
+
+
+def test_admin_create_and_update_product_with_html_description(client, database):
+    admin_headers = make_admin(client, database, email="admin_create_update@example.com")
+
+    # 1. Create a product with rich HTML description
+    create_payload = {
+        "slug": "esp32-tinymce-test",
+        "sku": "ESP32-TINY-01",
+        "name": "ESP32 TinyMCE Test Board",
+        "price": 180000,
+        "sale_price": 150000,
+        "stock": 45,
+        "image_url": "/static/img/products/esp32-devkit.webp",
+        "description": "<h3>Thông số</h3><ul><li>Flash 4MB</li><li>SRAM 520KB</li></ul>",
+    }
+    create_res = client.post("/api/v1/admin/products", json=create_payload, headers=admin_headers)
+    assert create_res.status_code == 201
+    created_id = create_res.json()["id"]
+
+    # 2. Verify on public product detail page
+    pdp_res = client.get("/products/esp32-tinymce-test")
+    assert pdp_res.status_code == 200
+    assert "<h3>Thông số</h3>" in pdp_res.text
+    assert "<li>Flash 4MB</li>" in pdp_res.text
+
+    # 3. Update product description with modified HTML
+    update_payload = {
+        **create_payload,
+        "description": "<h3>Thông số bản nâng cấp</h3><p>Đã tích hợp ăng-ten gốm ceramic.</p>",
+    }
+    update_res = client.put(
+        f"/api/v1/admin/products/{created_id}", json=update_payload, headers=admin_headers
+    )
+    assert update_res.status_code == 200
+
+    # 4. Verify updated description on PDP
+    pdp_res2 = client.get("/products/esp32-tinymce-test")
+    assert pdp_res2.status_code == 200
+    assert "<h3>Thông số bản nâng cấp</h3>" in pdp_res2.text
+    assert "<p>Đã tích hợp ăng-ten gốm ceramic.</p>" in pdp_res2.text
+
+
+def test_admin_create_product_with_multi_images_and_gallery(client, database):
+    admin_headers = make_admin(client, database, email="admin_multi_images@example.com")
+
+    # 1. Check admin page has gallery elements
+    admin_page = client.get("/admin/products", headers=admin_headers).text
+    assert "data-gallery-container" in admin_page
+    assert "data-add-gallery-item" in admin_page
+    assert "data-preset-gallery" in admin_page
+    assert "data-live-gallery" in admin_page
+
+    # 2. Create product with primary image and secondary gallery images
+    payload = {
+        "slug": "esp32-multi-angle",
+        "sku": "ESP32-MULTI-01",
+        "name": "ESP32 Multi Angle Board",
+        "price": 160000,
+        "stock": 30,
+        "image_url": "/static/img/products/esp32-devkit.webp",
+        "description": "<p>Bo mạch nhiều ảnh xem thực tế.</p>",
+        "images": [
+            {"url": "/static/img/products/esp32-devkit.webp", "alt": "Mặt trước", "sort": 0},
+            {"url": "/static/img/products/esp32-devkit-1.webp", "alt": "Góc nghiêng", "sort": 1},
+            {"url": "/static/img/products/esp32-devkit-2.webp", "alt": "Mặt sau", "sort": 2},
+        ],
+    }
+    create_res = client.post("/api/v1/admin/products", json=payload, headers=admin_headers)
+    assert create_res.status_code == 201
+    created_id = create_res.json()["id"]
+    assert len(create_res.json()["images"]) == 3
+
+    # 3. Check public PDP renders gallery thumbs & nav buttons
+    pdp_html = client.get("/products/esp32-multi-angle").text
+    assert "gallery-thumbs" in pdp_html
+    assert "gallery-nav--prev" in pdp_html
+    assert "gallery-nav--next" in pdp_html
+    assert "/static/img/products/esp32-devkit-1.webp" in pdp_html
+    assert "/static/img/products/esp32-devkit-2.webp" in pdp_html
+
+    # 4. Update product gallery images
+    update_payload = {
+        **payload,
+        "images": [
+            {"url": "/static/img/products/esp32-devkit.webp", "alt": "Mặt trước", "sort": 0},
+            {"url": "/static/img/products/esp32-devkit-1.webp", "alt": "Góc nghiêng", "sort": 1},
+        ],
+    }
+    update_res = client.put(
+        f"/api/v1/admin/products/{created_id}", json=update_payload, headers=admin_headers
+    )
+    assert update_res.status_code == 200
+    assert len(update_res.json()["images"]) == 2
+
+    # Verify on PDP
+    pdp_html2 = client.get("/products/esp32-multi-angle").text
+    assert "/static/img/products/esp32-devkit-2.webp" not in pdp_html2
+
+
+def test_admin_upload_image_and_library_list(client, database):
+    admin_headers = make_admin(client, database, email="admin_uploader@example.com")
+
+    # 1. Non-admin cannot upload
+    valid_png = (
+        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+        b"\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8\xcf\xc0"
+        b"\x00\x00\x03\x01\x01\x00\xc9\xfe\x92\xef\x00\x00\x00\x00IEND\xaeB`\x82"
+    )
+    no_auth_res = client.post(
+        "/api/v1/admin/products/upload-image",
+        files={"file": ("test_chip.png", io.BytesIO(valid_png), "image/png")},
+    )
+    assert no_auth_res.status_code in (401, 403)
+
+    # 2. Admin uploads valid PNG image (with standard and browser-specific MIME types) -> converted to WebP
+    upload_res = client.post(
+        "/api/v1/admin/products/upload-image",
+        files={"file": ("test_chip.png", io.BytesIO(valid_png), "image/png")},
+        headers=admin_headers,
+    )
+    assert upload_res.status_code == 200
+    uploaded_url = upload_res.json()["url"]
+    uploaded_filename = upload_res.json()["filename"]
+    assert uploaded_url.startswith("/static/img/products/prod_")
+    assert uploaded_url.endswith(".webp")
+
+    # 2b. Admin uploads PNG with uppercase extension and octet-stream MIME -> converted to WebP
+    upload_res2 = client.post(
+        "/api/v1/admin/products/upload-image",
+        files={"file": ("MY_MODULE.PNG", io.BytesIO(valid_png), "application/octet-stream")},
+        headers=admin_headers,
+    )
+    assert upload_res2.status_code == 200
+    uploaded_url2 = upload_res2.json()["url"]
+    uploaded_filename2 = upload_res2.json()["filename"]
+    assert uploaded_url2.endswith(".webp")
+
+    # Verify static file can be retrieved as webp
+    file_res = client.get(uploaded_url)
+    assert file_res.status_code == 200
+    assert file_res.headers["content-type"].startswith("image/webp")
+
+    # 3. List library images
+    lib_res = client.get("/api/v1/admin/products/library-images", headers=admin_headers)
+    assert lib_res.status_code == 200
+    items = lib_res.json()["items"]
+    assert any(item["url"] == uploaded_url for item in items)
+
+    # Clean up uploaded test file
+    from app.core.config import ROOT
+
+    test_file_path = ROOT / "app" / "static" / "img" / "products" / uploaded_filename
+    if test_file_path.exists():
+        test_file_path.unlink()
+    test_file_path2 = ROOT / "app" / "static" / "img" / "products" / uploaded_filename2
+    if test_file_path2.exists():
+        test_file_path2.unlink()
+
+
+def test_admin_delete_product_success_and_protection(client, database):
+    admin_headers = make_admin(client, database, email="admin_delete_prod@example.com")
+
+    from app.models.cart import CartItem
+    from app.models.product import ProductImage
+
+    # 1. Create a product with gallery images and a cart item
+    with Session(database) as db:
+        user = db.scalar(select(User).where(User.email == "admin_delete_prod@example.com"))
+        prod = Product(
+            slug="to-be-deleted",
+            sku="DEL-001",
+            name="Sản phẩm thử xóa",
+            price=120000,
+            stock=10,
+            image_url="/static/img/products/arduino-uno.webp",
+        )
+        db.add(prod)
+        db.flush()
+        prod.images.append(
+            ProductImage(url="/static/img/products/arduino-uno-1.webp", alt="Góc nghiêng", sort=1)
+        )
+        db.add(CartItem(user_id=user.id, product_id=prod.id, qty=2))
+        db.commit()
+        prod_id = prod.id
+
+    # 2. Non-authenticated / non-admin cannot delete
+    no_auth_res = client.delete(f"/api/v1/admin/products/{prod_id}")
+    assert no_auth_res.status_code in (401, 403)
+
+    # 3. Admin deletes non-existent product
+    not_found_res = client.delete("/api/v1/admin/products/999999", headers=admin_headers)
+    assert not_found_res.status_code == 404
+
+    # 4. Admin deletes existing product successfully
+    del_res = client.delete(f"/api/v1/admin/products/{prod_id}", headers=admin_headers)
+    assert del_res.status_code == 200
+    assert del_res.json()["id"] == prod_id
+    assert "thành công" in del_res.json()["detail"]
+
+    # 5. Verify database state
+    with Session(database) as db:
+        assert db.get(Product, prod_id) is None
+        assert (
+            db.scalars(select(ProductImage).where(ProductImage.product_id == prod_id)).all() == []
+        )
+        assert db.scalars(select(CartItem).where(CartItem.product_id == prod_id)).all() == []
+
+    # 6. Verify PDP returns 404
+    pdp_res = client.get("/products/to-be-deleted")
+    assert pdp_res.status_code == 404
+
+
+def test_admin_delete_product_blocked_if_ordered(client, database):
+    admin_headers = make_admin(client, database, email="admin_delete_order@example.com")
+
+    from app.models.order import Order, OrderItem
+
+    # 1. Create product and an existing order containing it
+    with Session(database) as db:
+        user = db.scalar(select(User).where(User.email == "admin_delete_order@example.com"))
+        prod = Product(
+            slug="ordered-product",
+            sku="ORDERED-001",
+            name="Sản phẩm đã có đơn hàng",
+            price=250000,
+            stock=15,
+            image_url="/static/img/products/esp32-devkit.webp",
+        )
+        db.add(prod)
+        db.flush()
+        order = Order(
+            code="ORD-TEST-DEL",
+            user_id=user.id,
+            status="confirmed",
+            subtotal=250000,
+            discount=0,
+            vat=0,
+            shipping_fee=20000,
+            total=270000,
+            address={"fullname": "Khách Test", "phone": "0912345678", "detail": "123 Test"},
+        )
+        db.add(order)
+        db.flush()
+        db.add(OrderItem(order_id=order.id, product_id=prod.id, price=250000, qty=1))
+        db.commit()
+        prod_id = prod.id
+
+    # 2. Admin attempts to delete ordered product
+    del_res = client.delete(f"/api/v1/admin/products/{prod_id}", headers=admin_headers)
+    assert del_res.status_code == 400
+    assert "Không thể xóa sản phẩm đã có trong đơn hàng" in del_res.json()["detail"]
+
+    # 3. Verify product is not deleted
+    with Session(database) as db:
+        assert db.get(Product, prod_id) is not None

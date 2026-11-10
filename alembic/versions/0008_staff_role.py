@@ -19,6 +19,4 @@ def upgrade() -> None:
 def downgrade() -> None:
     with op.batch_alter_table("users") as batch_op:
         batch_op.drop_constraint(op.f("ck_users_role"), type_="check")
-        batch_op.create_check_constraint(
-            op.f("ck_users_role"), "role IN ('admin', 'customer')"
-        )
+        batch_op.create_check_constraint(op.f("ck_users_role"), "role IN ('admin', 'customer')")

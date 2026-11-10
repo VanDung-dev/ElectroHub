@@ -62,6 +62,19 @@ def test_homepage_meta_and_site_structured_data(client):
     action = website["potentialAction"]
     assert action["@type"] == "SearchAction"
     assert action["target"]["urlTemplate"].endswith("/collections/all?q={search_term_string}")
+    org = next(node for node in blocks[0]["@graph"] if node["@type"] == "Organization")
+    assert org["address"]["streetAddress"] == "458/3F Nguyễn Hữu Thọ, Tân Hưng, Hồ Chí Minh"
+
+
+def test_homepage_and_footer_render_store_address_and_map(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    html = response.text
+    assert "458/3F Nguyễn Hữu Thọ, Tân Hưng, Hồ Chí Minh" in html
+    assert "google.com/maps" in html
+    assert "<iframe" in html
+    assert 'class="store-location"' in html
+    assert 'class="footer-address"' in html
 
 
 def test_product_detail_meta_and_json_ld(client, database):

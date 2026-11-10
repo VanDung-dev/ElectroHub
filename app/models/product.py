@@ -9,9 +9,9 @@ sales code only relies on `id, slug, name, price, sale_price, stock`.
 
 from datetime import UTC, datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Integer, String, Unicode
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, Unicode
 from sqlalchemy.dialects.mssql import DATETIME2
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -39,3 +39,25 @@ class Product(Base):
         DateTime().with_variant(DATETIME2(), "mssql"),
         default=lambda: datetime.now(UTC).replace(tzinfo=None),
     )
+
+    images: Mapped[list["ProductImage"]] = relationship(
+        "ProductImage",
+        back_populates="product",
+        cascade="all, delete-orphan",
+        order_by="ProductImage.sort, ProductImage.id",
+        lazy="selectin",
+    )
+
+
+class ProductImage(Base):
+    __tablename__ = "product_images"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    product_id: Mapped[int] = mapped_column(
+        ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    url: Mapped[str] = mapped_column(String(500), nullable=False)
+    alt: Mapped[str] = mapped_column(Unicode(200), default="", server_default="")
+    sort: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+
+    product: Mapped["Product"] = relationship("Product", back_populates="images")

@@ -105,7 +105,9 @@ def create_order(
     txn_ref: str,
     amount_minor: int,
     currency: str,
+    base_url: str | None = None,
 ) -> dict:
+    effective_base = base_url.rstrip("/") if base_url else settings.base_url
     payload = {
         "intent": "CAPTURE",
         "purchase_units": [
@@ -122,8 +124,8 @@ def create_order(
         "payment_source": {
             "paypal": {
                 "experience_context": {
-                    "return_url": f"{settings.base_url}/payments/paypal/return?code={code}",
-                    "cancel_url": f"{settings.base_url}/payments/{code}?payment=cancelled",
+                    "return_url": f"{effective_base}/payments/paypal/return?code={code}",
+                    "cancel_url": f"{effective_base}/payments/{code}?payment=cancelled",
                     "user_action": "PAY_NOW",
                     "shipping_preference": "NO_SHIPPING",
                 }

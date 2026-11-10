@@ -1,12 +1,14 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 RefundStatus = Literal["scheduled", "processing", "succeeded", "failed", "rejected"]
 
 
 class RefundInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     status: RefundStatus
     amount: int

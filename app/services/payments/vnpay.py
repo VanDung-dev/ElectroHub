@@ -65,6 +65,7 @@ def build_payment_url(
     amount_vnd: int,
     order_info: str,
     ip_addr: str,
+    return_url: str | None = None,
 ) -> str:
     if amount_vnd <= 0:
         raise PaymentGatewayError("Số tiền thanh toán không hợp lệ")
@@ -82,7 +83,7 @@ def build_payment_url(
         "vnp_IpAddr": ip_addr or "127.0.0.1",
         "vnp_CreateDate": _format_time(created),
         "vnp_ExpireDate": _format_time(created + timedelta(minutes=settings.vnpay_expire_minutes)),
-        "vnp_ReturnUrl": settings.vnpay_return_url,
+        "vnp_ReturnUrl": return_url or settings.vnpay_return_url,
     }
     secret = settings.vnpay_hash_secret.get_secret_value() if settings.vnpay_hash_secret else ""
     data = hash_data(params)

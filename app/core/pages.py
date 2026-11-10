@@ -1,10 +1,15 @@
+import html
 import json
 import unicodedata
+from functools import lru_cache
+from html.parser import HTMLParser
+from pathlib import Path
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup
 from sqlalchemy import select
 
 from app.core.config import ROOT, get_settings
@@ -18,8 +23,112 @@ def format_vnd(value: int) -> str:
     return f"{int(value):,.0f}".replace(",", ".")
 
 
+class HTMLSanitizer(HTMLParser):
+    ALLOWED_TAGS = {
+        "p",
+        "br",
+        "hr",
+        "b",
+        "strong",
+        "i",
+        "em",
+        "u",
+        "s",
+        "strike",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "ul",
+        "ol",
+        "li",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "th",
+        "td",
+        "code",
+        "pre",
+        "blockquote",
+        "span",
+        "a",
+        "img",
+    }
+    ALLOWED_ATTRS = {
+        "a": {"href", "title", "target", "rel"},
+        "img": {"src", "alt", "title", "width", "height"},
+        "td": {"colspan", "rowspan"},
+        "th": {"colspan", "rowspan"},
+    }
+    DROP_CONTENT_TAGS = {"script", "style", "iframe", "object", "embed"}
+
+    def __init__(self):
+        super().__init__()
+        self.result = []
+        self.drop_stack = 0
+
+    def handle_starttag(self, tag, attrs):
+        tag_lower = tag.lower()
+        if tag_lower in self.DROP_CONTENT_TAGS:
+            self.drop_stack += 1
+            return
+        if self.drop_stack > 0:
+            return
+        if tag_lower in self.ALLOWED_TAGS:
+            cleaned_attrs = []
+            allowed = self.ALLOWED_ATTRS.get(tag_lower, set())
+            for name, val in attrs:
+                name_lower = name.lower()
+                if name_lower in allowed:
+                    if name_lower == "href" and val.strip().lower().startswith("javascript:"):
+                        continue
+                    cleaned_attrs.append(f'{name_lower}="{html.escape(val, quote=True)}"')
+            attr_str = (" " + " ".join(cleaned_attrs)) if cleaned_attrs else ""
+            self.result.append(f"<{tag_lower}{attr_str}>")
+
+    def handle_endtag(self, tag):
+        tag_lower = tag.lower()
+        if tag_lower in self.DROP_CONTENT_TAGS:
+            if self.drop_stack > 0:
+                self.drop_stack -= 1
+            return
+        if self.drop_stack > 0:
+            return
+        if tag_lower in self.ALLOWED_TAGS and tag_lower not in {"br", "hr", "img"}:
+            self.result.append(f"</{tag_lower}>")
+
+    def handle_data(self, data):
+        if self.drop_stack == 0:
+            self.result.append(html.escape(data))
+
+    def handle_entityref(self, name):
+        if self.drop_stack == 0:
+            self.result.append(f"&{name};")
+
+    def handle_charref(self, name):
+        if self.drop_stack == 0:
+            self.result.append(f"&#{name};")
+
+    def get_html(self):
+        return "".join(self.result)
+
+
+def sanitize_html(content: str | None) -> Markup:
+    """Sanitize rich-text HTML descriptions from TinyMCE, dropping dangerous tags like script/iframe."""
+    if not content:
+        return Markup("")
+    parser = HTMLSanitizer()
+    parser.feed(content)
+    cleaned = parser.get_html()
+    return Markup(cleaned)
+
+
 templates = Jinja2Templates(directory=ROOT / "app/templates")
 templates.env.filters["vnd"] = format_vnd
+templates.env.filters["clean_html"] = sanitize_html
 router = APIRouter(include_in_schema=False)
 
 SITE_NAME = "ElectroHub"
@@ -42,13 +151,13 @@ PAGE_TEMPLATES = {
     "/cart/tracking": "cart/tracking.html",
     "/account/login": "auth/login.html",
     "/account/register": "auth/register.html",
+    "/account": "account/profile.html",
     "/account/orders": "account/orders.html",
-    "/blogs/all": "blog/list.html",
-    "/blogs/{slug}": "blog/detail.html",
     "/manager": "admin/dashboard.html",
     "/admin/products": "admin/products.html",
     "/admin/orders": "admin/orders.html",
     "/admin/newsletter": "admin/newsletter.html",
+    "/admin/users": "admin/users.html",
     "/staff/orders": "admin/orders.html",
 }
 PAGE_META = {
@@ -70,8 +179,19 @@ PAGE_META = {
         "Tạo tài khoản | ElectroHub",
         "Đăng ký tài khoản ElectroHub để đặt hàng.",
     ),
+    "/account": (
+        "Tài khoản của tôi | ElectroHub",
+        "Quản lý thông tin tài khoản cá nhân tại ElectroHub.",
+    ),
     "/account/orders": ("Đơn hàng của tôi | ElectroHub", "Lịch sử đơn hàng ElectroHub của bạn."),
-    "/manager": ("Tổng quan cửa hàng | ElectroHub", "Khu vực quản lý cửa hàng ElectroHub."),
+    "/manager": (
+        "Báo cáo doanh thu | ElectroHub",
+        "Báo cáo doanh thu và tổng quan đơn hàng cửa hàng ElectroHub.",
+    ),
+    "/admin/users": (
+        "Phân quyền & Người dùng | ElectroHub",
+        "Quản lý phân quyền và khóa tài khoản tại ElectroHub.",
+    ),
     "/staff/orders": ("Xử lý đơn hàng | ElectroHub", "Danh sách và trạng thái đơn hàng."),
 }
 
@@ -143,6 +263,13 @@ def site_structured_data() -> str:
         "url": f"{base}/",
         "logo": f"{base}/static/img/favicon-180.png",
         "inLanguage": "vi",
+        "address": {
+            "@type": "PostalAddress",
+            "streetAddress": settings.store_address,
+            "addressLocality": "Tân Hưng",
+            "addressRegion": "Hồ Chí Minh",
+            "addressCountry": "VN",
+        },
     }
     same_as = [url for url in (settings.facebook_page_url, settings.zalo_page_url) if url]
     if same_as:
@@ -184,6 +311,15 @@ def product_structured_data(product: Product) -> str:
         if product.image_url.startswith(("http://", "https://"))
         else f"{base}{product.image_url}"
     )
+    if getattr(product, "images", None):
+        images = [
+            img.url if img.url.startswith(("http://", "https://")) else f"{base}{img.url}"
+            for img in product.images
+        ]
+        if image not in images:
+            images.insert(0, image)
+    else:
+        images = [image]
     offer = {
         "@type": "Offer",
         "priceCurrency": "VND",
@@ -216,7 +352,7 @@ def product_structured_data(product: Product) -> str:
                 "name": product.name,
                 "sku": product.sku,
                 "url": url,
-                "image": [image],
+                "image": images,
                 "description": description or product_meta_description(product),
                 "offers": offer,
             },
@@ -233,24 +369,29 @@ def _normalize(value: str) -> str:
     return value.replace("đ", "d")
 
 
+# ponytail: cache template readiness check to avoid synchronous disk read_text() on every request
+@lru_cache(maxsize=64)
+def _is_template_ready(root_path: Path, template_name: str) -> bool:
+    target = root_path / "app/templates" / template_name
+    return target.exists() and bool(target.read_text().strip())
+
+
 def catalog_context(request: Request, db: DbSession) -> dict:
     """Server-side product list for the home and catalog pages.
 
     Mirrors `/api/v1/products` plus the `q` and `sale` filters store.js applies,
     so the first paint already contains the links and prices crawlers index.
     """
-    products = list(db.scalars(select(Product).order_by(Product.name, Product.id)).all())
+    stmt = select(Product).order_by(Product.name, Product.id)
+    # ponytail: push sale filter directly to DB query when active
+    if request.query_params.get("sale") == "1":
+        stmt = stmt.where(Product.sale_price.is_not(None), Product.sale_price < Product.price)
+    products = list(db.scalars(stmt).all())
     query = " ".join(request.query_params.get("q", "").split())
     if query:
         needle = _normalize(query)
         products = [
             product for product in products if needle in _normalize(f"{product.name} {product.sku}")
-        ]
-    if request.query_params.get("sale") == "1":
-        products = [
-            product
-            for product in products
-            if product.sale_price is not None and product.sale_price < product.price
         ]
     return {"products": products, "product_count": len(products)}
 
@@ -258,7 +399,8 @@ def catalog_context(request: Request, db: DbSession) -> dict:
 def page_endpoint(template_name: str):
     def page(request: Request, db: DbSession):
         # P4 owns the templates; surface unfinished pages instead of a blank 200 response.
-        if not (ROOT / "app/templates" / template_name).read_text().strip():
+        # ponytail: use cached readiness check instead of reading template file from disk every hit
+        if not _is_template_ready(ROOT, template_name):
             return HTMLResponse(
                 '<!doctype html><html lang="vi"><meta charset="utf-8">'
                 "<title>ElectroHub</title><h1>Giao diện đang được xây dựng</h1>"
@@ -286,6 +428,9 @@ def page_endpoint(template_name: str):
             "tawkto_embed_code": get_settings().tawkto_embed_code,
             "tawkto_property_id": get_settings().tawkto_property_id,
             "tawkto_widget_id": get_settings().tawkto_widget_id,
+            "store_address": get_settings().store_address,
+            "google_maps_embed_url": get_settings().google_maps_embed_url,
+            "google_maps_direct_url": get_settings().google_maps_direct_url,
             "page_title": page_title,
             "page_description": page_description,
             **social_image(
@@ -315,6 +460,10 @@ def page_endpoint(template_name: str):
         }
         if template_name in CATALOG_TEMPLATES:
             context.update(catalog_context(request, db))
+        elif template_name == "admin/products.html":
+            context["products"] = db.scalars(
+                select(Product).order_by(Product.name, Product.id)
+            ).all()
         response = templates.TemplateResponse(
             request=request,
             name=template_name,
@@ -334,7 +483,7 @@ for path, template_name in PAGE_TEMPLATES.items():
         else require_staff
         if path.startswith("/staff/")
         else get_current_user
-        if path == "/account/orders" or path.startswith("/payments/")
+        if path.startswith("/payments/")
         else None
     )
     router.add_api_route(
@@ -367,6 +516,9 @@ def product_detail(slug: str, request: Request, db: DbSession):
             "tawkto_embed_code": get_settings().tawkto_embed_code,
             "tawkto_property_id": get_settings().tawkto_property_id,
             "tawkto_widget_id": get_settings().tawkto_widget_id,
+            "store_address": get_settings().store_address,
+            "google_maps_embed_url": get_settings().google_maps_embed_url,
+            "google_maps_direct_url": get_settings().google_maps_direct_url,
             "product": product,
             "page_title": product_page_title(product),
             "page_description": product_meta_description(product),
@@ -395,6 +547,9 @@ def newsletter_unsubscribe_page(request: Request, token: str):
             "csrf_token": csrf_token,
             "token": token,
             "site_url": get_settings().site_url.rstrip("/"),
+            "store_address": get_settings().store_address,
+            "google_maps_embed_url": get_settings().google_maps_embed_url,
+            "google_maps_direct_url": get_settings().google_maps_direct_url,
             "page_title": "Hủy nhận email | ElectroHub",
             "page_description": "Hủy đăng ký nhận email marketing.",
             "robots_policy": "noindex,follow",
@@ -419,6 +574,9 @@ def not_found_response(request: Request):
         context={
             "csrf_token": csrf_token,
             "site_url": base,
+            "store_address": get_settings().store_address,
+            "google_maps_embed_url": get_settings().google_maps_embed_url,
+            "google_maps_direct_url": get_settings().google_maps_direct_url,
             "page_title": "Không tìm thấy trang | ElectroHub",
             "page_description": "Trang bạn tìm không tồn tại hoặc sản phẩm đã được thay thế.",
             "robots_policy": "noindex,follow",

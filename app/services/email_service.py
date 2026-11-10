@@ -4,6 +4,7 @@ import logging
 import smtplib
 import socket
 from email.message import EmailMessage
+from functools import lru_cache
 from urllib.parse import urlencode
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -22,6 +23,8 @@ _jinja_env = Environment(
 )
 
 
+# ponytail: cache host check to prevent blocking DNS lookup timeouts per email outside Docker
+@lru_cache(maxsize=8)
 def _resolve_smtp_host(host: str) -> str:
     """Fallback 'mailpit' to 'localhost' if running on host machine outside docker network."""
     if host == "mailpit":
@@ -65,27 +68,32 @@ def render_welcome_email(email: str) -> tuple[str, str]:
     text_content = (
         f"Chào mừng bạn đến với ElectroHub!\n\n"
         f"Cảm ơn bạn đã đăng ký nhận bản tin từ ElectroHub.\n"
-        f"Tặng bạn mã ưu đãi WELCOME10 giảm 10% cho đơn hàng đầu tiên tại {site_url}/collections/all.\n\n"
+        f"Tặng bạn mã ưu đãi WELCOME10 giảm 10% cho đơn hàng đầu tiên tại "
+        f"{site_url}/collections/all.\n\n"
         f"Hủy nhận tin bất cứ lúc nào: {unsub_url}"
     )
     return text_content, html_content
 
 
-def render_campaign_email(email: str, subject: str, body: str) -> tuple[str, str]:
+def _format_campaign_paragraphs(body: str) -> tuple[str, list[Markup]]:
+    normalized = body.replace("\r\n", "\n").replace("\r", "\n").strip()
+    raw = [p.strip() for p in normalized.split("\n\n") if p.strip()] or [normalized]
+    formatted = [Markup("<br>\n".join(str(escape(line)) for line in p.split("\n"))) for p in raw]
+    return normalized, formatted
+
+
+def render_campaign_email(
+    email: str,
+    subject: str,
+    body: str,
+    *,
+    precomputed: tuple[str, list[Markup]] | None = None,
+) -> tuple[str, str]:
     """Generate plain text and responsive HTML for a marketing campaign."""
     settings = get_settings()
     site_url = settings.site_url.rstrip("/")
     unsub_url = get_unsubscribe_url(email)
-
-    normalized_body = body.replace("\r\n", "\n").replace("\r", "\n").strip()
-    raw_paragraphs = [p.strip() for p in normalized_body.split("\n\n") if p.strip()]
-    if not raw_paragraphs:
-        raw_paragraphs = [normalized_body]
-
-    formatted_paragraphs = []
-    for p in raw_paragraphs:
-        safe_lines = [str(escape(line)) for line in p.split("\n")]
-        formatted_paragraphs.append(Markup("<br>\n".join(safe_lines)))
+    normalized_body, formatted_paragraphs = precomputed or _format_campaign_paragraphs(body)
 
     template = _jinja_env.get_template("emails/campaign.html")
     html_content = template.render(
@@ -175,9 +183,13 @@ def send_campaign_background(
             if settings.smtp_username and settings.smtp_password:
                 smtp.login(settings.smtp_username, settings.smtp_password.get_secret_value())
 
+            # ponytail: parse and format campaign content once instead of per-recipient
+            precomputed = _format_campaign_paragraphs(body)
             for email in recipients:
                 try:
-                    text_content, html_content = render_campaign_email(email, subject, body)
+                    text_content, html_content = render_campaign_email(
+                        email, subject, body, precomputed=precomputed
+                    )
                     message = EmailMessage()
                     message["From"] = settings.mail_from
                     message["To"] = email

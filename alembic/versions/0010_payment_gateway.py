@@ -20,13 +20,9 @@ def upgrade() -> None:
         batch.add_column(sa.Column("provider_order_id", sa.String(64), nullable=True))
         batch.add_column(sa.Column("provider_txn_id", sa.String(64), nullable=True))
         batch.add_column(sa.Column("provider_status", sa.String(32), nullable=True))
-        batch.add_column(
-            sa.Column("currency", sa.String(3), nullable=False, server_default="VND")
-        )
+        batch.add_column(sa.Column("currency", sa.String(3), nullable=False, server_default="VND"))
         batch.add_column(sa.Column("amount_minor", sa.BigInteger(), nullable=True))
-        batch.add_column(
-            sa.Column("attempt", sa.Integer(), nullable=False, server_default="1")
-        )
+        batch.add_column(sa.Column("attempt", sa.Integer(), nullable=False, server_default="1"))
         batch.add_column(
             sa.Column(
                 "paid_at",
