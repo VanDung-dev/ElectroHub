@@ -153,8 +153,6 @@ PAGE_TEMPLATES = {
     "/account/register": "auth/register.html",
     "/account": "account/profile.html",
     "/account/orders": "account/orders.html",
-    "/blogs/all": "blog/list.html",
-    "/blogs/{slug}": "blog/detail.html",
     "/manager": "admin/dashboard.html",
     "/admin/products": "admin/products.html",
     "/admin/orders": "admin/orders.html",
