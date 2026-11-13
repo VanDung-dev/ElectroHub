@@ -12,6 +12,7 @@ from app.core.security import (
     verify_password,
 )
 from app.core.security import issue_csrf as set_csrf_cookie
+from app.models.newsletter import NewsletterSubscriber
 from app.models.user import User
 from app.schemas.auth import (
     CsrfResponse,
@@ -52,7 +53,17 @@ def login(data: LoginRequest, response: Response, db: DbSession):
     user = authenticate(db, data)
     set_cookie(response, ACCESS_COOKIE, create_access_token(user.id))
     clear_cookie(response, CSRF_COOKIE)
-    return user
+    is_sub = (
+        db.scalar(
+            select(NewsletterSubscriber.id).where(
+                NewsletterSubscriber.email == user.email.lower()
+            )
+        )
+        is not None
+    )
+    resp = UserResponse.model_validate(user)
+    resp.is_subscribed_newsletter = is_sub
+    return resp
 
 
 @router.post("/logout", response_model=DetailResponse)
@@ -65,9 +76,19 @@ def logout(response: Response):
 
 
 @router.get("/me", response_model=UserResponse)
-def me(user: CurrentUser, response: Response):
+def me(user: CurrentUser, response: Response, db: DbSession):
     response.headers["Cache-Control"] = "no-store"
-    return user
+    is_sub = (
+        db.scalar(
+            select(NewsletterSubscriber.id).where(
+                NewsletterSubscriber.email == user.email.lower()
+            )
+        )
+        is not None
+    )
+    resp = UserResponse.model_validate(user)
+    resp.is_subscribed_newsletter = is_sub
+    return resp
 
 
 @router.put("/me", response_model=UserResponse, include_in_schema=False)
@@ -88,9 +109,33 @@ def update_profile(
         if len(data.new_password) < 8:
             raise HTTPException(400, "Mật khẩu mới phải có tối thiểu 8 ký tự")
         user.password_hash = hash_password(data.new_password)
+
+    user_email = user.email.lower()
+    if data.is_subscribed_newsletter is not None:
+        sub = db.scalar(
+            select(NewsletterSubscriber).where(NewsletterSubscriber.email == user_email)
+        )
+        if data.is_subscribed_newsletter:
+            if not sub:
+                db.add(NewsletterSubscriber(email=user_email))
+        else:
+            if sub:
+                db.delete(sub)
+
     db.commit()
     db.refresh(user)
-    return user
+
+    is_sub = (
+        db.scalar(
+            select(NewsletterSubscriber.id).where(
+                NewsletterSubscriber.email == user_email
+            )
+        )
+        is not None
+    )
+    resp = UserResponse.model_validate(user)
+    resp.is_subscribed_newsletter = is_sub
+    return resp
 
 
 @router.get("/admin/users", include_in_schema=False, dependencies=[Depends(require_admin)])

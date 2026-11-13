@@ -164,6 +164,8 @@ async function loadAccountSidebar() {
     if (nameInput) nameInput.value = user.name || "";
     const emailInput = document.querySelector("[data-profile-email-input]");
     if (emailInput) emailInput.value = user.email || "";
+    const newsletterCheckbox = document.querySelector("[data-profile-newsletter-checkbox]");
+    if (newsletterCheckbox) newsletterCheckbox.checked = Boolean(user.is_subscribed_newsletter);
 
     const savedShipping = JSON.parse(localStorage.getItem("electrohub_default_shipping") || "{}");
     const phoneInput = document.querySelector("[data-profile-phone-input]");
@@ -2061,15 +2063,24 @@ document.querySelector("[data-profile-form]")?.addEventListener("submit", async 
   }
 
   try {
+    const newsletterCheckbox = form.querySelector("[data-profile-newsletter-checkbox]");
+    const payload = {
+      name,
+      current_password: currentPassword,
+      new_password: newPassword,
+    };
+    if (newsletterCheckbox) {
+      payload.is_subscribed_newsletter = newsletterCheckbox.checked;
+    }
+
     const updated = await request("/api/v1/auth/me", {
       method: "PUT",
-      body: JSON.stringify({
-        name,
-        current_password: currentPassword,
-        new_password: newPassword,
-      }),
+      body: JSON.stringify(payload),
     });
     window.currentUser = updated;
+    if (newsletterCheckbox && typeof updated.is_subscribed_newsletter === "boolean") {
+      newsletterCheckbox.checked = updated.is_subscribed_newsletter;
+    }
 
     // Lưu thông tin địa chỉ giao hàng mặc định vào LocalStorage
     try {
