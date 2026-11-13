@@ -593,6 +593,16 @@ async function loadAdminSubscribers(query = "") {
       return;
     }
 
+    const formatVietnamTime = (dateStr) => {
+      if (!dateStr) return "-";
+      try {
+        const date = /Z$|[+-]\d{2}:?\d{2}$/.test(dateStr) ? new Date(dateStr) : new Date(dateStr + "Z");
+        return date.toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
+      } catch {
+        return new Date(dateStr).toLocaleString("vi-VN");
+      }
+    };
+
     tableContainer.innerHTML = `
       <table class="newsletter-table">
         <thead>
@@ -608,7 +618,7 @@ async function loadAdminSubscribers(query = "") {
             <tr>
               <td>#${sub.id}</td>
               <td><strong>${escapeHtml(sub.email)}</strong></td>
-              <td>${new Date(sub.created_at).toLocaleString("vi-VN")}</td>
+              <td>${formatVietnamTime(sub.created_at)}</td>
               <td style="text-align: right;">
                 <button type="button" class="remove-item" data-delete-sub="${sub.id}" title="Xóa người đăng ký">Xóa</button>
               </td>
@@ -639,6 +649,17 @@ async function loadAdminCampaigns() {
       return `<span class="badge badge-failed">Thất bại</span>`;
     };
 
+    const formatVietnamTime = (dateStr) => {
+      if (!dateStr) return "-";
+      try {
+        // Assume UTC if no timezone info
+        const date = /Z$|[+-]\d{2}:?\d{2}$/.test(dateStr) ? new Date(dateStr) : new Date(dateStr + "Z");
+        return date.toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
+      } catch {
+        return new Date(dateStr).toLocaleString("vi-VN");
+      }
+    };
+
     tableContainer.innerHTML = `
       <table class="newsletter-table">
         <thead>
@@ -656,7 +677,7 @@ async function loadAdminCampaigns() {
               <td>#${camp.id}</td>
               <td><strong>${escapeHtml(camp.subject)}</strong></td>
               <td>${camp.recipient_count} người</td>
-              <td>${new Date(camp.sent_at).toLocaleString("vi-VN")}</td>
+              <td>${formatVietnamTime(camp.sent_at)}</td>
               <td>${statusBadge(camp.status)}</td>
             </tr>
           `).join("")}
