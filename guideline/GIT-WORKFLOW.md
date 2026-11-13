@@ -17,7 +17,7 @@ hotfix/<mo-ta>                # tạo từ main cho sửa gấp
 
 - Không code trực tiếp trên `main` hoặc `develop`.
 - Tạo nhánh feature từ `develop`; giữ nhánh ngắn, một task hoặc một thay đổi liên quan mỗi nhánh.
-- Quy ước domain: `core/auth` (Dũng), `product` (Giàu), `cart/order/payment` (Hưng), `ui/admin` (Gấm), `docs` (owner của task tài liệu).
+- Quy ước domain: `core/auth` (Dũng), `product` (Giàu), `cart/order/payment` (Hưng), `ui/admin` (Frontend), `docs` (owner của task tài liệu).
 - Ví dụ: `feature/product-search`, `feature/order-checkout`, `feature/ui-pdp`, `feature/core-jwt-cookie`.
 
 <a id="tasks"></a>

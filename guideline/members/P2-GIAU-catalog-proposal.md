@@ -1,6 +1,6 @@
 # Đề xuất contract catalog — P2 Giàu
 
-**Trạng thái:** Đề xuất của P2, chờ Dũng duyệt schema/API và chờ Hưng, Gấm xác nhận phần phối hợp. Đây chưa phải xác nhận qua giai đoạn 1.
+**Trạng thái:** Đề xuất của P2, chờ Dũng duyệt schema/API và chờ Hưng,  xác nhận phần phối hợp. Đây chưa phải xác nhận qua giai đoạn 1.
 
 ## 1. Schema đề xuất
 
@@ -42,7 +42,7 @@ Giá hiển thị, lọc và sort đề xuất dùng giá áp dụng `sale_price
 
 Response list giữ `{items, total, page, page_size}`. Mỗi item có `id`, `slug`, `sku`, `name`, `price`, `sale_price`, `stock`, `brand`, `image`; PDP bổ sung `category`, `warranty`, `specs`, `description`, `images` dạng `{url, alt, sort}`. Badge giảm giá tính từ hai field giá; badge “bán chạy” chỉ hiển thị nếu nhóm thống nhất nguồn dữ liệu bán chạy.
 
-Payload mock tối thiểu để Gấm có thể dựng PLP/PDP trước khi API sẵn sàng:
+Payload mock tối thiểu để  có thể dựng PLP/PDP trước khi API sẵn sàng:
 
 ```json
 {
@@ -77,6 +77,6 @@ Validation đề xuất: lỗi dữ liệu `422`, không tìm thấy `404`, slug
 
 - **Dũng:** duyệt field/nullability, quan hệ/index, quy tắc xóa và cách migration.
 - **Hưng:** xác nhận giá áp dụng dùng chung với cart/checkout và ý nghĩa/điểm cập nhật stock.
-- **Gấm:** xác nhận payload PLP/PDP, ảnh/specs, badge và cách gọi API.
+- **:** xác nhận payload PLP/PDP, ảnh/specs, badge và cách gọi API.
 
 Sau các xác nhận, cập nhật lại contract chung ở [API-DESIGN.md](../API-DESIGN.md#catalog) và ERD do Dũng sở hữu ở [DB-MIGRATION.md](../DB-MIGRATION.md#erd).

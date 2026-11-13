@@ -2,7 +2,7 @@
 
 [← Trang bắt đầu / chọn thành viên](README.md) · [Tra cứu theo công việc](README.md#lookup)
 
-[Giàu](members/P2-GIAU.md#tasks) đọc PLP/PDP; [Hưng](members/P3-HUNG.md#tasks) đọc checkout; [Gấm](members/P4-GAM.md#tasks) đọc các phần giao diện/content; [Dũng](members/P1-DUNG.md#coordination) đối chiếu DB/contract.
+[Giàu](members/P2-GIAU.md#tasks) đọc PLP/PDP; [Hưng](members/P3-HUNG.md#tasks) đọc checkout;  đọc các phần giao diện/content; [Dũng](members/P1-DUNG.md#coordination) đối chiếu DB/contract.
 
 > Nguồn đối chiếu: `https://hshop.vn`, `/collections/all`, PDP `MKE-K06 STM32F103C8T6`, `/huong-dan-mua-hang`, `/chinh-sach-bao-hanh`.
 > Stack hshop: Sapo/Bizweb server-render (`bizweb.dktcdn.net`), không phải SPA → khớp với stack FastAPI + Jinja + JS thuần của ElectroHub.
@@ -31,7 +31,7 @@
 
 <a id="plp"></a>
 
-## 2. PLP chuẩn (Giàu P2 API + Gấm P4 UI)
+## 2. PLP chuẩn (Giàu P2 API  UI)
 
 * Filter bắt buộc: `Mức giá 8 khoảng (Dưới 10k … Trên 1tr)`, `Thương hiệu ~40 hãng`, `q search`, `category`.
 * Sort bắt buộc: `Tên A-Z / Z-A / Hàng mới / Giá thấp-cao / Giá cao-thấp`.
@@ -41,7 +41,7 @@
 
 <a id="pdp"></a>
 
-## 3. PDP chuẩn (Giàu P2 data + Gấm P4 UI) — checklist nghiệm thu
+## 3. PDP chuẩn (Giàu P2 data  UI) — checklist nghiệm thu
 
 Lấy PDP `MKE-K06` làm mẫu, mọi PDP phải đủ:
 
@@ -59,7 +59,7 @@ Thiếu 1 trong các field trên = chưa Done.
 
 <a id="checkout"></a>
 
-## 4. Cart → Checkout → Tracking (Hưng P3 API + Gấm P4 UI)
+## 4. Cart → Checkout → Tracking (Hưng P3 API  UI)
 
 Flow hshop hiện tại (thủ công, cần tối ưu):
 `Đăng ký → Chọn hàng → Check giỏ → Điền info → Nhận email + chờ gọi điện xác nhận → ra cửa hàng hoặc chuyển khoản sau xác nhận`.
@@ -80,7 +80,7 @@ PATCH /api/v1/admin/orders/{code}           # pending→confirmed→shipping→d
 
 <a id="content"></a>
 
-## 5. Trust / Content (Gấm P4)
+## 5. Trust / Content
 
 * Homepage giữ: slider 2 banner, 4 badge `Giao hàng nhanh / Tư vấn / Chất lượng / Thanh toán linh hoạt`.
 * Footer giữ: 4 chính sách + hỗ trợ + tài khoản + block liên hệ `địa chỉ/giờ/hotline/Zalo/FB`.
@@ -103,7 +103,7 @@ PATCH /api/v1/admin/orders/{code}           # pending→confirmed→shipping→d
 
 * [Giàu P2 điền](members/P2-GIAU.md#scope): `app/models/category.py, brand.py, product.py, product_image.py`, `app/routers/categories.py, brands.py, products.py`, `app/services/product_service.py`, `app/seeds/seed.py` (seed 50-100 SP theo nhóm §2).
 * [Hưng P3 điền](members/P3-HUNG.md#scope): `app/models/cart.py, order.py, payment.py, voucher.py`, `app/routers/cart.py, orders.py, admin_orders.py`, `app/services/order_service.py`.
-* [Gấm P4 điền](members/P4-GAM.md#scope): `app/templates/product/list.html (=PLP §2), product/detail.html (=PDP §3)`, `cart/cart.html, checkout.html, tracking.html (=§4)`, `index.html + base.html (=§5)`.
+* [ P4 điền](members/P4-GAM.md#scope): `app/templates/product/list.html (=PLP §2), product/detail.html (=PDP §3)`, `cart/cart.html, checkout.html, tracking.html (=§4)`, `index.html + base.html (=§5)`.
 * [Dũng P1 khóa](members/P1-DUNG.md#scope): `app/core/*`, `alembic/*`; [API contract](API-DESIGN.md#contracts) khớp [PLP](#plp), [PDP](#pdp), [checkout](#checkout).
 
 Không khớp [PLP](#plp), [PDP](#pdp), [checkout](#checkout) khi review = trả về, không merge.
