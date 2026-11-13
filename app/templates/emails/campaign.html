@@ -3,9 +3,16 @@
 {% block content %}
 <h1 style="font-size: 22px; color: #12372a; margin-top: 0; margin-bottom: 20px;">{{ subject }}</h1>
 
-<div style="font-size: 15px; color: #333333; line-height: 1.7;">
+<div style="font-size: 15px; color: #333333; line-height: 1.6;">
   {% for paragraph in paragraphs %}
-    <p style="margin: 0 0 16px 0;">{{ paragraph }}</p>
+    {% set pstr = paragraph|string %}
+    {% if '<table' in pstr or '<div' in pstr %}
+      <div style="margin: 4px 0;">{{ paragraph }}</div>
+    {% elif '<img' in pstr %}
+      {{ paragraph }}
+    {% else %}
+      <p style="margin: 0 0 12px 0;">{{ paragraph }}</p>
+    {% endif %}
   {% endfor %}
 </div>
 
