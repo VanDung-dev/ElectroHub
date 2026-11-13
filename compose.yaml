@@ -150,6 +150,9 @@ services:
       dockerfile: docker/Dockerfile.localtunnel
     image: electrohub-localtunnel:local
     restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
     environment:
       LOCALTUNNEL_SUBDOMAIN: ${LOCALTUNNEL_SUBDOMAIN:-electrohub}
       LOCALTUNNEL_STRICT: ${LOCALTUNNEL_STRICT:-false}
