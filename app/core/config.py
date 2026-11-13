@@ -91,10 +91,28 @@ class Settings(BaseSettings):
             "tawkto_widget_id",
             "tawkto_embed_code",
             "subiz_embed_code",
+            "facebook_page_url",
+            "zalo_page_url",
         ):
             value = getattr(self, name)
             if isinstance(value, str) and not value.strip():
                 setattr(self, name, None)
+        if self.zalo_page_url and isinstance(self.zalo_page_url, str):
+            val = self.zalo_page_url.strip()
+            if not val:
+                self.zalo_page_url = None
+            elif not val.startswith(("http://", "https://")):
+                self.zalo_page_url = f"https://zalo.me/{val.lstrip('+')}"
+            else:
+                self.zalo_page_url = val
+        if self.facebook_page_url and isinstance(self.facebook_page_url, str):
+            val = self.facebook_page_url.strip()
+            if not val:
+                self.facebook_page_url = None
+            elif not val.startswith(("http://", "https://")):
+                self.facebook_page_url = f"https://{val}"
+            else:
+                self.facebook_page_url = val
         # ponytail: compile regexes once at module scope and cleanly extract widget credentials
         prop = self.tawkto_property_id or ""
         if "/" in prop or "tawk.to" in prop:

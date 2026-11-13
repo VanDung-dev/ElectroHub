@@ -42,8 +42,16 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .cart-row input{width:72px;padding:8px}
 .site-footer{margin-top:40px;padding:36px max(4%,calc((100% - 1160px)/2)) 28px;background:#edf2f4;border-top:1px solid #dae2e7;text-align:center}
 .site-footer h2{margin:0}
-.chat-links{position:fixed;right:16px;bottom:16px;display:grid;gap:8px;z-index:2}
-.chat-links a{padding:9px 12px;border-radius:5px;background:var(--green);color:#fff;text-decoration:none;box-shadow:0 2px 8px #0002;font-size:.87rem}
+.chat-links{position:fixed;left:20px;bottom:20px;display:flex;flex-direction:column;gap:10px;z-index:998;pointer-events:none}
+.chat-links a{pointer-events:auto}
+.chat-btn{display:inline-flex;align-items:center;gap:8px;padding:7px 15px 7px 8px;border-radius:50px;color:#fff!important;text-decoration:none;font-size:.88rem;font-weight:650;letter-spacing:-.01em;transition:transform .2s ease,box-shadow .2s ease;box-shadow:0 4px 14px rgba(0,0,0,.16)}
+.chat-btn:hover{transform:translateY(-2px) scale(1.02);color:#fff!important}
+.chat-btn:active{transform:translateY(0)}
+.chat-btn .chat-icon{display:block;flex-shrink:0}
+.chat-btn-zalo{background:linear-gradient(135deg,#0080ff 0%,#005fe6 100%);box-shadow:0 4px 16px rgba(0,104,255,.38);animation:chat-pulse-zalo 2.4s infinite}
+.chat-btn-facebook{background:linear-gradient(135deg,#0084ff 0%,#0069d9 100%);box-shadow:0 4px 16px rgba(0,132,255,.38)}
+@keyframes chat-pulse-zalo{0%{box-shadow:0 0 0 0 rgba(0,104,255,.6),0 4px 14px rgba(0,104,255,.38)}70%{box-shadow:0 0 0 10px rgba(0,104,255,0),0 4px 14px rgba(0,104,255,.38)}100%{box-shadow:0 0 0 0 rgba(0,104,255,0),0 4px 14px rgba(0,104,255,.38)}}
+@media(max-width:640px){.chat-links{left:14px;bottom:16px}.chat-btn{padding:7px 12px 7px 7px;font-size:.82rem}}
 .workspace-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:46px 0 28px;border-bottom:1px solid var(--line)}
 .workspace-heading h1{margin:5px 0;font-size:clamp(2rem,4vw,3rem);letter-spacing:-.05em}
 .workspace-heading p:last-child{margin:0;color:var(--muted)}

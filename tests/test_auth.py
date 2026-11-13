@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.security import ACCESS_COOKIE, CSRF_COOKIE, create_access_token, verify_password
+from app.models.newsletter import NewsletterSubscriber
 from app.models.user import User
 from tests.conftest import csrf_headers, login, register
 
@@ -14,7 +15,14 @@ from tests.conftest import csrf_headers, login, register
 def test_register_stores_bcrypt_and_returns_only_public_fields(client, database):
     response = register(client, email="Customer@EXAMPLE.COM", name=" Nguyễn Lê Văn Dũng ")
     assert response.status_code == 201
-    assert set(response.json()) == {"id", "email", "name", "role", "created_at"}
+    assert set(response.json()) == {
+        "id",
+        "email",
+        "name",
+        "role",
+        "created_at",
+        "is_subscribed_newsletter",
+    }
     assert response.json()["email"] == "customer@example.com"
     assert response.json()["name"] == "Nguyễn Lê Văn Dũng"
     assert response.json()["role"] == "customer"
@@ -353,3 +361,59 @@ def test_admin_permissions_blocking_and_revenue(client, database):
     res_relogin = login(client, email="user1@example.com")
     assert res_relogin.status_code == 200
     assert res_relogin.json()["role"] == "staff"
+
+
+def test_profile_marketing_newsletter_toggle(client, database):
+    # 1. Register and login
+    register(client, email="mkt_user@example.com", name="Marketing User")
+    login(client, email="mkt_user@example.com")
+
+    # 2. Initially not subscribed
+    me_res = client.get("/api/v1/auth/me")
+    assert me_res.status_code == 200
+    assert me_res.json()["is_subscribed_newsletter"] is False
+
+    # Check /account HTML page renders the checkbox
+    acc_page = client.get("/account")
+    assert acc_page.status_code == 200
+    assert "data-profile-newsletter-checkbox" in acc_page.text
+    assert "Nhận email marketing" in acc_page.text
+
+    # 3. Check marketing box and save
+    update_res = client.put(
+        "/api/v1/auth/me",
+        json={"name": "Marketing User", "is_subscribed_newsletter": True},
+        headers=csrf_headers(client),
+    )
+    assert update_res.status_code == 200
+    assert update_res.json()["is_subscribed_newsletter"] is True
+
+    # Verify in DB
+    with Session(database) as db:
+        sub = db.scalar(
+            select(NewsletterSubscriber).where(
+                NewsletterSubscriber.email == "mkt_user@example.com"
+            )
+        )
+        assert sub is not None
+
+    # Verify GET /me now returns True
+    assert client.get("/api/v1/auth/me").json()["is_subscribed_newsletter"] is True
+
+    # 4. Uncheck marketing box and save
+    unsub_res = client.put(
+        "/api/v1/auth/me",
+        json={"name": "Marketing User", "is_subscribed_newsletter": False},
+        headers=csrf_headers(client),
+    )
+    assert unsub_res.status_code == 200
+    assert unsub_res.json()["is_subscribed_newsletter"] is False
+
+    # Verify removed in DB
+    with Session(database) as db:
+        sub = db.scalar(
+            select(NewsletterSubscriber).where(
+                NewsletterSubscriber.email == "mkt_user@example.com"
+            )
+        )
+        assert sub is None
