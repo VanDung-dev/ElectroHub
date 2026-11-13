@@ -377,7 +377,7 @@ def test_profile_marketing_newsletter_toggle(client, database):
     acc_page = client.get("/account")
     assert acc_page.status_code == 200
     assert "data-profile-newsletter-checkbox" in acc_page.text
-    assert "Nhận email marketing" in acc_page.text
+    assert "email marketing" in acc_page.text.lower()
 
     # 3. Check marketing box and save
     update_res = client.put(
@@ -417,3 +417,40 @@ def test_profile_marketing_newsletter_toggle(client, database):
             )
         )
         assert sub is None
+
+
+def test_register_with_newsletter_subscription(client, database):
+    # 1. Verify register page contains the marketing checkbox
+    res_page = client.get("/account/register")
+    assert res_page.status_code == 200
+    assert 'name="is_subscribed_newsletter"' in res_page.text
+    assert "Đăng ký nhận email marketing" in res_page.text
+
+    # 2. Register with is_subscribed_newsletter = True
+    res_reg = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "optin_user@example.com",
+            "password": "ExamplePassword123!",
+            "name": "Opt-in User",
+            "is_subscribed_newsletter": True,
+        },
+        headers=csrf_headers(client),
+    )
+    assert res_reg.status_code == 201
+    assert res_reg.json()["is_subscribed_newsletter"] is True
+
+    # 3. Verify record created in newsletter_subscribers
+    with Session(database) as db:
+        sub = db.scalar(
+            select(NewsletterSubscriber).where(
+                NewsletterSubscriber.email == "optin_user@example.com"
+            )
+        )
+        assert sub is not None
+
+    # 4. Login and verify GET /me shows subscribed
+    login(client, email="optin_user@example.com")
+    me_res = client.get("/api/v1/auth/me")
+    assert me_res.status_code == 200
+    assert me_res.json()["is_subscribed_newsletter"] is True

@@ -45,7 +45,10 @@ def csrf(request: Request, response: Response):
     responses={409: {"model": DetailResponse}},
 )
 def register(data: RegisterRequest, db: DbSession):
-    return create_user(db, data)
+    user = create_user(db, data)
+    resp = UserResponse.model_validate(user)
+    resp.is_subscribed_newsletter = bool(getattr(data, "is_subscribed_newsletter", False))
+    return resp
 
 
 @router.post("/login", response_model=UserResponse)

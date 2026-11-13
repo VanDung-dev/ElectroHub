@@ -433,6 +433,8 @@ document.querySelector("[data-register]")?.addEventListener("submit", async (eve
   const data = Object.fromEntries(new FormData(form));
   if (data.password !== data.confirm_password) { message("Mật khẩu nhập lại chưa khớp."); return; }
   delete data.confirm_password;
+  const newsletterCb = form.querySelector("input[name='is_subscribed_newsletter']");
+  data.is_subscribed_newsletter = newsletterCb ? newsletterCb.checked : false;
   const submit = form.querySelector("button");
   submit.disabled = true;
   try { await request("/api/v1/auth/register", {method:"POST", body:JSON.stringify(data)}); location.href = "/account/login?registered=1"; }

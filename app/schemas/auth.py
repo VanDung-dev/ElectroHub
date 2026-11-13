@@ -42,6 +42,7 @@ class RegisterRequest(LoginRequest):
     )
 
     name: str = Field(min_length=1, max_length=100)
+    is_subscribed_newsletter: bool = False
 
     @field_validator("name")
     @classmethod
