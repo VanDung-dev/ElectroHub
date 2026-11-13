@@ -27,8 +27,8 @@
   <meta name="twitter:image" content="{{ page_image }}">
   <meta name="twitter:image:alt" content="{{ page_image_alt | default('ElectroHub') }}">
   {% if site_json_ld %}<script type="application/ld+json">{{ site_json_ld | safe }}</script>{% endif %}
-  <link rel="stylesheet" href="/static/css/base.css?v=16">
-  <script defer src="/static/js/store.js?v=22"></script>
+  <link rel="stylesheet" href="/static/css/base.css?v=17">
+  <script defer src="/static/js/store.js?v=23"></script>
 </head>
 <body>
   <div class="sticky-header">
@@ -108,9 +108,24 @@
       <p class="footer-copyright">© ElectroHub · Thiết bị điện tử và linh kiện</p>
     </div>
   </footer>
-  <aside class="chat-links" aria-label="Liên hệ trực tuyến">
-    {% if facebook_page_url %}<a href="{{ facebook_page_url }}" target="_blank" rel="noopener noreferrer">Nhắn Facebook</a>{% endif %}
-    {% if zalo_page_url %}<a href="{{ zalo_page_url }}" target="_blank" rel="noopener noreferrer">Chat Zalo</a>{% endif %}
+  <aside class="chat-links" aria-label="Liên hệ trực tuyến" style="position:fixed;left:20px;bottom:20px;display:flex;flex-direction:column;gap:10px;z-index:998;pointer-events:none;">
+    {% if zalo_page_url %}
+    <a href="{{ zalo_page_url }}" class="chat-btn chat-btn-zalo" target="_blank" rel="noopener noreferrer" aria-label="Chat Zalo với ElectroHub" style="pointer-events:auto;background:linear-gradient(135deg,#0080ff 0%,#005fe6 100%);color:#fff!important;border-radius:50px;">
+      <svg class="chat-icon zalo-icon" viewBox="0 0 36 36" width="26" height="26" aria-hidden="true">
+        <path d="M18 3C9.716 3 3 9.716 3 18c0 2.76.75 5.35 2.05 7.57L3.3 32.7a.8.8 0 0 0 .97.97l7.13-1.75A14.93 14.93 0 0 0 18 33c8.284 0 15-6.716 15-15S26.284 3 18 3z" fill="#0068FF"/>
+        <text x="18" y="22.5" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" font-size="11.5" text-anchor="middle" letter-spacing="-0.3">Zalo</text>
+      </svg>
+      <span class="chat-btn-text">Chat Zalo</span>
+    </a>
+    {% endif %}
+    {% if facebook_page_url %}
+    <a href="{{ facebook_page_url }}" class="chat-btn chat-btn-facebook" target="_blank" rel="noopener noreferrer" aria-label="Nhắn tin qua Facebook" style="pointer-events:auto;background:linear-gradient(135deg,#0084ff 0%,#0069d9 100%);color:#fff!important;border-radius:50px;">
+      <svg class="chat-icon facebook-icon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true">
+        <path d="M12 2C6.477 2 2 6.145 2 11.258c0 2.914 1.453 5.518 3.735 7.15V22l3.432-1.884c.895.248 1.846.384 2.833.384 5.523 0 10-4.145 10-9.258C22 6.145 17.523 2 12 2zm1.042 12.443-2.67-2.85-5.21 2.85 5.73-6.082 2.735 2.85 5.146-2.85-5.731 6.082z"/>
+      </svg>
+      <span class="chat-btn-text">Nhắn Facebook</span>
+    </a>
+    {% endif %}
   </aside>
   {% if tawkto_embed_code %}
   {{ tawkto_embed_code | safe }}

@@ -2,7 +2,7 @@
 
 [← Trang bắt đầu / chọn thành viên](README.md) · [Tra cứu theo công việc](README.md#lookup)
 
-[Dũng chốt contract](members/P1-DUNG.md#coordination); [Giàu làm catalog](members/P2-GIAU.md#tasks), [Hưng làm sales](members/P3-HUNG.md#tasks), [Gấm dùng contract để nối UI](members/P4-GAM.md#coordination).
+[Dũng chốt contract](members/P1-DUNG.md#coordination); [Giàu làm catalog](members/P2-GIAU.md#tasks), [Hưng làm sales](members/P3-HUNG.md#tasks), [ dùng contract để nối UI](members/P4-GAM.md#coordination).
 
 <a id="principles"></a>
 
@@ -19,13 +19,13 @@
 
 <a id="contracts"></a>
 
-## 2. Contract tối thiểu (Dũng P1 chốt, Giàu P2 / Hưng P3 implement, Gấm P4 dùng)
+## 2. Contract tối thiểu (Dũng P1 chốt, Giàu P2 / Hưng P3 implement dùng)
 
 <a id="auth"></a>
 
 ### Auth (Dũng P1)
 
-**Người thực hiện:** [Dũng P1 — nhiệm vụ và phối hợp](members/P1-DUNG.md#tasks). **UI sử dụng:** [Gấm P4](members/P4-GAM.md#coordination).
+**Người thực hiện:** [Dũng P1 — nhiệm vụ và phối hợp](members/P1-DUNG.md#tasks). **UI sử dụng:** .
 
 ```text
 POST /api/v1/auth/register  {email, password, name}
@@ -35,7 +35,7 @@ GET  /api/v1/auth/me
 GET  /api/v1/auth/csrf     -> {csrf_token}, set cookie CSRF
 ```
 
-Đã implement ở nền tảng P1; Gấm cần xác nhận tích hợp UI trước khi nghiệm thu:
+Đã implement ở nền tảng P1;  cần xác nhận tích hợp UI trước khi nghiệm thu:
 
 * Register trả `201`, user công khai `{id,email,name,role,created_at}`; không tự đăng nhập.
   Login trả user cùng format và set cookie `electrohub_access`; `/me` trả user hoặc `401`.
@@ -65,7 +65,7 @@ Ví dụ fetch và cách gắn router: [bàn giao P1](P1-HANDOFF.md#integration)
 
 ### Catalog (Giàu P2)
 
-**Người thực hiện:** [Giàu P2 — nhiệm vụ và phối hợp](members/P2-GIAU.md#tasks). **UI sử dụng:** [Gấm P4](members/P4-GAM.md#coordination).
+**Người thực hiện:** [Giàu P2 — nhiệm vụ và phối hợp](members/P2-GIAU.md#tasks). **UI sử dụng:** .
 
 ```text
 GET    /api/v1/categories
@@ -98,7 +98,7 @@ Response list chuẩn:
 
 ### Sales (Hưng P3)
 
-**Người thực hiện:** [Hưng P3 — nhiệm vụ và phối hợp](members/P3-HUNG.md#tasks). **UI sử dụng:** [Gấm P4](members/P4-GAM.md#coordination).
+**Người thực hiện:** [Hưng P3 — nhiệm vụ và phối hợp](members/P3-HUNG.md#tasks). **UI sử dụng:** .
 
 ```text
 GET  /api/v1/cart  POST /api/v1/cart/items {product_id, qty}  PUT /api/v1/cart/items/{id}  DELETE ...
@@ -118,7 +118,7 @@ GET  /api/v1/admin/orders        # admin: danh sách/lọc trạng thái, mã đ
 * Cart và checkout **bắt buộc đăng nhập**; mọi API sales dùng cookie auth hiện có.
 * Giá tính tiền = `sale_price` nếu có, ngược lại `price`; mọi số tiền là `int` VND.
 * Phí ship cố định `30.000` đồng cho đơn có hàng; quy tắc này phải khớp nội dung
-  chính sách vận chuyển Gấm hiển thị (còn chờ chốt ngưỡng miễn phí nếu có).
+  chính sách vận chuyển  hiển thị (còn chờ chốt ngưỡng miễn phí nếu có).
 * Thanh toán: chỉ `PAYPAL` và `VNPAY`, bắt buộc chọn khi tạo đơn. Cả hai là mô phỏng nội bộ, không thu tiền thật và không yêu cầu API key.
 * POST simulate chỉ dành cho chủ đơn, yêu cầu CSRF; kết quả `paid`/`failed`. Có thể thử lại sau thất bại, xác nhận thành công lặp lại không gây tác dụng phụ; không thanh toán đơn đã hủy/hoàn tiền.
 * Nhân viên chỉ xác nhận/giao đơn khi payment đã `paid`. Hủy đơn đã thanh toán mô phỏng sẽ hoàn kho và ghi `refunded`.
@@ -140,19 +140,19 @@ GET  /api/v1/admin/orders        # admin: danh sách/lọc trạng thái, mã đ
 * `GET` không bao giờ thay đổi dữ liệu. Checkout/trừ kho phải là `POST` + transaction DB.
 * Mọi API admin gắn `Depends(require_admin)`.
 * Mọi API mới phải có ví dụ trên `/docs` + 1 test `httpx` + 1 dòng trong `test_main.http`.
-* Đổi contract (thêm field required, đổi path): Giàu P2 / Hưng P3 báo trước cho Gấm P4, bump doc, không tự đổi lặng lẽ.
+* Đổi contract (thêm field required, đổi path): Giàu P2 / Hưng P3 báo trước cho  bump doc, không tự đổi lặng lẽ.
 
 <a id="pending-decisions"></a>
 
 ## 4. Những điểm cần Dũng và chủ domain chốt
 
-Các mục dưới đây là điểm chưa thống nhất hoặc chưa được mô tả đủ trong guideline hiện tại, chưa phải quyết định mới. Khi task đụng đến mục nào, trao đổi với đúng người ở cột cuối; cập nhật contract và tài liệu liên quan sau khi thống nhất, rồi báo cho Gấm trước khi nối UI.
+Các mục dưới đây là điểm chưa thống nhất hoặc chưa được mô tả đủ trong guideline hiện tại, chưa phải quyết định mới. Khi task đụng đến mục nào, trao đổi với đúng người ở cột cuối; cập nhật contract và tài liệu liên quan sau khi thống nhất, rồi báo cho  trước khi nối UI.
 
 | Điểm cần chốt | Đối chiếu ở đâu | Người phối hợp |
 | --- | --- | --- |
 | Giá dùng để lọc/sort catalog | [Đề xuất catalog P2](members/P2-GIAU-catalog-proposal.md), [PLP](HSHOP-ANALYSIS.md#plp) | [Giàu](members/P2-GIAU.md#coordination) đề xuất dùng `sale_price` nếu có, ngược lại `price`, để khớp giá checkout; chờ Hưng và Dũng xác nhận |
 | Quy tắc stock và cập nhật stock | [ERD](DB-MIGRATION.md#erd), [an toàn dữ liệu](DB-MIGRATION.md#data-safety) | [Giàu](members/P2-GIAU.md#coordination) + [Hưng](members/P3-HUNG.md#coordination), chờ xác nhận field/điểm trừ kho trong checkout |
-| Field/endpoint catalog còn thiếu: CRUD category/brand/product, upload, PDP và wishlist/compare | [Catalog](#catalog), [đề xuất P2](members/P2-GIAU-catalog-proposal.md), [ERD](DB-MIGRATION.md#erd), [PLP](HSHOP-ANALYSIS.md#plp), [PDP](HSHOP-ANALYSIS.md#pdp) | [Dũng](members/P1-DUNG.md#coordination) + [Giàu](members/P2-GIAU.md#coordination) + [Gấm](members/P4-GAM.md#coordination) |
-| Mua hàng có cần đăng nhập; xác minh mã + số điện thoại khi tra cứu; xử lý gửi checkout lặp, hủy đơn/hoàn kho và trạng thái payment | [Sales](#sales), [checkout](HSHOP-ANALYSIS.md#checkout), [transaction](DB-MIGRATION.md#data-safety) | [Dũng](members/P1-DUNG.md#coordination) + [Hưng](members/P3-HUNG.md#coordination); [Giàu](members/P2-GIAU.md#coordination) khi liên quan kho, [Gấm](members/P4-GAM.md#coordination) khi liên quan UI — **đã chốt 2026-10-23:** bắt buộc đăng nhập; tra cứu bằng mã + số điện thoại; checkout lặp bị chặn khi giỏ trống; hủy đơn hoàn kho/voucher, payment đã trả chuyển `refunded` |
-| CSRF và lỗi validation đã có [contract P1](#auth), chờ Gấm xác nhận; response rỗng/upload còn cần chốt | [Nguyên tắc API](#principles), [HTML](CODING-CONVENTION.md#html), [JS](CODING-CONVENTION.md#javascript) | [Dũng](members/P1-DUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination), chủ API liên quan |
-| Số bài blog/review tối thiểu khi nghiệm thu | [Yêu cầu content](HSHOP-ANALYSIS.md#content) và [DoD MVP](DEFINITION-OF-DONE.md#mvp) đang ghi khác nhau | [Dũng](members/P1-DUNG.md#coordination) + [Gấm](members/P4-GAM.md#coordination) |
+| Field/endpoint catalog còn thiếu: CRUD category/brand/product, upload, PDP và wishlist/compare | [Catalog](#catalog), [đề xuất P2](members/P2-GIAU-catalog-proposal.md), [ERD](DB-MIGRATION.md#erd), [PLP](HSHOP-ANALYSIS.md#plp), [PDP](HSHOP-ANALYSIS.md#pdp) | [Dũng](members/P1-DUNG.md#coordination) + [Giàu](members/P2-GIAU.md#coordination) +  |
+| Mua hàng có cần đăng nhập; xác minh mã + số điện thoại khi tra cứu; xử lý gửi checkout lặp, hủy đơn/hoàn kho và trạng thái payment | [Sales](#sales), [checkout](HSHOP-ANALYSIS.md#checkout), [transaction](DB-MIGRATION.md#data-safety) | [Dũng](members/P1-DUNG.md#coordination) + [Hưng](members/P3-HUNG.md#coordination); [Giàu](members/P2-GIAU.md#coordination) khi liên quan kho,  khi liên quan UI — **đã chốt 2026-10-23:** bắt buộc đăng nhập; tra cứu bằng mã + số điện thoại; checkout lặp bị chặn khi giỏ trống; hủy đơn hoàn kho/voucher, payment đã trả chuyển `refunded` |
+| CSRF và lỗi validation đã có [contract P1](#auth), chờ  xác nhận; response rỗng/upload còn cần chốt | [Nguyên tắc API](#principles), [HTML](CODING-CONVENTION.md#html), [JS](CODING-CONVENTION.md#javascript) | [Dũng](members/P1-DUNG.md#coordination) + , chủ API liên quan |
+| Số bài blog/review tối thiểu khi nghiệm thu | [Yêu cầu content](HSHOP-ANALYSIS.md#content) và [DoD MVP](DEFINITION-OF-DONE.md#mvp) đang ghi khác nhau | [Dũng](members/P1-DUNG.md#coordination) +  |

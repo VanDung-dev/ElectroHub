@@ -13,7 +13,7 @@ Nguyễn Lê Văn Dũng (Lead & Nền tảng) chịu trách nhiệm chính về 
 | Hạng mục | Phạm vi | Mô tả chi tiết | Trạng thái |
 | :--- | :--- | :--- | :--- |
 | **P1-01 Nền tảng Core** | Tự làm | Cấu trúc FastAPI, quản lý cấu hình `.env`, logging chuẩn, định dạng lỗi `{ "detail": "..." }`, routing static và Jinja2 templates | **Hoàn thành 100%** (106 tests passed) |
-| **P1-02 Auth & Security** | Phối hợp: Gấm | Đăng ký, đăng nhập JWT qua HttpOnly cookie, cơ chế chống CSRF kép, RBAC phân quyền (Customer, Staff, Manager) | **Hoàn thành 100%** (Đã tích hợp UI & API) |
+| **P1-02 Auth & Security** | — | Đăng ký, đăng nhập JWT qua HttpOnly cookie, cơ chế chống CSRF kép, RBAC phân quyền (Customer, Staff, Manager) | **Hoàn thành 100%** (Đã tích hợp UI & API) |
 | **P1-03 Schema & Alembic** | Tự làm | Schema chuẩn Unicode NVARCHAR, migration 2 chiều an toàn, CLI `app.create_admin` idempotent, 3 tài khoản demo mặc định | **Hoàn thành 100%** (Upgrade/Downgrade sạch) |
 | **P1-04 Docker Dual-DB** | Tự làm | Triển khai song song DB Web App (1433) và DB Test môn học (1434), tự động hóa nạp dữ liệu qua `init-test.sh`, hỗ trợ kết nối từ SSMS Parallels | **Hoàn thành 100%** (Container healthy) |
 | **P1-05 T-SQL Suite Môn học** | Tự làm | Trọn bộ 8 kịch bản T-SQL: Rules, Defaults, Triggers, Stored Procedures, Cursors, Views, Functions, Transactions và test tự động | **Hoàn thành 100%** (`test_all.sql` pass) |
@@ -53,10 +53,3 @@ Nguyễn Lê Văn Dũng (Lead & Nền tảng) chịu trách nhiệm chính về 
    - Nhân viên: `Depends(require_staff)`.
    - Quản trị viên: `Depends(require_admin)`.
 
-### Dành cho Gấm (P4 - Frontend):
-1. **Lấy CSRF Token**: Trước khi gửi request POST/PUT/DELETE từ JS:
-   ```js
-   const { csrf_token } = await fetch('/api/v1/auth/csrf').then(r => r.json());
-   // Gắn header: 'X-CSRF-Token': csrf_token
-   ```
-2. **Template SSR**: Các template nằm trong `app/templates/`, sử dụng layout dùng chung `base.html` và CSS variables chuẩn.

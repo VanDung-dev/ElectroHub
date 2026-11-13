@@ -66,6 +66,13 @@
             <label>Nội dung thông điệp
               <textarea name="body" required minlength="10" maxlength="5000" rows="10" placeholder="Nhập nội dung chiến dịch gửi tới khách hàng..."></textarea>
             </label>
+
+            <div style="display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; align-items: center;">
+              <button type="button" data-insert-product class="button-light">Chèn thẻ sản phẩm</button>
+              <button type="button" data-insert-product-image class="button-light">Chèn ảnh sản phẩm</button>
+              <button type="button" data-insert-products-multi class="button-light">Chèn nhiều sản phẩm</button>
+              <span style="font-size: 0.8rem; color: var(--muted);">Cú pháp: <code>[[PRODUCT:slug]]</code>, <code>[[PRODUCT_IMAGE:slug]]</code> hoặc <code>[[PRODUCTS:a,b,c]]</code></span>
+            </div>
             
             <div style="display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap;">
               <button type="submit">Gửi email marketing</button>
@@ -75,9 +82,9 @@
           </form>
 
           <div class="form-card" style="margin: 0; max-width: 100%; width: 100%; box-sizing: border-box; background: #fff;">
-            <h3 style="margin-top: 0; font-size: 1.05rem;">Khung xem trước trực tiếp (Preview)</h3>
-            <p style="font-size: 0.84rem; color: var(--muted); margin-bottom: 12px;">Bấm "Xem trước" để hiển thị mô phỏng email khách hàng nhận được.</p>
-            <div data-preview-container class="preview-pane" style="width: 100%; box-sizing: border-box;">
+            <h3 style="margin-top: 0; margin-bottom: 0; font-size: 1.05rem;">Khung xem trước trực tiếp (Preview)</h3>
+            <p style="font-size: 0.84rem; color: var(--muted); margin-top: 4px; margin-bottom: 0;">Bấm "Xem trước" để hiển thị mô phỏng email khách hàng nhận được.</p>
+            <div data-preview-container class="preview-pane" style="width: 100%; box-sizing: border-box; min-height: 960px; height: 960px;">
               <p style="color: var(--muted); text-align: center; margin-top: 60px; font-size: 0.88rem;">Chưa có bản xem trước.<br>Nhập tiêu đề, nội dung và nhấn "Xem trước".</p>
             </div>
           </div>
@@ -118,5 +125,31 @@
       </section>
     </section>
   </main>
+</div>
+
+<!-- Modal chèn sản phẩm -->
+<div data-product-picker-modal style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;">
+  <div style="background: #fff; width: min(900px, 95vw); max-height: 90vh; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+    <header style="display:flex; align-items:center; justify-content:space-between; padding: 16px 20px; border-bottom: 1px solid #eaeaea;">
+      <div>
+        <h2 style="margin: 0; font-size: 1.1rem;">Chèn sản phẩm vào email</h2>
+        <p style="margin: 4px 0 0; color: var(--muted); font-size: 0.85rem;">Chọn sản phẩm để chèn vào nội dung email</p>
+      </div>
+      <button type="button" data-product-picker-close class="button-light" style="padding: 6px 12px;">Đóng</button>
+    </header>
+    <div style="padding: 12px 20px; border-bottom: 1px solid #f0f0f0; display:flex; gap:10px; flex-wrap: wrap;">
+      <input type="search" data-product-picker-search placeholder="Tìm kiếm theo tên, SKU..." style="flex:1; min-height: 38px; padding: 6px 12px; border: 1px solid #b8c4c4; border-radius: 4px;">
+      <button type="button" data-product-picker-refresh class="button-light">Làm mới</button>
+      <button type="button" data-product-picker-insert-selected style="display:none;" class="button">Chèn đã chọn</button>
+    </div>
+    <div data-product-picker-selected style="display:none; padding: 8px 20px; border-bottom: 1px solid #f0f0f0; background: #f9fafb; font-size: 0.85rem; color: var(--muted);"></div>
+    <div data-product-picker-list style="flex:1; overflow:auto; padding: 16px 20px; display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;">
+      <p style="color: var(--muted);">Đang tải danh sách sản phẩm…</p>
+    </div>
+    <footer style="padding: 12px 20px; border-top: 1px solid #eaeaea; display:flex; justify-content: space-between; align-items:center; font-size: 0.85rem; color: var(--muted); flex-wrap: wrap; gap: 8px;">
+      <span data-product-picker-hint>Cú pháp sẽ được chèn: <code>[[PRODUCT:slug]]</code></span>
+      <button type="button" data-product-picker-close class="button-light">Đóng</button>
+    </footer>
+  </div>
 </div>
 {% endblock %}

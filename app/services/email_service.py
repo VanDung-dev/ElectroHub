@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import logging
+import re
 import smtplib
 import socket
 from email.message import EmailMessage
@@ -9,11 +10,13 @@ from urllib.parse import urlencode
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markupsafe import Markup, escape
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import ROOT, get_settings
 from app.core.database import get_engine
 from app.models.newsletter import EmailCampaign
+from app.models.product import Product
 
 logger = logging.getLogger("electrohub.email")
 
@@ -75,10 +78,164 @@ def render_welcome_email(email: str) -> tuple[str, str]:
     return text_content, html_content
 
 
-def _format_campaign_paragraphs(body: str) -> tuple[str, list[Markup]]:
-    normalized = body.replace("\r\n", "\n").replace("\r", "\n").strip()
-    raw = [p.strip() for p in normalized.split("\n\n") if p.strip()] or [normalized]
-    formatted = [Markup("<br>\n".join(str(escape(line)) for line in p.split("\n"))) for p in raw]
+_PRODUCT_PLACEHOLDER_RE = re.compile(r"\[\[PRODUCT\s*:\s*([^\]]+)\]\]", re.IGNORECASE)
+_PRODUCT_PLACEHOLDER_RE_ALT = re.compile(r"\[PRODUCT\s*:\s*([^\]]+)\]", re.IGNORECASE)
+_PRODUCT_IMAGE_PLACEHOLDER_RE = re.compile(r"\[\[PRODUCT_IMAGE\s*:\s*([^\]]+)\]\]", re.IGNORECASE)
+_PRODUCT_IMAGE_PLACEHOLDER_RE_ALT = re.compile(r"\[PRODUCT_IMAGE\s*:\s*([^\]]+)\]", re.IGNORECASE)
+_PRODUCT_IMG_PLACEHOLDER_RE = re.compile(r"\[\[IMG_PRODUCT\s*:\s*([^\]]+)\]\]", re.IGNORECASE)
+
+
+def _render_product_card_html(product: Product, site_url: str) -> str:
+    product_url = f"{site_url.rstrip('/')}/products/{product.slug}"
+    image_url = product.image_url
+    if image_url and image_url.startswith("/"):
+        image_url = f"{site_url.rstrip('/')}{image_url}"
+
+    price_html = ""
+    if product.sale_price is not None and product.sale_price < product.price:
+        price_html = (
+            f'<span style="text-decoration: line-through; color: #627264; font-size: 14px;">{product.price:,}₫</span> '
+            f'<span style="color: #d97706; font-weight: 700; font-size: 16px;">{product.sale_price:,}₫</span>'
+        )
+    else:
+        price_html = f'<span style="font-weight: 700; font-size: 16px; color: #12372a;">{product.price:,}₫</span>'
+
+    return f"""
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 6px 0; border: 1px solid #d8e2dc; border-radius: 8px; overflow: hidden;">
+  <tr>
+    <td style="width: 140px; padding: 12px; vertical-align: top;">
+      <a href="{product_url}" style="text-decoration: none;">
+        <img src="{image_url}" alt="{escape(product.name)}" width="116" style="display: block; width: 116px; height: 116px; object-fit: cover; border-radius: 6px; border: 1px solid #eaeaea;" />
+      </a>
+    </td>
+    <td style="padding: 12px 16px 12px 8px; vertical-align: top;">
+      <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #12372a;">
+        <a href="{product_url}" style="color: #12372a; text-decoration: none;">{escape(product.name)}</a>
+      </p>
+      <p style="margin: 0 0 12px 0;">{price_html}</p>
+      <p style="margin: 0;">
+        <a href="{product_url}" style="display: inline-block; background-color: #12372a; color: #ffffff; text-decoration: none; padding: 8px 16px; border-radius: 4px; font-size: 14px; font-weight: 600;">Xem sản phẩm →</a>
+      </p>
+    </td>
+  </tr>
+</table>
+""".strip()
+
+
+def _render_product_image_html(product: Product, site_url: str) -> str:
+    product_url = f"{site_url.rstrip('/')}/products/{product.slug}"
+    image_url = product.image_url
+    if image_url and image_url.startswith("/"):
+        image_url = f"{site_url.rstrip('/')}{image_url}"
+    return (
+        f'<p style="text-align: center; margin: 6px 0;">'
+        f'<a href="{product_url}" style="text-decoration: none;">'
+        f'<img src="{image_url}" alt="{escape(product.name)}" width="520" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #eaeaea;" />'
+        f'</a></p>'
+    )
+
+
+def _lookup_product(key: str) -> Product | None:
+    try:
+        with Session(get_engine()) as db:
+            if key.isdigit():
+                product = db.get(Product, int(key))
+                if product:
+                    return product
+            product = db.scalar(select(Product).where(Product.slug == key))
+            if product:
+                return product
+            product = db.scalar(select(Product).where(Product.sku == key))
+            if product:
+                return product
+    except Exception:
+        return None
+    return None
+
+
+def _process_product_placeholders(body: str, site_url: str) -> str:
+    def replace_product(match: re.Match) -> str:
+        key = match.group(1).strip()
+        product = _lookup_product(key)
+        if product is None:
+            return match.group(0)
+        try:
+            return _render_product_card_html(product, site_url)
+        except Exception:
+            return match.group(0)
+
+    def replace_product_image(match: re.Match) -> str:
+        key = match.group(1).strip()
+        product = _lookup_product(key)
+        if product is None:
+            return match.group(0)
+        try:
+            return _render_product_image_html(product, site_url)
+        except Exception:
+            return match.group(0)
+
+    # Try both formats
+    body = _PRODUCT_PLACEHOLDER_RE.sub(replace_product, body)
+    body = _PRODUCT_PLACEHOLDER_RE_ALT.sub(replace_product, body)
+    body = _PRODUCT_IMAGE_PLACEHOLDER_RE.sub(replace_product_image, body)
+    body = _PRODUCT_IMAGE_PLACEHOLDER_RE_ALT.sub(replace_product_image, body)
+    body = _PRODUCT_IMG_PLACEHOLDER_RE.sub(replace_product_image, body)
+
+    # Also support comma-separated list: [[PRODUCTS:slug1,slug2,...]]
+    products_list_re = re.compile(r"\[\[PRODUCTS\s*:\s*([^\]]+)\]\]", re.IGNORECASE)
+
+    def replace_products_list(match: re.Match) -> str:
+        keys_str = match.group(1)
+        keys = [k.strip() for k in re.split(r"[,\s]+", keys_str) if k.strip()]
+        cards = []
+        for key in keys:
+            product = _lookup_product(key)
+            if product:
+                try:
+                    card = _render_product_card_html(product, site_url)
+                    # Remove margins for tight vertical layout
+                    card = card.replace('style="margin: 12px 0; ', 'style="margin: 4px 0; ')
+                    card = card.replace('margin: 12px 0;', 'margin: 4px 0;')
+                    cards.append(card)
+                except Exception:
+                    continue
+        if not cards:
+            return match.group(0)
+        # Render stacked vertically with minimal spacing
+        stack_html = '<div style="margin: 8px 0;">' + "\n".join(cards) + '</div>'
+        return stack_html
+
+    body = products_list_re.sub(replace_products_list, body)
+    return body
+
+
+def _format_campaign_paragraphs(body: str, site_url: str | None = None) -> tuple[str, list[Markup]]:
+    settings = get_settings() if site_url is None else None
+    resolved_site_url = site_url or (settings.site_url.rstrip("/") if settings else "")
+
+    # Process product placeholders first
+    processed_body = _process_product_placeholders(body, resolved_site_url)
+    normalized = processed_body.replace("\r\n", "\n").replace("\r", "\n").strip()
+
+    # Split by double newlines, but be careful not to break HTML tables
+    raw_parts = re.split(r"\n\s*\n", normalized)
+    formatted = []
+    for p in raw_parts:
+        p_stripped = p.strip()
+        if not p_stripped:
+            continue
+        # If it's HTML (contains tags like <table, <div, <img), don't escape - it's already safe HTML we generated
+        if re.search(r"<(table|div|img|a|tr|td)\b", p_stripped, re.IGNORECASE):
+            # For HTML blocks, don't add extra <br> tags
+            formatted.append(Markup(p_stripped))
+        else:
+            formatted.append(Markup("<br>\n".join(str(escape(line)) for line in p_stripped.split("\n"))))
+    if not formatted and normalized:
+        # Fallback
+        if re.search(r"<(table|div|img|a)\b", normalized, re.IGNORECASE):
+            formatted = [Markup(normalized)]
+        else:
+            formatted = [Markup("<br>\n".join(str(escape(line)) for line in normalized.split("\n")))]
     return normalized, formatted
 
 
@@ -93,7 +250,7 @@ def render_campaign_email(
     settings = get_settings()
     site_url = settings.site_url.rstrip("/")
     unsub_url = get_unsubscribe_url(email)
-    normalized_body, formatted_paragraphs = precomputed or _format_campaign_paragraphs(body)
+    normalized_body, formatted_paragraphs = precomputed or _format_campaign_paragraphs(body, site_url)
 
     template = _jinja_env.get_template("emails/campaign.html")
     html_content = template.render(
@@ -184,7 +341,8 @@ def send_campaign_background(
                 smtp.login(settings.smtp_username, settings.smtp_password.get_secret_value())
 
             # ponytail: parse and format campaign content once instead of per-recipient
-            precomputed = _format_campaign_paragraphs(body)
+            site_url = settings.site_url.rstrip("/")
+            precomputed = _format_campaign_paragraphs(body, site_url)
             for email in recipients:
                 try:
                     text_content, html_content = render_campaign_email(

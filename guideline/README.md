@@ -18,8 +18,8 @@ Dự án ElectroHub đã hoàn thành **100% các hạng mục nghiệp vụ và
 | **Catalog Sản phẩm** | **Nguyễn Hữu Giàu (P2)** | **100% Hoàn thành** | Quản trị danh mục và sản phẩm linh kiện điện tử, tìm kiếm, bộ lọc theo giá và thương hiệu, seed dữ liệu mẫu phong phú (>50 sản phẩm kiểu hshop). |
 | **Giỏ hàng & Đơn hàng** | **Lê Nhật Hưng (P3)** | **100% Hoàn thành** | Giỏ hàng, áp mã voucher giảm giá (`WELCOME10`), giao dịch đặt hàng nguyên tử (Atomic Transaction) trừ tồn kho an toàn, tra cứu và đổi trạng thái đơn. |
 | **Cổng Thanh toán & Hoàn tiền** | **Lê Nhật Hưng (P3) & Dũng (P1)** | **100% Hoàn thành** | Chế độ Mock mô phỏng thành công/thất bại tại `/payments/{code}`; tích hợp Sandbox thật với **VNPAY** (ATM NCB) và **PayPal** (VISA ảo), chính sách hoàn tiền an toàn giữ chỗ 72h. |
-| **Giao diện Storefront & Admin** | **Phạm Thị Hồng Gấm (P4)** | **100% Hoàn thành** | Giao diện SSR Jinja2 đồng bộ, chuẩn responsive mobile/desktop, trang giỏ hàng, checkout, trang quản trị đơn cho nhân viên và trang quản lý cho admin. |
-| **Email Marketing Tự động** | **Dũng (P1) & Gấm (P4)** | **100% Hoàn thành** | Tự động gửi email chào mừng kèm voucher khi đăng ký nhận tin; admin gửi chiến dịch marketing qua background tasks; kiểm tra qua hộp thư Mailpit (`localhost:8025`). |
+| **Giao diện Storefront & Admin** | **Frontend Team** | **100% Hoàn thành** | Giao diện SSR Jinja2 đồng bộ, chuẩn responsive mobile/desktop, trang giỏ hàng, checkout, trang quản trị đơn cho nhân viên và trang quản lý cho admin. |
+| **Email Marketing Tự động** | **Dũng (P1)** | **100% Hoàn thành** | Tự động gửi email chào mừng kèm voucher khi đăng ký nhận tin; admin gửi chiến dịch marketing qua background tasks; kiểm tra qua hộp thư Mailpit (`localhost:8025`). |
 | **Chất lượng & Test Suite** | **Cả nhóm** | **100% Hoàn thành** | **106/106 tests passed** (Pytest), code format và lint đạt chuẩn tuyệt đối (`ruff check`, `ruff format`). |
 
 ---
@@ -38,7 +38,7 @@ graph TD
     P3["P3 — Lê Nhật Hưng\n(Sales & Payment)"] --> Cart["Cart, Order & Voucher"]
     P3 --> Pay["PayPal & VNPAY Sandbox"]
 
-    P4["P4 — Phạm Thị Hồng Gấm\n(Frontend UI/UX)"] --> Store["Storefront SSR (Jinja2)"]
+    P4["P4 — Frontend UI/UX"] --> Store["Storefront SSR (Jinja2)"]
     P4 --> AdminUI["Staff & Manager Panels"]
 ```
 

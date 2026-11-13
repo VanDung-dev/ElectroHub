@@ -164,6 +164,8 @@ async function loadAccountSidebar() {
     if (nameInput) nameInput.value = user.name || "";
     const emailInput = document.querySelector("[data-profile-email-input]");
     if (emailInput) emailInput.value = user.email || "";
+    const newsletterCheckbox = document.querySelector("[data-profile-newsletter-checkbox]");
+    if (newsletterCheckbox) newsletterCheckbox.checked = Boolean(user.is_subscribed_newsletter);
 
     const savedShipping = JSON.parse(localStorage.getItem("electrohub_default_shipping") || "{}");
     const phoneInput = document.querySelector("[data-profile-phone-input]");
@@ -431,6 +433,8 @@ document.querySelector("[data-register]")?.addEventListener("submit", async (eve
   const data = Object.fromEntries(new FormData(form));
   if (data.password !== data.confirm_password) { message("Mật khẩu nhập lại chưa khớp."); return; }
   delete data.confirm_password;
+  const newsletterCb = form.querySelector("input[name='is_subscribed_newsletter']");
+  data.is_subscribed_newsletter = newsletterCb ? newsletterCb.checked : false;
   const submit = form.querySelector("button");
   submit.disabled = true;
   try { await request("/api/v1/auth/register", {method:"POST", body:JSON.stringify(data)}); location.href = "/account/login?registered=1"; }
@@ -589,6 +593,16 @@ async function loadAdminSubscribers(query = "") {
       return;
     }
 
+    const formatVietnamTime = (dateStr) => {
+      if (!dateStr) return "-";
+      try {
+        const date = /Z$|[+-]\d{2}:?\d{2}$/.test(dateStr) ? new Date(dateStr) : new Date(dateStr + "Z");
+        return date.toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
+      } catch {
+        return new Date(dateStr).toLocaleString("vi-VN");
+      }
+    };
+
     tableContainer.innerHTML = `
       <table class="newsletter-table">
         <thead>
@@ -604,7 +618,7 @@ async function loadAdminSubscribers(query = "") {
             <tr>
               <td>#${sub.id}</td>
               <td><strong>${escapeHtml(sub.email)}</strong></td>
-              <td>${new Date(sub.created_at).toLocaleString("vi-VN")}</td>
+              <td>${formatVietnamTime(sub.created_at)}</td>
               <td style="text-align: right;">
                 <button type="button" class="remove-item" data-delete-sub="${sub.id}" title="Xóa người đăng ký">Xóa</button>
               </td>
@@ -635,6 +649,17 @@ async function loadAdminCampaigns() {
       return `<span class="badge badge-failed">Thất bại</span>`;
     };
 
+    const formatVietnamTime = (dateStr) => {
+      if (!dateStr) return "-";
+      try {
+        // Assume UTC if no timezone info
+        const date = /Z$|[+-]\d{2}:?\d{2}$/.test(dateStr) ? new Date(dateStr) : new Date(dateStr + "Z");
+        return date.toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
+      } catch {
+        return new Date(dateStr).toLocaleString("vi-VN");
+      }
+    };
+
     tableContainer.innerHTML = `
       <table class="newsletter-table">
         <thead>
@@ -652,7 +677,7 @@ async function loadAdminCampaigns() {
               <td>#${camp.id}</td>
               <td><strong>${escapeHtml(camp.subject)}</strong></td>
               <td>${camp.recipient_count} người</td>
-              <td>${new Date(camp.sent_at).toLocaleString("vi-VN")}</td>
+              <td>${formatVietnamTime(camp.sent_at)}</td>
               <td>${statusBadge(camp.status)}</td>
             </tr>
           `).join("")}
@@ -785,7 +810,7 @@ document.querySelector("[data-preview-btn]")?.addEventListener("click", async ()
     });
     const iframe = document.createElement("iframe");
     iframe.style.width = "100%";
-    iframe.style.height = "480px";
+    iframe.style.height = "960px";
     iframe.style.border = "none";
     iframe.srcdoc = res.html;
     container.innerHTML = "";
@@ -793,6 +818,246 @@ document.querySelector("[data-preview-btn]")?.addEventListener("click", async ()
   } catch (error) {
     container.innerHTML = `<p style="color: #b54c28;">Lỗi xem trước: ${escapeHtml(error.message)}</p>`;
   }
+});
+
+let _productPickerCache = [];
+
+function updateMultiSelectUI() {
+  const modal = document.querySelector("[data-product-picker-modal]");
+  const selDiv = document.querySelector("[data-product-picker-selected]");
+  const multiBtn = document.querySelector("[data-product-picker-insert-selected]");
+  if (!modal) return;
+  const selected = modal._selectedProducts || [];
+  if (modal.dataset.multiSelect === "true") {
+    if (selDiv) {
+      selDiv.style.display = "block";
+      if (!selected.length) {
+        selDiv.textContent = "Chưa chọn sản phẩm nào";
+      } else {
+        selDiv.innerHTML = `Đã chọn: <strong>${selected.length}</strong> sản phẩm - ${selected.map((s) => escapeHtml(s)).join(", ")}`;
+      }
+    }
+    if (multiBtn) {
+      multiBtn.style.display = "inline-flex";
+      multiBtn.disabled = selected.length === 0;
+    }
+  } else {
+    if (selDiv) { selDiv.style.display = "none"; selDiv.textContent = ""; }
+    if (multiBtn) multiBtn.style.display = "none";
+  }
+}
+
+async function loadProductPicker(query = "") {
+  const listEl = document.querySelector("[data-product-picker-list]");
+  if (!listEl) return;
+  listEl.innerHTML = `<p style="color: var(--muted);">Đang tải danh sách sản phẩm…</p>`;
+  try {
+    const res = await request("/api/v1/admin/products");
+    let items = res.items || [];
+    if (query) {
+      const q = query.toLowerCase();
+      items = items.filter((p) =>
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.sku && p.sku.toLowerCase().includes(q)) ||
+        (p.slug && p.slug.toLowerCase().includes(q))
+      );
+    }
+    _productPickerCache = items;
+    const modal = document.querySelector("[data-product-picker-modal]");
+    const isMulti = modal?.dataset.multiSelect === "true";
+    const selected = modal?._selectedProducts || [];
+    if (!items.length) {
+      listEl.innerHTML = `<p style="color: var(--muted);">Không tìm thấy sản phẩm nào.</p>`;
+      updateMultiSelectUI();
+      return;
+    }
+    listEl.innerHTML = items
+      .map((p) => {
+        const isSelected = selected.includes(p.slug);
+        return `
+      <button type="button" data-insert-product-id="${escapeHtml(p.slug)}" style="text-align:left; border:1px solid ${isSelected ? '#12372a' : '#e5e7eb'}; border-radius:8px; padding:10px; display:flex; gap:10px; align-items:center; background:${isSelected ? '#f0f7f4' : '#fff'}; cursor:pointer; box-shadow: ${isSelected ? '0 0 0 1px #12372a inset' : 'none'};">
+        <img src="${escapeHtml(p.image_url || "/static/img/product-placeholder.svg")}" alt="" style="width:64px; height:64px; object-fit:cover; border-radius:6px; border:1px solid #f0f0f0;">
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:600; font-size:0.95rem; color:#12372a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(p.name)}</div>
+          <div style="font-size:0.85rem; color:var(--muted);">${p.sale_price != null && p.sale_price < p.price ? `<span style="text-decoration:line-through;">${Number(p.price).toLocaleString("vi-VN")}₫</span> <strong style="color:#d97706;">${Number(p.sale_price).toLocaleString("vi-VN")}₫</strong>` : `<strong>${Number(p.price).toLocaleString("vi-VN")}₫</strong>`}</div>
+          <div style="font-size:0.75rem; color:var(--muted);">SKU: ${escapeHtml(p.sku)} · Slug: ${escapeHtml(p.slug)}</div>
+        </div>
+        <span style="font-size:0.8rem; color:${isMulti ? (isSelected ? '#12372a' : 'var(--muted)') : 'var(--accent)'};">${isMulti ? (isSelected ? '✓ Đã chọn' : 'Chọn') : 'Chèn'}</span>
+      </button>
+    `;
+      })
+      .join("");
+    updateMultiSelectUI();
+  } catch (error) {
+    listEl.innerHTML = `<p style="color:#b54c28;">Lỗi tải sản phẩm: ${escapeHtml(error.message)}</p>`;
+  }
+}
+
+document.querySelector("[data-insert-product]")?.addEventListener("click", () => {
+  const modal = document.querySelector("[data-product-picker-modal]");
+  if (modal) {
+    modal.dataset.insertMode = "card";
+    modal.dataset.multiSelect = "false";
+    modal._selectedProducts = [];
+    const hint = document.querySelector("[data-product-picker-hint]");
+    if (hint) hint.innerHTML = 'Cú pháp sẽ được chèn: <code>[[PRODUCT:slug]]</code>';
+    const multiBtn = document.querySelector("[data-product-picker-insert-selected]");
+    if (multiBtn) multiBtn.style.display = "none";
+    const selDiv = document.querySelector("[data-product-picker-selected]");
+    if (selDiv) { selDiv.style.display = "none"; selDiv.textContent = ""; }
+    modal.style.display = "flex";
+    loadProductPicker(document.querySelector("[data-product-picker-search]")?.value || "");
+  }
+});
+
+document.querySelector("[data-insert-product-image]")?.addEventListener("click", () => {
+  const modal = document.querySelector("[data-product-picker-modal]");
+  if (modal) {
+    modal.dataset.insertMode = "image";
+    modal.dataset.multiSelect = "false";
+    modal._selectedProducts = [];
+    const hint = document.querySelector("[data-product-picker-hint]");
+    if (hint) hint.innerHTML = 'Cú pháp sẽ được chèn: <code>[[PRODUCT_IMAGE:slug]]</code>';
+    const multiBtn = document.querySelector("[data-product-picker-insert-selected]");
+    if (multiBtn) multiBtn.style.display = "none";
+    const selDiv = document.querySelector("[data-product-picker-selected]");
+    if (selDiv) { selDiv.style.display = "none"; selDiv.textContent = ""; }
+    modal.style.display = "flex";
+    loadProductPicker(document.querySelector("[data-product-picker-search]")?.value || "");
+  }
+});
+
+document.querySelector("[data-insert-products-multi]")?.addEventListener("click", () => {
+  const modal = document.querySelector("[data-product-picker-modal]");
+  if (modal) {
+    modal.dataset.insertMode = "card";
+    modal.dataset.multiSelect = "true";
+    modal._selectedProducts = [];
+    const hint = document.querySelector("[data-product-picker-hint]");
+    if (hint) hint.innerHTML = 'Sẽ chèn xếp dọc: <code>[[PRODUCTS:slug1,slug2,...]]</code>';
+    const multiBtn = document.querySelector("[data-product-picker-insert-selected]");
+    if (multiBtn) { multiBtn.style.display = "inline-flex"; multiBtn.disabled = true; }
+    const selDiv = document.querySelector("[data-product-picker-selected]");
+    if (selDiv) { selDiv.style.display = "block"; selDiv.textContent = "Chưa chọn sản phẩm nào"; }
+    modal.style.display = "flex";
+    loadProductPicker(document.querySelector("[data-product-picker-search]")?.value || "");
+    message("Chế độ chèn nhiều sản phẩm: click để chọn/bỏ chọn sản phẩm");
+  }
+});
+
+document.querySelectorAll("[data-product-picker-close]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const modal = document.querySelector("[data-product-picker-modal]");
+    if (modal) {
+      modal.style.display = "none";
+      delete modal.dataset.insertMode;
+      delete modal.dataset.multiSelect;
+      modal._selectedProducts = [];
+    }
+  });
+});
+
+document.querySelector("[data-product-picker-modal]")?.addEventListener("click", (e) => {
+  if (e.target.matches("[data-product-picker-modal]")) {
+    e.target.style.display = "none";
+    delete e.target.dataset.insertMode;
+    delete e.target.dataset.multiSelect;
+    e.target._selectedProducts = [];
+  }
+});
+
+document.querySelector("[data-product-picker-search]")?.addEventListener("input", (e) => {
+  clearTimeout(window._prodPickerTimer);
+  window._prodPickerTimer = setTimeout(() => {
+    loadProductPicker(e.target.value.trim());
+  }, 250);
+});
+
+document.querySelector("[data-product-picker-refresh]")?.addEventListener("click", () => {
+  const search = document.querySelector("[data-product-picker-search]");
+  loadProductPicker(search?.value.trim() || "");
+});
+
+document.querySelector("[data-product-picker-list]")?.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-insert-product-id]");
+  if (!btn) return;
+  const slug = btn.dataset.insertProductId;
+  const modal = document.querySelector("[data-product-picker-modal]");
+  if (!modal) return;
+
+  if (modal.dataset.multiSelect === "true") {
+    if (!modal._selectedProducts) modal._selectedProducts = [];
+    const idx = modal._selectedProducts.indexOf(slug);
+    if (idx >= 0) {
+      modal._selectedProducts.splice(idx, 1);
+    } else {
+      modal._selectedProducts.push(slug);
+    }
+    updateMultiSelectUI();
+    // Re-render to show selection state
+    const search = document.querySelector("[data-product-picker-search]");
+    loadProductPicker(search?.value.trim() || "");
+    return;
+  }
+
+  const form = document.querySelector("[data-campaign]");
+  const bodyInput = form?.querySelector('[name="body"]');
+  if (!bodyInput) return;
+  const mode = modal?.dataset.insertMode || "card";
+  const insertText = mode === "image" ? ` [[PRODUCT_IMAGE:${slug}]] ` : ` [[PRODUCT:${slug}]] `;
+  if (document.selection) {
+    bodyInput.focus();
+    const sel = document.selection.createRange();
+    sel.text = insertText;
+  } else if (bodyInput.selectionStart || bodyInput.selectionStart === 0) {
+    const startPos = bodyInput.selectionStart;
+    const endPos = bodyInput.selectionEnd;
+    bodyInput.value = bodyInput.value.substring(0, startPos) + insertText + bodyInput.value.substring(endPos, bodyInput.value.length);
+    bodyInput.selectionStart = startPos + insertText.length;
+    bodyInput.selectionEnd = startPos + insertText.length;
+  } else {
+    bodyInput.value += insertText;
+  }
+  bodyInput.focus();
+  message(mode === "image" ? "Đã chèn ảnh sản phẩm vào nội dung email." : "Đã chèn thẻ sản phẩm vào nội dung email.");
+  if (modal) {
+    modal.style.display = "none";
+    delete modal.dataset.insertMode;
+    delete modal.dataset.multiSelect;
+    modal._selectedProducts = [];
+  }
+});
+
+document.querySelector("[data-product-picker-insert-selected]")?.addEventListener("click", () => {
+  const modal = document.querySelector("[data-product-picker-modal]");
+  const form = document.querySelector("[data-campaign]");
+  const bodyInput = form?.querySelector('[name="body"]');
+  if (!modal || !bodyInput) return;
+  const selected = modal._selectedProducts || [];
+  if (!selected.length) {
+    message("Vui lòng chọn ít nhất một sản phẩm");
+    return;
+  }
+  const insertText = ` [[PRODUCTS:${selected.join(",")}]] `;
+  if (document.selection) {
+    bodyInput.focus();
+    const sel = document.selection.createRange();
+    sel.text = insertText;
+  } else if (bodyInput.selectionStart || bodyInput.selectionStart === 0) {
+    const startPos = bodyInput.selectionStart;
+    const endPos = bodyInput.selectionEnd;
+    bodyInput.value = bodyInput.value.substring(0, startPos) + insertText + bodyInput.value.substring(endPos, bodyInput.value.length);
+    bodyInput.selectionStart = startPos + insertText.length;
+    bodyInput.selectionEnd = startPos + insertText.length;
+  } else {
+    bodyInput.value += insertText;
+  }
+  bodyInput.focus();
+  message(`Đã chèn ${selected.length} sản phẩm xếp dọc vào nội dung email.`);
+  modal.style.display = "none";
+  delete modal.dataset.insertMode;
+  delete modal.dataset.multiSelect;
+  modal._selectedProducts = [];
 });
 
 document.querySelector("[data-sub-search]")?.addEventListener("input", (e) => {
@@ -2061,15 +2326,24 @@ document.querySelector("[data-profile-form]")?.addEventListener("submit", async 
   }
 
   try {
+    const newsletterCheckbox = form.querySelector("[data-profile-newsletter-checkbox]");
+    const payload = {
+      name,
+      current_password: currentPassword,
+      new_password: newPassword,
+    };
+    if (newsletterCheckbox) {
+      payload.is_subscribed_newsletter = newsletterCheckbox.checked;
+    }
+
     const updated = await request("/api/v1/auth/me", {
       method: "PUT",
-      body: JSON.stringify({
-        name,
-        current_password: currentPassword,
-        new_password: newPassword,
-      }),
+      body: JSON.stringify(payload),
     });
     window.currentUser = updated;
+    if (newsletterCheckbox && typeof updated.is_subscribed_newsletter === "boolean") {
+      newsletterCheckbox.checked = updated.is_subscribed_newsletter;
+    }
 
     // Lưu thông tin địa chỉ giao hàng mặc định vào LocalStorage
     try {

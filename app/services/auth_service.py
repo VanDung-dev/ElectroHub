@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password, verify_password
+from app.models.newsletter import NewsletterSubscriber
 from app.models.user import User
 from app.schemas.auth import LoginRequest, RegisterRequest
 
@@ -15,13 +16,20 @@ DUMMY_PASSWORD_HASH = hash_password("unused-password")
 def create_user(
     db: Session, data: RegisterRequest, *, role: Literal["admin", "staff", "customer"] = "customer"
 ) -> User:
+    email_clean = str(data.email).lower()
     user = User(
-        email=str(data.email),
+        email=email_clean,
         password_hash=hash_password(data.password.get_secret_value()),
         name=data.name,
         role=role,
     )
     db.add(user)
+    if getattr(data, "is_subscribed_newsletter", False):
+        sub = db.scalar(
+            select(NewsletterSubscriber).where(NewsletterSubscriber.email == email_clean)
+        )
+        if not sub:
+            db.add(NewsletterSubscriber(email=email_clean))
     try:
         db.commit()
     except IntegrityError:

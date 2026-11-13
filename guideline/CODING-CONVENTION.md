@@ -2,7 +2,7 @@
 
 [← Trang bắt đầu / chọn thành viên](README.md) · [Tra cứu theo công việc](README.md#lookup)
 
-Backend: [Dũng](members/P1-DUNG.md#tasks), [Giàu](members/P2-GIAU.md#tasks), [Hưng](members/P3-HUNG.md#tasks) đọc phần Python. [Gấm](members/P4-GAM.md#tasks) đọc HTML/CSS/JS; Dũng phối hợp CSRF.
+Backend: [Dũng](members/P1-DUNG.md#tasks), [Giàu](members/P2-GIAU.md#tasks), [Hưng](members/P3-HUNG.md#tasks) đọc phần Python. Frontend đọc HTML/CSS/JS; Dũng phối hợp CSRF.
 
 <a id="python"></a>
 
@@ -30,7 +30,7 @@ Backend: [Dũng](members/P1-DUNG.md#tasks), [Giàu](members/P2-GIAU.md#tasks), [
 
 <a id="html"></a>
 
-## 2. HTML + Jinja2 (Gấm P4 chủ trì, Dũng P1 cấp CSRF)
+## 2. HTML + Jinja2 (Frontend chủ trì, Dũng P1 cấp CSRF)
 
 * Mọi page extends `base.html`. Không copy header/footer.
   ```html
@@ -46,7 +46,7 @@ Backend: [Dũng](members/P1-DUNG.md#tasks), [Giàu](members/P2-GIAU.md#tasks), [
 
 <a id="css"></a>
 
-## 3. CSS (Gấm P4 chủ trì, Giàu P2 / Hưng P3 không sửa)
+## 3. CSS (Frontend chủ trì, Giàu P2 / Hưng P3 không sửa)
 
 * 1 file global duy nhất: `base.css` chứa variables + reset + header/footer. Mỗi page 1 file riêng `home.css, plp.css, pdp.css, checkout.css, admin.css`.
 * BEM: `.product-card__price--sale`. Không dùng `!important`, không style global `div { ... }`.
@@ -58,7 +58,7 @@ Backend: [Dũng](members/P1-DUNG.md#tasks), [Giàu](members/P2-GIAU.md#tasks), [
 
 <a id="javascript"></a>
 
-## 4. JS thuần, ES modules (Gấm P4 chủ trì, Giàu P2 / Hưng P3 chỉ thêm data-attribute)
+## 4. JS thuần, ES modules (Frontend chủ trì, Giàu P2 / Hưng P3 chỉ thêm data-attribute)
 
 * Chia file, không dồn 1 file:
   ```text
